@@ -1,9 +1,20 @@
 {
-  "description": "Load the waiting handover for this repo when a session starts or is cleared.",
+  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in opt-in auto mode, nudge once to hand over and clear when context grows large.",
   "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/stop.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
-        "matcher": "startup|clear",
+        "matcher": "startup|clear|compact",
         "hooks": [
           {
             "type": "command",
