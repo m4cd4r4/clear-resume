@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { age, chooseHandover } from "./select.mjs";
-import { consumedIds, handoverId, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
+import { consumedIds, retireHandoverRef, handoverId, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
 
@@ -27,7 +27,8 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const stored = listWaiting(root, key);
   // Copies carried in git (web fallback) join the list unless already loaded once.
   const known = new Set([...consumedIds(root, key), ...stored.map((h) => handoverId(h.meta))]);
-  const carried = repoHandovers(top, { scanRemotes: webEnabled(env) }).filter((h) => !known.has(handoverId(h.meta)));
+  const inGit = repoHandovers(top, { scanRemotes: webEnabled(env) });
+  const carried = inGit.filter((h) => !known.has(handoverId(h.meta)));
   const waiting = [...stored, ...carried].sort((a, b) => String(a.meta.created).localeCompare(String(b.meta.created)));
   const compact = input.source === "compact";
   if (!waiting.length && !compact) return null;
@@ -41,6 +42,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     if (load.path) archive(root, key, load.path);
     markConsumed(root, key, load.meta);
     if (repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
+    for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
     const from = load.meta.branch && load.meta.branch !== branch ? ` (written on branch ${load.meta.branch})` : "";
     parts.push(
       `clear-resume: this session continues earlier work. Handover "${load.meta.title}", saved ${age(load.meta.created, now)}${from}. ` +

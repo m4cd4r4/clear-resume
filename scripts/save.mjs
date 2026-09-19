@@ -3,8 +3,8 @@
 //   node save.mjs --title "Short title" <<'EOF'
 //   ...handover markdown...
 //   EOF
-// With CLEAR_RESUME_WEB=1 (or --commit) it is also committed to the repo and
-// pushed, for cloud sessions whose home folder may not survive.
+// With CLEAR_RESUME_WEB=1 (or --commit) it is also pushed to its own ref,
+// clear-resume/<branch>, for cloud sessions whose home folder does not survive.
 import { readFileSync } from "node:fs";
 import { repoInfo, saveHandover } from "./lib/store.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
@@ -26,10 +26,10 @@ try {
   console.log(`Saved handover: ${path}`);
   for (const p of superseded) console.log(`Archived older handover for this branch: ${p}`);
   if (webEnabled() || process.argv.includes("--commit")) {
-    const r = commitHandover(repoInfo(process.cwd()).top, path);
-    if (r.pushed) console.log(`Committed and pushed ${r.path}, so a new cloud session can load it.`);
-    else if (r.committed) console.log(`Committed ${r.path} but the push failed (${r.error}). Push the branch before ending the session.`);
-    else console.log(`Wrote ${r.path} but could not commit it (${r.error}). Commit and push it before ending the session.`);
+    const { top, branch } = repoInfo(process.cwd());
+    const r = commitHandover(top, path, branch);
+    if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can load it.`);
+    else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
   console.log("After /clear, the next session in this repo loads it automatically.");
 } catch (err) {
