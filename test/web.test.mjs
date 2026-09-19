@@ -124,13 +124,14 @@ describe("load in a new cloud session", () => {
     expect(run({ cwd: two, source: "startup" }, { env: { CLEAR_RESUME_HOME: rootTwo } })).toBeNull();
   });
 
-  it("deletes the handover ref once loaded, so a later session with an empty home does not reload it", () => {
+  it("empties the handover ref once loaded, so a later session with an empty home does not reload it", () => {
     saveInSessionOne();
     freshSessionTwo("claude/one");
     const head = git(two, "rev-parse", "HEAD");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
     expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
-    expect(git(two, "ls-remote", "origin", "clear-resume/claude/one")).toBe("");
+    git(two, "fetch", "-q", "origin", "clear-resume/claude/one");
+    expect(git(two, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe("");
     expect(git(two, "rev-parse", "HEAD")).toBe(head);
     expect(run({ cwd: one, source: "startup" }, { env: webEnv(join(dir, "home-three")) })).toBeNull();
   });
@@ -149,11 +150,12 @@ describe("load in a new cloud session", () => {
     expect(git(two, "log", "-1", "--format=%s")).toBe("chore: clear-resume handover loaded");
   });
 
-  it("when the home folder survived, loads the store copy once and deletes the ref", () => {
+  it("when the home folder survived, loads the store copy once and empties the ref", () => {
     saveInSessionOne();
     const out = run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) });
     expect(out.hookSpecificOutput.additionalContext.match(/Finish the parser\./g)).toHaveLength(1);
-    expect(git(one, "ls-remote", "origin", "clear-resume/claude/one")).toBe("");
+    git(one, "fetch", "-q", "origin", "clear-resume/claude/one");
+    expect(git(one, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe("");
     expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) })).toBeNull();
   });
 });

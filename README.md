@@ -71,7 +71,9 @@ A cloud session's home folder is not kept between sessions, and a new cloud sess
 from a cached clone that is behind your last push. With `CLEAR_RESUME_WEB=1`, the handover skill
 also pushes the handover to its own branch, `clear-resume/<your-branch>`, as a single commit
 holding only `.clear-resume/HANDOVER.md`. Your branch, index and files are never touched. The
-next session fetches, loads the handover once, and deletes that branch from the remote.
+next session fetches, loads the handover once, and overwrites that branch with an empty commit
+(a cloud session is allowed to force-push but not to delete a branch). One such branch per
+branch you work on stays on the remote; delete them yourself whenever you like.
 
 Set it in the repo's `.claude/settings.json`, since a cloud session does not read your local
 settings:
@@ -90,7 +92,7 @@ and pushed to your repo's remote, so anyone who can read that repo can read it.
 ## Limitations
 
 - Cannot trigger `/clear` or `/compact`: you type `/clear`.
-- The web fallback has passed one live test on Claude Code on the web (save in one cloud session, load in the next).
+- Web mode passed a live test on Claude Code on the web on 2026-09-19: saved in one cloud session, loaded in the next.
 - In web mode the hook runs one `git fetch origin` (5-second limit) before searching, because a cloud session can start from a cached clone. Offline, it searches what is already fetched.
 
 ## Development

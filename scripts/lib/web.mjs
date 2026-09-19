@@ -1,7 +1,7 @@
 // Web fallback (opt-in, CLEAR_RESUME_WEB=1): a cloud session's home folder does not
 // survive between sessions, so the handover also travels in git. Save pushes it
 // to its own ref (clear-resume/<branch>). The next session fetches, finds it on
-// any remote branch, loads it once and deletes the ref.
+// any remote branch, loads it once and empties the ref.
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
@@ -58,12 +58,16 @@ export function commitHandover(top, savedPath, branch) {
   return result;
 }
 
-// Once loaded, remove the handover ref so the next session, whose home folder
-// is gone, does not load it again. Failure only means it may be listed again.
-export function deleteHandoverRef(top, remoteRef) {
+// Once loaded, empty the handover ref so the next session, whose home folder is
+// gone, does not load it again. It is overwritten with an empty commit, not
+// deleted: a cloud session's credentials get HTTP 403 on a ref delete but may
+// force-push (seen live 2026-09-19). Failure only means it may load again.
+export function retireHandoverRef(top, remoteRef) {
   if (!remoteRef?.startsWith("origin/" + REF_PREFIX)) return false;
   try {
-    execFileSync("git", ["push", "-q", "origin", "--delete", remoteRef.slice("origin/".length)], { cwd: top, stdio: "ignore", timeout: 5000 });
+    const empty = gitIn(top, ["mktree"], "");
+    const commit = gitIn(top, ["commit-tree", empty, "-m", "chore: clear-resume handover loaded"]);
+    execFileSync("git", ["push", "-q", "--force", "origin", `${commit}:refs/heads/${remoteRef.slice("origin/".length)}`], { cwd: top, stdio: "ignore", timeout: 5000 });
     return true;
   } catch {
     return false;
