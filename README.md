@@ -67,11 +67,11 @@ at 250k tokens.
 
 ## Claude Code on the web (opt-in)
 
-A cloud session's home folder is not kept between sessions: in a live test it was gone in the next session. With `CLEAR_RESUME_WEB=1`, the handover skill also commits
-`.clear-resume/HANDOVER.md` on the current branch and pushes it. The next session finds it in
-its working tree or on any already-fetched remote branch, loads it once, and deletes the
-working-tree copy in a commit of its own. Only that one file is ever committed: your staged
-and untracked work is left alone.
+A cloud session's home folder is not kept between sessions, and a new cloud session can start
+from a cached clone that is behind your last push. With `CLEAR_RESUME_WEB=1`, the handover skill
+also pushes the handover to its own branch, `clear-resume/<your-branch>`, as a single commit
+holding only `.clear-resume/HANDOVER.md`. Your branch, index and files are never touched. The
+next session fetches, loads the handover once, and deletes that branch from the remote.
 
 Set it in the repo's `.claude/settings.json`, since a cloud session does not read your local
 settings:

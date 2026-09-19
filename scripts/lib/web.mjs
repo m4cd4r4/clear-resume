@@ -1,12 +1,10 @@
-// Web fallback (opt-in, CLEAR_RESUME_WEB=1): a cloud session's home folder is not
-// proven to survive between sessions, so the handover also travels in git.
-// Save writes it to REPO_FILE, commits only that file and pushes the branch.
-// The next session finds it in its working tree, or on another pushed branch
-// (a cloud session usually starts on a new branch), loads it once, and records
-// its id so a copy left on another branch never loads twice.
+// Web fallback (opt-in, CLEAR_RESUME_WEB=1): a cloud session's home folder does not
+// survive between sessions, so the handover also travels in git. Save pushes it
+// to its own ref (clear-resume/<branch>). The next session fetches, finds it on
+// any remote branch, loads it once and deletes the ref.
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
 import { parseHandover } from "./store.mjs";
 
 export const REPO_FILE = ".clear-resume/HANDOVER.md";
@@ -31,22 +29,45 @@ function tryGit(cwd, args) {
 // One id per handover, shared by every copy of it (store, working tree, branches).
 export const handoverId = (meta) => `${meta.created ?? ""}|${meta.title ?? ""}`;
 
-// Write the saved handover into the repo, commit only that file, push the branch.
-export function commitHandover(top, savedPath) {
-  const dest = join(top, REPO_FILE);
-  mkdirSync(dirname(dest), { recursive: true });
-  writeFileSync(dest, readFileSync(savedPath, "utf8"), "utf8");
-  const result = { path: dest, committed: false, pushed: false, error: null };
+// Each branch's handover travels on its own ref, never on the user's branch: a new
+// cloud session starts from a cached clone that is behind the last push, so a
+// commit on the user's branch would fail to push (seen live 2026-09-19).
+export const REF_PREFIX = "clear-resume/";
+export const handoverRef = (branch) => REF_PREFIX + (branch || "detached");
+
+function gitIn(cwd, args, input) {
+  return execFileSync("git", args, { cwd, input, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 8000 }).trim();
+}
+
+// Push the saved handover as a standalone commit holding only REPO_FILE, to
+// refs/heads/clear-resume/<branch>. The working tree, index and branch are untouched.
+export function commitHandover(top, savedPath, branch) {
+  const ref = handoverRef(branch);
+  const result = { ref, pushed: false, error: null };
   try {
-    git(top, ["add", "--", REPO_FILE]);
-    git(top, ["commit", "-q", "-m", "chore: clear-resume handover", "--", REPO_FILE], { quiet: false });
-    result.committed = true;
-    git(top, ["push", "-q", "-u", "origin", "HEAD"], { quiet: false });
+    const blob = gitIn(top, ["hash-object", "-w", "--stdin"], readFileSync(savedPath, "utf8"));
+    const [dir, name] = REPO_FILE.split("/");
+    const inner = gitIn(top, ["mktree"], `100644 blob ${blob}\t${name}\n`);
+    const outer = gitIn(top, ["mktree"], `040000 tree ${inner}\t${dir}\n`);
+    const commit = gitIn(top, ["commit-tree", outer, "-m", "chore: clear-resume handover"]);
+    gitIn(top, ["push", "-q", "--force", "origin", `${commit}:refs/heads/${ref}`]);
     result.pushed = true;
   } catch (err) {
     result.error = String(err.stderr || err.message).trim().split("\n").at(-1);
   }
   return result;
+}
+
+// Once loaded, remove the handover ref so the next session, whose home folder
+// is gone, does not load it again. Failure only means it may be listed again.
+export function deleteHandoverRef(top, remoteRef) {
+  if (!remoteRef?.startsWith("origin/" + REF_PREFIX)) return false;
+  try {
+    execFileSync("git", ["push", "-q", "origin", "--delete", remoteRef.slice("origin/".length)], { cwd: top, stdio: "ignore", timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function consumedFile(root, key) {
@@ -78,7 +99,7 @@ export function remoteBranches(top) {
 // One bounded fetch refreshes them; offline or slow, the hook carries on unfetched.
 export function refreshRemotes(top) {
   try {
-    execFileSync("git", ["fetch", "--quiet", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
+    execFileSync("git", ["fetch", "--quiet", "--prune", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
     return true;
   } catch {
     return false;

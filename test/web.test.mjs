@@ -1,6 +1,6 @@
 // tdd-guard:allow - web-fallback rules, each mutation-checked.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -29,6 +29,7 @@ beforeEach(() => {
   git(one, "commit", "-q", "--allow-empty", "-m", "init");
   git(one, "push", "-q", "-u", "origin", "main");
   git(one, "checkout", "-q", "-b", "claude/one");
+  git(one, "push", "-q", "-u", "origin", "claude/one");
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -48,15 +49,28 @@ function freshSessionTwo(branch = "claude/two") {
 const webEnv = (root) => ({ CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1" });
 
 describe("save in web mode", () => {
-  it("commits only the handover file, leaving the user's own work alone, and pushes", () => {
+  it("pushes to its own ref, leaving the user's branch, index and files alone", () => {
     writeFileSync(join(one, "staged.txt"), "mine");
     git(one, "add", "staged.txt");
     writeFileSync(join(one, "untracked.txt"), "mine");
+    const head = git(one, "rev-parse", "HEAD");
     const out = saveInSessionOne();
-    expect(out).toMatch(/Committed and pushed/);
-    expect(git(one, "show", "--name-only", "--format=", "HEAD")).toBe(REPO_FILE);
+    expect(out).toMatch(/Pushed to clear-resume\/claude\/one/);
+    expect(git(one, "rev-parse", "HEAD")).toBe(head);
     expect(git(one, "status", "--porcelain")).toBe("A  staged.txt\n?? untracked.txt");
-    expect(git(one, "ls-remote", "origin", "claude/one")).not.toBe("");
+    expect(git(one, "ls-remote", "origin", "claude/one").split("\t")[0]).toBe(head);
+    git(one, "fetch", "-q", "origin", "clear-resume/claude/one");
+    expect(git(one, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe(REPO_FILE);
+  });
+
+  it("still pushes when this clone is behind the remote branch", () => {
+    freshSessionTwo("claude/one");
+    git(one, "commit", "-q", "--allow-empty", "-m", "moved on");
+    git(one, "push", "-q", "origin", "claude/one");
+    const { path } = saveHandover({ cwd: two, title: "stale", body: "z", root: rootTwo });
+    const r = commitHandover(two, path, "claude/one");
+    expect(r.error).toBeNull();
+    expect(r.pushed).toBe(true);
   });
 
   it("lists remote branches without the symbolic origin/HEAD", () => {
@@ -72,8 +86,7 @@ describe("save in web mode", () => {
   it("reports a failed push instead of claiming success", () => {
     git(one, "remote", "remove", "origin");
     const { path } = saveHandover({ cwd: one, title: "x", body: "y", root: rootOne });
-    const r = commitHandover(one, path);
-    expect(r.committed).toBe(true);
+    const r = commitHandover(one, path, "claude/one");
     expect(r.pushed).toBe(false);
     expect(r.error).toBeTruthy();
   });
@@ -111,21 +124,36 @@ describe("load in a new cloud session", () => {
     expect(run({ cwd: two, source: "startup" }, { env: { CLEAR_RESUME_HOME: rootTwo } })).toBeNull();
   });
 
-  it("on the same branch, loads the working-tree copy and deletes it in a commit", () => {
+  it("deletes the handover ref once loaded, so a later session with an empty home does not reload it", () => {
     saveInSessionOne();
     freshSessionTwo("claude/one");
+    const head = git(two, "rev-parse", "HEAD");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
     expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
-    expect(existsSync(join(two, REPO_FILE))).toBe(false);
-    expect(git(two, "log", "-1", "--format=%s")).toBe("chore: clear-resume handover loaded");
-    expect(git(two, "status", "--porcelain")).toBe("");
+    expect(git(two, "ls-remote", "origin", "clear-resume/claude/one")).toBe("");
+    expect(git(two, "rev-parse", "HEAD")).toBe(head);
+    expect(run({ cwd: one, source: "startup" }, { env: webEnv(join(dir, "home-three")) })).toBeNull();
   });
 
-  it("when the home folder survived, loads the store copy once and clears the git copy", () => {
+  it("still loads a legacy working-tree copy and deletes it in a commit", () => {
+    freshSessionTwo("claude/one");
+    const { path } = saveHandover({ cwd: one, title: "Legacy", body: "## Next action\nOld style.", root: rootOne });
+    const dest = join(two, REPO_FILE);
+    mkdirSync(join(two, ".clear-resume"), { recursive: true });
+    copyFileSync(path, dest);
+    git(two, "add", REPO_FILE);
+    git(two, "commit", "-q", "-m", "legacy handover");
+    const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    expect(out.hookSpecificOutput.additionalContext).toContain("Old style.");
+    expect(existsSync(dest)).toBe(false);
+    expect(git(two, "log", "-1", "--format=%s")).toBe("chore: clear-resume handover loaded");
+  });
+
+  it("when the home folder survived, loads the store copy once and deletes the ref", () => {
     saveInSessionOne();
     const out = run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) });
     expect(out.hookSpecificOutput.additionalContext.match(/Finish the parser\./g)).toHaveLength(1);
-    expect(existsSync(join(one, REPO_FILE))).toBe(false);
+    expect(git(one, "ls-remote", "origin", "clear-resume/claude/one")).toBe("");
     expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) })).toBeNull();
   });
 });
