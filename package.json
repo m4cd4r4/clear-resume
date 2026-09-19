@@ -1,0 +1,11 @@
+{
+  "name": "clear-resume",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code plugin: write a handover, clear, and resume in a fresh context.",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "vitest run" },
+  "devDependencies": { "vitest": "^3.2.0" }
+}
