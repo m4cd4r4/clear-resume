@@ -45,6 +45,25 @@ Turn the nudge on in `~/.claude/settings.json`:
 }
 ```
 
+## Claude Code on the web (opt-in)
+
+Handovers are saved under `~/.clear-resume/` on the machine running Claude Code. In a
+cloud session that folder has survived a new session in testing, but not reliably enough
+to depend on. With `CLEAR_RESUME_WEB=1`, `/handover` also commits
+`.clear-resume/HANDOVER.md` on the current branch and pushes it. The next session finds
+it in its working tree or on any already-fetched remote branch, loads it once, and
+deletes the working-tree copy in a commit of its own. Only that one file is ever
+committed: your staged and untracked work is left alone.
+
+Set it in the repo's `.claude/settings.json`, since a cloud session does not read your
+local settings:
+
+```json
+{ "env": { "CLEAR_RESUME_WEB": "1" } }
+```
+
+## Compaction backstop
+
 For a backstop, set auto-compaction to fire well before the window is full with
 `/autocompact` (or the `CLAUDE_CODE_AUTO_COMPACT_WINDOW` environment variable), for
 example at 250k tokens.

@@ -65,6 +65,11 @@ EOF
 It saves to `~/.clear-resume/<repo>/waiting/`. Saving again on the same branch
 archives the earlier handover, so there is only ever one waiting per branch.
 
+With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also commits
+`.clear-resume/HANDOVER.md` on the current branch and pushes it, so the next cloud
+session can find it. If the output says the push failed, push the branch before
+telling the user to start a new session.
+
 ## 4. Tell the user
 
 One line: the saved path, and that running `/clear` now will load it in the fresh session.
