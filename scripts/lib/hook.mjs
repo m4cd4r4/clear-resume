@@ -11,17 +11,24 @@ function describe(h, now) {
   return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}: ${h.file}`;
 }
 
+// After auto-compaction the summary is lossy about exact state, so the new
+// context is told to re-check it before acting on anything it "remembers".
+const COMPACT_NOTE =
+  "clear-resume: this context was just compacted. The summary is lossy about exact state: " +
+  "re-check git status, the current branch and any file before editing it or acting on a remembered result.";
+
 export function run(input, { env = process.env, now = new Date() } = {}) {
   const cwd = input.cwd || process.cwd();
   const { top, branch } = repoInfo(cwd);
   const root = storeRoot(env);
   const key = repoKey(top);
   const waiting = listWaiting(root, key);
-  if (!waiting.length) return null;
+  const compact = input.source === "compact";
+  if (!waiting.length && !compact) return null;
 
   const maxAgeDays = Number(env.CLEAR_RESUME_MAX_AGE_DAYS) || 7;
   const { load, list } = chooseHandover(waiting, branch, { now, maxAgeDays });
-  const parts = [];
+  const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
 
   if (load) {
