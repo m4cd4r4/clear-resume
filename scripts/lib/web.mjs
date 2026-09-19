@@ -73,14 +73,27 @@ export function remoteBranches(top) {
     .slice(0, MAX_REFS);
 }
 
+// A cloud session can start from a cached clone whose remote-tracking refs predate
+// the last session's push (seen live 2026-09-19: ref 2 commits behind ls-remote).
+// One bounded fetch refreshes them; offline or slow, the hook carries on unfetched.
+export function refreshRemotes(top) {
+  try {
+    execFileSync("git", ["fetch", "--quiet", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Handovers carried in git: the working tree copy, plus (in web mode) the copy on
-// each remote-tracking branch. Only what is already fetched is read: no network.
+// each remote-tracking branch, after one refresh of those branches.
 export function repoHandovers(top, { scanRemotes = false } = {}) {
   const found = [];
   const local = join(top, REPO_FILE);
   if (existsSync(local)) found.push({ source: "worktree", ref: null, ...parseHandover(readFileSync(local, "utf8")) });
 
   if (scanRemotes) {
+    refreshRemotes(top);
     for (const ref of remoteBranches(top)) {
       const text = tryGit(top, ["show", `${ref}:${REPO_FILE}`]);
       if (text) found.push({ source: "remote", ref, ...parseHandover(text) });

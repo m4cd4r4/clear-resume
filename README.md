@@ -67,8 +67,7 @@ at 250k tokens.
 
 ## Claude Code on the web (opt-in)
 
-A cloud session's home folder has survived a new session in testing, but not reliably enough
-to depend on. With `CLEAR_RESUME_WEB=1`, the handover skill also commits
+A cloud session's home folder is not kept between sessions: in a live test it was gone in the next session. With `CLEAR_RESUME_WEB=1`, the handover skill also commits
 `.clear-resume/HANDOVER.md` on the current branch and pushes it. The next session finds it in
 its working tree or on any already-fetched remote branch, loads it once, and deletes the
 working-tree copy in a commit of its own. Only that one file is ever committed: your staged
@@ -91,8 +90,8 @@ and pushed to your repo's remote, so anyone who can read that repo can read it.
 ## Limitations
 
 - Cannot trigger `/clear` or `/compact`: you type `/clear`.
-- The web fallback is tested against a local git remote, not yet in a live cloud session.
-- Only already-fetched remote branches are searched; the hook never fetches.
+- The web fallback has passed one live test on Claude Code on the web (save in one cloud session, load in the next).
+- In web mode the hook runs one `git fetch origin` (5-second limit) before searching, because a cloud session can start from a cached clone. Offline, it searches what is already fetched.
 
 ## Development
 

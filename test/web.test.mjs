@@ -89,6 +89,22 @@ describe("load in a new cloud session", () => {
     expect(run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) })).toBeNull();
   });
 
+  it("fetches first, so a clone older than the save still finds it", () => {
+    freshSessionTwo();
+    saveInSessionOne();
+    const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
+  });
+
+  it("fetches first on the same branch too, when the clone predates the push", () => {
+    saveInSessionOne("Earlier");
+    freshSessionTwo("claude/one");
+    run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    saveInSessionOne("Later", "## Next action\nShip the fetch.");
+    const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    expect(out.hookSpecificOutput.additionalContext).toContain("Ship the fetch.");
+  });
+
   it("does not scan other branches unless web mode is on", () => {
     saveInSessionOne();
     freshSessionTwo();
