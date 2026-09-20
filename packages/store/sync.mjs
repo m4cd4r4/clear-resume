@@ -264,3 +264,16 @@ export function pushInBackground(root = storeRoot(), env = process.env) {
   child.unref();
   return child;
 }
+
+/**
+ * Send whatever just changed, if this store is synced at all.
+ *
+ * The convenience the extension needs: it mutates the store from a UI thread and
+ * must not care whether sync was ever set up. A delete, a pin and an archive are
+ * changes exactly as a save is, and a tombstone that never leaves this machine is
+ * precisely the delete the other machine undoes.
+ */
+export function pushIfSynced(root = storeRoot(), env = process.env) {
+  if (!isSynced(root)) return null;
+  return pushInBackground(root, env);
+}

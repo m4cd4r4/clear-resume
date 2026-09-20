@@ -3,10 +3,29 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 import { archiveRecord, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../packages/store/store.mjs";
 import { migrate } from "../../packages/store/migrate.mjs";
+import { pushIfSynced } from "../../packages/store/sync.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";
 const CLAUDE_OPEN = "claude-vscode.editor.open";
+
+/**
+ * Run a store mutation and send it to the other machine.
+ *
+ * The sidebar writes to the same store the hooks do, so it owes the same push. A
+ * pin or a delete that stays local is not a slower sync, it is a change the other
+ * machine will undo: it still holds the record, so its next push restores it.
+ * Failing to push must never break the command - the next save picks the change up.
+ */
+function pushed<T>(root: string, mutate: () => T): T {
+  const result = mutate();
+  try {
+    pushIfSynced(root);
+  } catch {
+    // Offline, mid-rebase, no remote. All normal; the change is on disk.
+  }
+  return result;
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const config = () => vscode.workspace.getConfiguration("clearResume");
@@ -51,13 +70,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand("clearResume.pin", (node?: HandoverNode) => {
       if (!node) return;
-      setPinned(node.record.id, true, { root: root() });
+      pushed(root(), () => setPinned(node.record.id, true, { root: root() }));
       provider.refresh();
     }),
 
     vscode.commands.registerCommand("clearResume.unpin", (node?: HandoverNode) => {
       if (!node) return;
-      setPinned(node.record.id, false, { root: root() });
+      pushed(root(), () => setPinned(node.record.id, false, { root: root() }));
       provider.refresh();
     }),
 
@@ -69,7 +88,7 @@ export function activate(context: vscode.ExtensionContext): void {
         "Delete",
       );
       if (yes !== "Delete") return;
-      remove(node.record.id, { root: root() });
+      pushed(root(), () => remove(node.record.id, { root: root() }));
       provider.refresh();
     }),
 
@@ -101,7 +120,7 @@ async function resume(record: StoredHandover, root: string): Promise<void> {
     // Nothing was resumed, so the record stays waiting.
     return;
   }
-  archiveRecord(record.id, { root });
+  pushed(root, () => archiveRecord(record.id, { root }));
 }
 
 /**
@@ -137,7 +156,7 @@ async function runMigration(root: string, onDone: () => void): Promise<void> {
   const notesDir = join(homedir(), "Notes", "resume");
   const report = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Importing handovers" },
-    async () => migrate({ notesDir, root, machine: "legacy" }),
+    async () => pushed(root, () => migrate({ notesDir, root, machine: "legacy" })),
   );
 
   onDone();
