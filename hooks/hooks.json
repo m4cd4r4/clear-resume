@@ -1,6 +1,17 @@
 {
-  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in opt-in auto mode, nudge once to hand over and clear when context grows large.",
+  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in opt-in auto mode, nudge once to hand over and clear when context grows large - mid-turn as well as at a turn end, because compaction does not wait for a turn to end.",
   "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/post-tool.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

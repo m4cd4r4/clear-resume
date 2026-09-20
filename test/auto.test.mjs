@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
-import { lastContextTokens, runStop, threshold } from "../scripts/lib/nudge.mjs";
+import { lastContextTokens, runMidTurn, runStop, threshold } from "../scripts/lib/nudge.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
 
 const call = (ctx, extra = {}) =>
@@ -95,6 +95,82 @@ describe("Stop nudge", () => {
       encoding: "utf8",
     });
     expect(JSON.parse(stdout).decision).toBe("block");
+  });
+});
+
+// A screenshot read is one JSONL line of base64 megabytes. The tail read must
+// not give up when it lands inside one: that is silent, and it is worst in the
+// image-heavy sessions that burn context fastest.
+describe("lastContextTokens past a huge line", () => {
+  it("finds the call behind a line larger than the tail read", () => {
+    const huge = JSON.stringify({ type: "user", message: { content: "x".repeat(3_000_000) } });
+    write(call(210_000), huge);
+    expect(lastContextTokens(transcript)).toBe(210_000);
+  });
+
+  it("still returns null when the file genuinely holds no main-thread call", () => {
+    write(JSON.stringify({ type: "user", message: { content: "y".repeat(2_000_000) } }));
+    expect(lastContextTokens(transcript)).toBeNull();
+  });
+});
+
+// The Stop hook only runs when a turn ends. Context can cross the threshold in
+// the middle of one long tool-heavy turn, and compaction does not wait for a
+// turn to end - which is exactly how session 83cc6aa6 was compacted on
+// 2026-09-20 after climbing 136k to 216k with no turn-end in between.
+describe("mid-turn nudge", () => {
+  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root });
+  const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
+
+  it("does nothing unless auto mode is on", () => {
+    write(call(300_000));
+    expect(runMidTurn(input(), { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+  });
+
+  it("stays quiet below the threshold", () => {
+    write(call(179_000));
+    expect(runMidTurn(input(), { env: env() })).toBeNull();
+  });
+
+  it("warns without blocking, and says the turn is still running", () => {
+    write(call(185_000));
+    const out = runMidTurn(input(), { env: env() });
+    expect(out.decision).toBeUndefined();
+    expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
+    expect(out.hookSpecificOutput.additionalContext).toContain("/handover");
+  });
+
+  it("fires once per session, and shares the mark with the Stop nudge", () => {
+    write(call(185_000));
+    expect(runMidTurn(input(), { env: env() })).not.toBeNull();
+    expect(runMidTurn(input(), { env: env() })).toBeNull();
+    expect(runStop(input(), { env: env() })).toBeNull();
+  });
+
+  it("a Stop nudge first also silences the mid-turn one", () => {
+    write(call(185_000));
+    expect(runStop(input(), { env: env() }).decision).toBe("block");
+    expect(runMidTurn(input(), { env: env() })).toBeNull();
+  });
+
+  it("the script exits 0 silently on garbage input", () => {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+      input: "not json",
+      env: { ...process.env, ...env() },
+      encoding: "utf8",
+    });
+    expect(stdout).toBe("");
+  });
+
+  it("the script emits the warning as JSON", () => {
+    write(call(250_000));
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+      input: JSON.stringify(input()),
+      env: { ...process.env, ...env() },
+      encoding: "utf8",
+    });
+    expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toMatch(/250k/);
   });
 });
 

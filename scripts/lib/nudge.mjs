@@ -7,23 +7,26 @@ import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
-const TAIL_BYTES = 1024 * 1024;
+// A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
+// can land wholly inside one line and parse nothing - returning null, which
+// looks exactly like "no assistant calls" and skips the nudge in silence. Start
+// small for the usual case and grow only when nothing parsed.
+const TAIL_STEPS = [256 * 1024, 1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
 
-// Context size of the last main-thread assistant call, or null if none found.
-// Reads only the file's tail: transcripts reach hundreds of MB.
-export function lastContextTokens(transcriptPath) {
-  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+function readTail(transcriptPath, bytes) {
   const fd = openSync(transcriptPath, "r");
-  let text;
   try {
     const size = fstatSync(fd).size;
-    const start = Math.max(0, size - TAIL_BYTES);
+    const start = Math.max(0, size - bytes);
     const buf = Buffer.alloc(size - start);
     readSync(fd, buf, 0, buf.length, start);
-    text = buf.toString("utf8");
+    return { text: buf.toString("utf8"), whole: start === 0 };
   } finally {
     closeSync(fd);
   }
+}
+
+function scan(text) {
   const lines = text.split("\n");
   for (let i = lines.length - 1; i >= 0; i--) {
     let row;
@@ -40,6 +43,19 @@ export function lastContextTokens(transcriptPath) {
   return null;
 }
 
+// Context size of the last main-thread assistant call, or null if none found.
+// Reads the file's tail, growing it: transcripts reach hundreds of MB.
+export function lastContextTokens(transcriptPath) {
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+  for (const bytes of TAIL_STEPS) {
+    const { text, whole } = readTail(transcriptPath, bytes);
+    const found = scan(text);
+    if (found != null) return found;
+    if (whole) return null; // read the entire file and there is genuinely none
+  }
+  return null;
+}
+
 export function autoEnabled(env) {
   return /^(1|true|on|yes)$/i.test(String(env.CLEAR_RESUME_AUTO ?? "").trim());
 }
@@ -51,6 +67,17 @@ export function threshold(env) {
 
 const k = (n) => `${Math.round(n / 1000)}k`;
 
+// True the first time this session claims the nudge. Both nudges share the mark
+// so the user is interrupted once per session, whichever trigger gets there.
+function claimNudge(env, sessionId) {
+  const marks = join(storeRoot(env), ".nudged");
+  const mark = join(marks, sessionId);
+  if (existsSync(mark)) return false;
+  mkdirSync(marks, { recursive: true });
+  writeFileSync(mark, new Date().toISOString(), "utf8");
+  return true;
+}
+
 export function runStop(input, { env = process.env } = {}) {
   if (!autoEnabled(env)) return null;
   if (input.stop_hook_active) return null; // Claude is already continuing from a Stop block
@@ -61,11 +88,7 @@ export function runStop(input, { env = process.env } = {}) {
   const limit = threshold(env);
   if (tokens == null || tokens < limit) return null;
 
-  const marks = join(storeRoot(env), ".nudged");
-  const mark = join(marks, sessionId);
-  if (existsSync(mark)) return null; // once per session, never a loop
-  mkdirSync(marks, { recursive: true });
-  writeFileSync(mark, new Date().toISOString(), "utf8");
+  if (!claimNudge(env, sessionId)) return null;
 
   return {
     decision: "block",
@@ -75,5 +98,32 @@ export function runStop(input, { env = process.env } = {}) {
       `then tell the user to type /clear: the handover loads by itself in the fresh session. ` +
       `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
       `This reminder fires once per session.`,
+  };
+}
+
+// PostToolUse: the Stop hook only runs when a turn ends, so a single long
+// tool-heavy turn can cross the threshold and be compacted without it ever
+// getting a chance. This one warns mid-turn instead. It never blocks - a tool
+// result is the wrong place to interrupt work - and it never asks for the turn
+// to be abandoned, only for a handover at the next clean point.
+export function runMidTurn(input, { env = process.env } = {}) {
+  if (!autoEnabled(env)) return null;
+  const sessionId = slugify(input.session_id ?? "");
+  if (!sessionId) return null;
+
+  const tokens = lastContextTokens(input.transcript_path);
+  const limit = threshold(env);
+  if (tokens == null || tokens < limit) return null;
+  if (!claimNudge(env, sessionId)) return null;
+
+  return {
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext:
+        `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
+        `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
+        `then write a handover with the /handover skill and tell the user to type /clear: the handover loads by ` +
+        `itself in the fresh session. Do not abandon work in progress to do it. This warning fires once per session.`,
+    },
   };
 }
