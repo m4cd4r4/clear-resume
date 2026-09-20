@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
+import { prune } from "../../packages/store/store.mjs";
 import { age, chooseHandover } from "./select.mjs";
 import { consumedIds, retireHandoverRef, handoverId, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
 
@@ -37,12 +38,29 @@ function pullFirst(root, env) {
   }
 }
 
+/**
+ * Tidy the store on the way in.
+ *
+ * The extension prunes when its tree view opens, which is no use on a machine
+ * driven only from the CLI: there the store grows without limit and tombstones
+ * pulled from the other machine are never purged. Nothing here is pushed - both
+ * machines run the same clock over the same records and land in the same place.
+ */
+function pruneQuietly(root, now) {
+  try {
+    prune({ root, now });
+  } catch {
+    // A session must start whatever state the store is in.
+  }
+}
+
 export function run(input, { env = process.env, now = new Date() } = {}) {
   const cwd = input.cwd || process.cwd();
   const { top, branch } = repoInfo(cwd);
   const root = storeRoot(env);
   // Take the other machine's handovers before deciding what to offer.
   pullFirst(root, env);
+  pruneQuietly(root, now);
   const key = repoKey(top);
   const stored = listWaiting(root, key);
   // Copies carried in git (web fallback) join the list unless already loaded once.
