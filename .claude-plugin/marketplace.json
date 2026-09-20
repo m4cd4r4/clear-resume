@@ -1,0 +1,16 @@
+{
+  "name": "clear-resume",
+  "owner": { "name": "Macdara Ó Murchú" },
+  "metadata": {
+    "description": "Write a handover, clear the session, and pick up in a fresh context.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "clear-resume",
+      "source": "./",
+      "description": "A /handover skill plus a SessionStart hook that loads the waiting handover automatically. Shares its store with the clear-resume VS Code extension.",
+      "category": "workflow"
+    }
+  ]
+}
