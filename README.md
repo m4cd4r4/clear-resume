@@ -129,5 +129,49 @@ exactly as it did before.
 
 Deleting a handover writes a tombstone rather than removing the file, because an
 absent file is not a delete - the machine that still has the original would put it
-back. Tombstones are unlinked for real after 90 days.
+back. Tombstones are unlinked for real after 90 days, by whichever machine sees
+them expire first.
+
+### Setting up the second machine
+
+The first machine runs `init` against an empty private repo, as above. The second
+one already has a store to join, so it clones instead:
+
+```bash
+git clone git@github.com:you/your-store.git ~/.clear-resume
+git clone https://github.com/m4cd4r4/clear-resume
+claude --plugin-dir ./clear-resume
+```
+
+That is the whole setup. `init` is for creating the store; running it against a
+store that already exists elsewhere is how you end up with two of them.
+
+If the second machine already has handovers of its own, do not clone over them -
+move them aside, clone, then copy the JSON files back into `handovers/`. Their
+filenames carry the machine that wrote them, so they cannot collide with anything
+already there.
+
+For the VS Code sidebar, install the extension from a packaged build rather than
+from source:
+
+```bash
+cd clear-resume/extension && npm install && node esbuild.mjs
+npx @vscode/vsce package --no-dependencies --allow-missing-repository
+code --install-extension clear-resume-*.vsix --force
+```
+
+Do **not** launch an Extension Development Host to try it. On Windows
+`code --extensionDevelopmentPath` attaches to the running VS Code and restarts it,
+closing every window you have open.
+
+### What each machine does on its own
+
+| When | What happens | If the network is down |
+|---|---|---|
+| Session start | Pull, then prune expired records | Session starts normally, 8s cap |
+| Handover saved | Push, detached, in the background | The change waits for the next push |
+| Sidebar pin, delete, archive | Push, detached | Same |
+| Two machines rewrote one record | Later `updatedAt` wins | n/a - settled at the next pull |
+
+Set `CLEAR_RESUME_SYNC=off` on a machine that should keep a private store.
 
