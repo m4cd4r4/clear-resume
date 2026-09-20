@@ -65,7 +65,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!node) return;
       const yes = await vscode.window.showWarningMessage(
         `Delete "${node.record.title}"?`,
-        { modal: true, detail: "The handover record is removed from the store. Any original file it was imported from is left alone." },
+        { modal: true, detail: "The handover disappears from this list. A record of the delete is kept for 90 days so it cannot come back from another machine, then it goes for good. Any original file it was imported from is left alone." },
         "Delete",
       );
       if (yes !== "Delete") return;

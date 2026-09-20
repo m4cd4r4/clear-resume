@@ -21,6 +21,9 @@ export function group(records, { repoPath = "", now = new Date() } = {}) {
   const buckets = { current: [], other: [], stale: [], archived: [] };
 
   for (const r of records) {
+    // Tombstones are not a group. listAll already drops them; this is the
+    // guard for a caller that passed records it read itself.
+    if (r.status === "deleted") continue;
     if (r.status === "archived") buckets.archived.push(r);
     else if (isStale(r, now)) buckets.stale.push(r);
     else if (here && normalisePath(r.repoPath) === here) buckets.current.push(r);
