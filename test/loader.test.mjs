@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { age, chooseHandover } from "../scripts/lib/select.mjs";
 import { run } from "../scripts/lib/hook.mjs";
 import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
+import { listAll, read, save } from "../packages/store/store.mjs";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 const h = (title, branch, created = "2026-09-19T11:00:00Z") => ({ file: `${title}.md`, meta: { title, branch, created } });
@@ -88,6 +89,23 @@ describe("SessionStart hook", () => {
     expect(out.hookSpecificOutput.additionalContext).toMatch(/2 other handover\(s\)/);
     expect(out.hookSpecificOutput.additionalContext).toContain("load.mjs");
     expect(listWaiting(root, key)).toHaveLength(2);
+  });
+
+  // The extension prunes when its tree opens. A machine used only from the CLI
+  // never opens it, so without this the store grows forever there and tombstones
+  // from the other machine are never purged.
+  it("prunes the store on the way in, without blocking the session", () => {
+    const long = "2026-01-01T00:00:00.000Z";
+    const { id } = save(
+      { title: "long archived", body: "x", repoPath: repo, machine: "old", pid: 1, createdAt: long, status: "archived", archivedAt: long },
+      { root },
+    );
+    expect(listAll(root).map((r) => r.id)).toEqual([id]);
+
+    run({ cwd: repo }, { env });
+
+    expect(listAll(root)).toEqual([]);
+    expect(read(id, root).status).toBe("deleted");
   });
 
   it("the script emits valid JSON on stdout and exits 0", () => {
