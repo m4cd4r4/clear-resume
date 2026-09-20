@@ -1,10 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAll, read, remove, save, setPinned, update } from "../store.mjs";
-import { initSync, isSynced, sync } from "../sync.mjs";
+import { run } from "../../../scripts/lib/hook.mjs";
+import { saveHandover } from "../../../scripts/lib/store.mjs";
+import { initSync, isSynced, pushInBackground, sync } from "../sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
 // timeout is about the process spawns, not about anything under test.
@@ -42,7 +44,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  rmSync(tmp, { recursive: true, force: true });
+  // A background push may still hold the temp dir for a moment on Windows.
+  rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 
 describe("initSync", () => {
@@ -167,6 +170,73 @@ describe("conflicting rewrites", () => {
 
     expect(listAll(b)).toEqual([]);
     expect(read(id, b).status).toBe("deleted");
+  });
+});
+
+describe("what does not travel", () => {
+  // .nudged holds one marker file per session id - machine-local, ephemeral, and
+  // pure churn in a shared history. The consumed.txt marks under each repo key DO
+  // travel: a handover loaded on one machine must not be re-offered on the other.
+  it("ignores the per-session nudge markers", () => {
+    mkdirSync(join(a, ".nudged"), { recursive: true });
+    writeFileSync(join(a, ".nudged", "a-session-id"), "", "utf8");
+    initSync(a, remote);
+
+    expect(readFileSync(join(a, ".gitignore"), "utf8")).toContain(".nudged");
+    expect(git(a, "ls-files")).not.toContain(".nudged");
+  });
+});
+
+describe("wiring", () => {
+  // A session start blocks on the pull, so it has to give up quickly. Being a
+  // second late with someone else's handover is a nuisance; a session that hangs
+  // on a dead VPN is a broken tool.
+  it("gives up on an unreachable remote inside the timeout it was given", () => {
+    initSync(a, remote);
+    rmSync(remote, { recursive: true, force: true });
+
+    const started = Date.now();
+    const result = sync(a, { timeout: 4000 });
+    expect(result.ok).toBe(false);
+    expect(Date.now() - started).toBeLessThan(15000);
+  });
+
+  it("pushes in the background, so writing a handover never waits on the network", async () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    save(base({ title: "pushed in the background" }), { root: a });
+
+    const child = pushInBackground(a);
+    await new Promise((resolve) => child.on("exit", resolve));
+
+    sync(b);
+    expect(listAll(b).map((r) => r.title)).toEqual(["pushed in the background"]);
+  });
+});
+
+describe("session start", () => {
+  it("takes the other machine's handovers before deciding what to offer", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    const repo = join(tmp, "work");
+    mkdirSync(repo, { recursive: true });
+
+    saveHandover({ cwd: repo, title: "written on a", body: "do the thing", root: a });
+    sync(a);
+
+    const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: b } });
+    expect(out.hookSpecificOutput.additionalContext).toContain("written on a");
+  });
+
+  it("starts the session anyway when the remote is unreachable", () => {
+    initSync(a, remote);
+    const repo = join(tmp, "work");
+    mkdirSync(repo, { recursive: true });
+    save(base({ title: "local only", repoPath: repo }), { root: a });
+    rmSync(remote, { recursive: true, force: true });
+
+    const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: a } });
+    expect(out.hookSpecificOutput.additionalContext).toContain("local only");
   });
 });
 
