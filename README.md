@@ -175,3 +175,17 @@ closing every window you have open.
 
 Set `CLEAR_RESUME_SYNC=off` on a machine that should keep a private store.
 
+### Proving it before you trust it
+
+```bash
+node scripts/drill.mjs                    # synthetic store, no network
+node scripts/drill.mjs <your-store-url>   # your real store, at its real size
+```
+
+Two machines, four fights: the same record rewritten on both in each push order,
+a delete racing an edit, and simultaneous creates. Then it checks the two stores
+agree record for record.
+
+Given a URL it **clones** your store into a throwaway bare repo and pushes only
+there. Your remote is read, never written, and `~/.clear-resume` is never opened.
+
