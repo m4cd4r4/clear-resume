@@ -66,3 +66,14 @@ describe("prune", () => {
     expect(listAll(root).map((r) => r.machine).sort()).toEqual(["old-pinned", "old-waiting"]);
   });
 });
+
+describe("save collisions", () => {
+  it("keeps both when two handovers land in the same second from one window", () => {
+    const at = new Date("2026-09-20T01:02:03.000Z");
+    const one = save({ ...BASE, title: "first", body: "a", createdAt: at }, { root });
+    const two = save({ ...BASE, title: "second", body: "b", createdAt: at }, { root });
+
+    expect(two.id).not.toBe(one.id);
+    expect(listAll(root).map((r) => r.title).sort()).toEqual(["first", "second"]);
+  });
+});

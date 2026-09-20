@@ -1,6 +1,6 @@
 // tdd-guard:allow - tests backfilled onto the loader, each rule mutation-checked.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -121,7 +121,9 @@ describe("SessionStart hook", () => {
       encoding: "utf8",
     });
     expect(out).toContain("chosen body");
-    expect(existsSync(path)).toBe(false);
+    // The record stays put and flips to archived, so the extension keeps the history.
+    expect(existsSync(path)).toBe(true);
+    expect(JSON.parse(readFileSync(path, "utf8")).status).toBe("archived");
     expect(listWaiting(root, key).map((x) => x.meta.title)).toEqual(["not me"]);
   });
 });

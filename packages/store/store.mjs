@@ -25,9 +25,30 @@ export function save(input, { root = storeRoot(), now = new Date() } = {}) {
   const record = normalise(input, now);
   const dir = handoversDir(root);
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, fileName(record));
+
+  // Ids are second-resolution, so one window writing twice inside a second would
+  // land on the same file. Re-saving the SAME handover must still overwrite (a
+  // retry is not a new record), but a different one gets the next free suffix -
+  // an id collision here is silent data loss, which is how the migration lost
+  // four records before it was caught.
+  let path = join(dir, fileName(record));
+  for (let n = 2; existsSync(path) && !sameHandover(path, record); n++) {
+    record.id = `${recordId(record)}-${n}`;
+    path = join(dir, `${record.id}.json`);
+  }
+
   writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
   return { ...record, path };
+}
+
+/** True when the file already holds this handover, so writing it is a retry. */
+function sameHandover(path, record) {
+  try {
+    const existing = JSON.parse(readFileSync(path, "utf8"));
+    return existing.title === record.title && existing.body === record.body;
+  } catch {
+    return false; // unreadable or half-written: treat as occupied, take a new id
+  }
 }
 
 /** The id a record WOULD get, without writing it. Lets a caller ask "already here?". */
