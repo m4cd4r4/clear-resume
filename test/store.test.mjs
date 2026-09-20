@@ -3,7 +3,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../scripts/lib/store.mjs";
+import { listAll } from "../packages/store/store.mjs";
+import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../scripts/lib/store.mjs";
 
 let root, repo;
 
@@ -45,14 +46,34 @@ describe("slugify", () => {
 });
 
 describe("saveHandover", () => {
-  it("writes a waiting handover with frontmatter that round-trips", () => {
+  it("writes a waiting handover whose title and branch round-trip", () => {
     const { path, key } = saveHandover({ cwd: repo, title: 'Title: with "quotes"', body: "# Body\n\nNext: x", now: at("10:00:00"), root });
-    const { meta, body } = parseHandover(readFileSync(path, "utf8"));
+    const record = JSON.parse(readFileSync(path, "utf8"));
+    expect(record.title).toBe('Title: with "quotes"');
+    expect(record.branch).toBe("main");
+    expect(record.createdAt).toBe("2026-09-19T10:00:00.000Z");
+    expect(record.body).toBe("# Body\n\nNext: x");
+    expect(listWaiting(root, key)).toHaveLength(1);
+  });
+
+  it("renders the git-carried markdown with frontmatter that round-trips", () => {
+    const { path } = saveHandover({ cwd: repo, title: 'Title: with "quotes"', body: "# Body\n\nNext: x", now: at("10:00:00"), root });
+    const { meta, body } = parseHandover(handoverMarkdown(path));
     expect(meta.title).toBe('Title: with "quotes"');
     expect(meta.branch).toBe("main");
     expect(meta.created).toBe("2026-09-19T10:00:00.000Z");
     expect(body).toBe("# Body\n\nNext: x\n");
-    expect(listWaiting(root, key)).toHaveLength(1);
+  });
+
+  it("writes a record the shared store can read, so the extension sees it too", () => {
+    const body = ["# Body", "", "Next: x"].join("\n");
+    const { path } = saveHandover({ cwd: repo, title: "shared", body, now: at("10:00:00"), root });
+    const record = listAll(root).find((r) => r.path === path);
+    expect(record.title).toBe("shared");
+    expect(record.status).toBe("waiting");
+    expect(record.body).toBe(body);
+    expect(record.branch).toBe("main");
+    expect(record.createdAt).toBe("2026-09-19T10:00:00.000Z");
   });
 
   it("uses the repo top level from a subfolder", () => {
@@ -68,8 +89,9 @@ describe("saveHandover", () => {
     const first = saveHandover({ cwd: repo, title: "one", body: "x", now: at("10:00:00"), root });
     const second = saveHandover({ cwd: repo, title: "two", body: "y", now: at("11:00:00"), root });
     expect(second.superseded).toHaveLength(1);
-    expect(existsSync(first.path)).toBe(false);
-    expect(existsSync(second.superseded[0])).toBe(true);
+    // Superseding flips the record's status; the file itself is not moved.
+    expect(JSON.parse(readFileSync(first.path, "utf8")).status).toBe("archived");
+    expect(second.superseded[0]).toBe(first.path);
     expect(listWaiting(root, second.key).map((h) => h.meta.title)).toEqual(["two"]);
   });
 

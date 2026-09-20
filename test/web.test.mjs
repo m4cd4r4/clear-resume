@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
+import { handoverMarkdown, saveHandover } from "../scripts/lib/store.mjs";
 import { commitHandover, remoteBranches, REPO_FILE } from "../scripts/lib/web.mjs";
 
 const SAVE = join(import.meta.dirname, "../scripts/save.mjs");
@@ -141,7 +141,7 @@ describe("load in a new cloud session", () => {
     const { path } = saveHandover({ cwd: one, title: "Legacy", body: "## Next action\nOld style.", root: rootOne });
     const dest = join(two, REPO_FILE);
     mkdirSync(join(two, ".clear-resume"), { recursive: true });
-    copyFileSync(path, dest);
+    writeFileSync(dest, handoverMarkdown(path), "utf8"); // the legacy copy in a worktree is markdown, not a record
     git(two, "add", REPO_FILE);
     git(two, "commit", "-q", "-m", "legacy handover");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
