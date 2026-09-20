@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAll, read, remove, save, setPinned, update } from "../store.mjs";
 import { run } from "../../../scripts/lib/hook.mjs";
 import { saveHandover } from "../../../scripts/lib/store.mjs";
-import { initSync, isSynced, pushInBackground, sync } from "../sync.mjs";
+import { initSync, isSynced, pushIfSynced, pushInBackground, sync } from "../sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
 // timeout is about the process spawns, not about anything under test.
@@ -199,6 +199,31 @@ describe("wiring", () => {
     const result = sync(a, { timeout: 4000 });
     expect(result.ok).toBe(false);
     expect(Date.now() - started).toBeLessThan(15000);
+  });
+
+  // Every caller that mutates the store has to send the result. The extension's
+  // delete, pin and archive are as much a change as a save is, and a tombstone that
+  // never leaves this machine is exactly the delete that comes back.
+  it("pushIfSynced does nothing on a store that was never set up", () => {
+    expect(pushIfSynced(a)).toBeNull();
+  });
+
+  it("pushIfSynced sends a delete made outside the hook", async () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    const { id } = save(base({ title: "deleted on a" }), { root: a });
+    sync(a);
+    sync(b);
+    expect(listAll(b).map((r) => r.title)).toEqual(["deleted on a"]);
+
+    remove(id, { root: a });
+    const child = pushIfSynced(a);
+    expect(child).not.toBeNull();
+    await new Promise((resolve) => child.on("exit", resolve));
+
+    sync(b);
+    expect(listAll(b)).toEqual([]);
+    expect(listAll(b, { includeDeleted: true }).map((r) => r.id)).toEqual([id]);
   });
 
   it("pushes in the background, so writing a handover never waits on the network", async () => {

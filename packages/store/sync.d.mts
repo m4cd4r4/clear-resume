@@ -14,3 +14,5 @@ export function resolveConflicts(root?: string): string[] | null;
 export function sync(root?: string, opts?: { now?: Date; timeout?: number }): SyncResult;
 /** null when CLEAR_RESUME_SYNC=off; otherwise the detached child, for tests to await. */
 export function pushInBackground(root?: string, env?: Record<string, string | undefined>): import("node:child_process").ChildProcess | null;
+/** pushInBackground, but a no-op on a store that was never set up to sync. */
+export function pushIfSynced(root?: string, env?: Record<string, string | undefined>): import("node:child_process").ChildProcess | null;
