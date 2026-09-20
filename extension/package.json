@@ -1,0 +1,94 @@
+{
+  "name": "clear-resume",
+  "displayName": "clear-resume",
+  "description": "Browse your Claude Code handovers and resume one in a fresh conversation.",
+  "version": "0.1.0",
+  "publisher": "m4cd4r4",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/m4cd4r4/clear-resume" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "main": "./dist/extension.js",
+  "activationEvents": ["onView:clearResume.history"],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "clearResume",
+          "title": "clear-resume",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "clearResume": [
+        {
+          "id": "clearResume.history",
+          "name": "Handovers",
+          "contextualTitle": "clear-resume"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "clearResume.history",
+        "contents": "No handovers yet.\n\nWrite one with the /handover skill, or import the ones you already have.\n[Import existing handovers](command:clearResume.migrate)"
+      }
+    ],
+    "commands": [
+      { "command": "clearResume.resume", "title": "Resume", "icon": "$(play)" },
+      { "command": "clearResume.pin", "title": "Pin", "icon": "$(pin)" },
+      { "command": "clearResume.unpin", "title": "Unpin", "icon": "$(pinned)" },
+      { "command": "clearResume.delete", "title": "Delete", "icon": "$(trash)" },
+      { "command": "clearResume.open", "title": "Open handover" },
+      { "command": "clearResume.refresh", "title": "Refresh", "icon": "$(refresh)" },
+      { "command": "clearResume.toggleArchived", "title": "Show/hide archived", "icon": "$(history)" },
+      { "command": "clearResume.migrate", "title": "clear-resume: Import existing handovers" }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "clearResume.resume", "when": "false" },
+        { "command": "clearResume.pin", "when": "false" },
+        { "command": "clearResume.unpin", "when": "false" },
+        { "command": "clearResume.delete", "when": "false" },
+        { "command": "clearResume.open", "when": "false" }
+      ],
+      "view/title": [
+        { "command": "clearResume.toggleArchived", "when": "view == clearResume.history", "group": "navigation@1" },
+        { "command": "clearResume.refresh", "when": "view == clearResume.history", "group": "navigation@2" }
+      ],
+      "view/item/context": [
+        { "command": "clearResume.resume", "when": "view == clearResume.history && viewItem =~ /^handover/", "group": "inline@1" },
+        { "command": "clearResume.pin", "when": "view == clearResume.history && viewItem =~ /unpinned/", "group": "inline@2" },
+        { "command": "clearResume.unpin", "when": "view == clearResume.history && viewItem =~ /pinned$/", "group": "inline@2" },
+        { "command": "clearResume.delete", "when": "view == clearResume.history && viewItem =~ /^handover/", "group": "inline@3" }
+      ]
+    },
+    "configuration": {
+      "title": "clear-resume",
+      "properties": {
+        "clearResume.storePath": {
+          "type": "string",
+          "default": "",
+          "description": "Folder holding the handover store. Defaults to ~/.clear-resume."
+        },
+        "clearResume.showArchived": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show archived handovers in the tree."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.4.0"
+  }
+}
