@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { listAll, type StoredHandover } from "../../packages/store/store.mjs";
 import { describe, group, type Group } from "../../packages/store/view.mjs";
+import { worktreePaths } from "../../packages/store/worktree.mjs";
 
 type Node = GroupNode | HandoverNode;
 
@@ -28,7 +29,11 @@ export class HistoryProvider implements vscode.TreeDataProvider<Node> {
     if (node?.kind === "handover") return [];
 
     const now = new Date();
-    const groups = group(listAll(this.storeRootPath()), { repoPath: currentRepoPath(), now }).filter(
+    const here = currentRepoPath();
+    // Worktrees of the open repo are the same repo. Without this, a project driven
+    // through worktrees files most of its own handovers under "Other repos" while
+    // every row still shows the project's name.
+    const groups = group(listAll(this.storeRootPath()), { repoPath: here, roots: worktreePaths(here), now }).filter(
       (g) => g.id !== "archived" || this.showArchived(),
     );
 
