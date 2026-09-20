@@ -54,11 +54,16 @@ All optional, set as environment variables (for example in the `env` block of
 
 Claude Code cannot run `/clear` from a hook, so the plugin can only get close to automatic.
 
-- **Nudge at a threshold.** When a turn ends and the session's context is above
-  `CLEAR_RESUME_NUDGE_AT`, Claude is asked once per session to write a handover and tell you
-  to type `/clear`. The size is read from the session transcript on disk. Pick a threshold
-  well above your session-start size (rules, CLAUDE.md and tool schemas), or the nudge fires
-  on almost every session.
+- **Nudge at a threshold.** Once the session's context is above `CLEAR_RESUME_NUDGE_AT`,
+  Claude is asked once per session to write a handover and tell you to type `/clear`. The
+  size is read from the session transcript on disk. Pick a threshold well above your
+  session-start size (rules, CLAUDE.md and tool schemas), or the nudge fires on almost every
+  session.
+  
+  It is checked in two places, because one turn can cross the threshold and be compacted
+  without ever ending: after each tool call, where it warns and lets the turn continue, and
+  when a turn ends, where it blocks so the handover gets written before anything else. The
+  two share one mark, so you are interrupted once per session either way.
 - **After compaction.** When Claude Code compacts the context, the plugin tells the new
   context to re-check git and file state, and loads a waiting handover if there is one. This
   part is always on.
