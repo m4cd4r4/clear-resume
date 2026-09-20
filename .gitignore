@@ -1,2 +1,5 @@
 node_modules/
 extension/dist/
+
+# packaged extension builds
+*.vsix
