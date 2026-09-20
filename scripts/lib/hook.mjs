@@ -2,6 +2,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
+import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { age, chooseHandover } from "./select.mjs";
 import { consumedIds, retireHandoverRef, handoverId, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
 
@@ -19,10 +20,29 @@ const COMPACT_NOTE =
   "clear-resume: this context was just compacted. The summary is lossy about exact state: " +
   "re-check git status, the current branch and any file before editing it or acting on a remembered result.";
 
+// A session start blocks on the pull, so it gives up quickly. Being a second late
+// with the other machine's handover is a nuisance; a session that hangs on a dead
+// VPN is a broken tool. Set CLEAR_RESUME_SYNC=off to skip it entirely.
+const SYNC_TIMEOUT_MS = 8000;
+
+function pullFirst(root, env) {
+  if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return;
+  if (!isSynced(root)) return;
+  const timeout = Number(env.CLEAR_RESUME_SYNC_TIMEOUT_MS) || SYNC_TIMEOUT_MS;
+  try {
+    pull(root, { timeout });
+  } catch {
+    // pull() already fails soft; this is the belt to its braces. A session must
+    // start whatever the network is doing.
+  }
+}
+
 export function run(input, { env = process.env, now = new Date() } = {}) {
   const cwd = input.cwd || process.cwd();
   const { top, branch } = repoInfo(cwd);
   const root = storeRoot(env);
+  // Take the other machine's handovers before deciding what to offer.
+  pullFirst(root, env);
   const key = repoKey(top);
   const stored = listWaiting(root, key);
   // Copies carried in git (web fallback) join the list unless already loaded once.

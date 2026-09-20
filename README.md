@@ -47,6 +47,8 @@ All optional, set as environment variables (for example in the `env` block of
 | `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
+| `CLEAR_RESUME_SYNC` | on | `off` stops syncing entirely, both directions. |
+| `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
 
 ## Auto mode (opt-in)
 
@@ -105,3 +107,27 @@ npx vitest run
 ## Licence
 
 MIT
+
+## Syncing two machines
+
+The store is a folder of small JSON files whose names carry the machine that wrote
+them, so two machines can never write the same path. That makes it a git repo that
+cannot conflict on creates.
+
+```
+node scripts/sync.mjs init git@github.com:you/your-store.git   # once per machine
+node scripts/sync.mjs                                          # a sync by hand
+```
+
+Use a **private** repo. The store holds every handover you have written - repo
+paths, branch names, whatever was in context at the time.
+
+Once it is set up, a session start pulls before it decides what to offer you, and
+writing a handover pushes in the background. Both fail soft: offline, a remote that
+has gone away, or a store that was never set up all leave the session working
+exactly as it did before.
+
+Deleting a handover writes a tombstone rather than removing the file, because an
+absent file is not a delete - the machine that still has the original would put it
+back. Tombstones are unlinked for real after 90 days.
+

@@ -8,9 +8,10 @@
 //
 // Everything here fails soft. A SessionStart hook runs this, so being offline, on a
 // flaky VPN, or mid-rebase must return a reason, never throw and never block.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { handoversDir, storeRoot } from "./store.mjs";
 
 const TIMEOUT_MS = 30000;
@@ -18,6 +19,12 @@ const TIMEOUT_MS = 30000;
 // LF everywhere. Without this the store churns whole-file diffs the first time a
 // Windows machine and a Unix one both write to it.
 const GITATTRIBUTES = "* text=auto eol=lf\n";
+
+// One marker file per session id, written so auto mode nudges once. Machine-local
+// and ephemeral: syncing it would add a commit per session and tell the other
+// machine nothing. The consumed.txt marks under each repo key are NOT here - a
+// handover loaded on one machine must not be offered again on the other.
+const GITIGNORE = ".nudged/\n";
 
 function git(cwd, args, { timeout = TIMEOUT_MS } = {}) {
   return execFileSync("git", args, {
@@ -77,6 +84,9 @@ export function initSync(root = storeRoot(), remote, { now = new Date() } = {}) 
   const attributes = join(root, ".gitattributes");
   if (!existsSync(attributes)) writeFileSync(attributes, GITATTRIBUTES, "utf8");
 
+  const ignore = join(root, ".gitignore");
+  if (!existsSync(ignore)) writeFileSync(ignore, GITIGNORE, "utf8");
+
   const current = tryGit(root, ["remote", "get-url", "origin"]).out;
   if (!current) tryGit(root, ["remote", "add", "origin", remote]);
   else if (current !== remote) tryGit(root, ["remote", "set-url", "origin", remote]);
@@ -124,13 +134,13 @@ export function commitLocal(root = storeRoot(), { now = new Date() } = {}) {
  * store have no common root, and joining them is the normal second-machine path,
  * not an accident.
  */
-export function pull(root = storeRoot()) {
+export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
   if (!isSynced(root)) return { ok: false, resolved: [], reason: "not synced" };
   ensureIdentity(root);
 
   // No refspec: a brand new remote has no `main` to ask for, and naming it there
   // turns "this machine is the first one" into a fetch error.
-  const fetched = tryGit(root, ["fetch", "origin"]);
+  const fetched = tryGit(root, ["fetch", "origin"], { timeout });
   if (!fetched.ok) return { ok: false, resolved: [], reason: fetched.reason };
 
   // Nothing on the remote yet: this machine is the first one.
@@ -138,7 +148,7 @@ export function pull(root = storeRoot()) {
     return { ok: true, resolved: [] };
   }
 
-  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"]);
+  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout });
   if (merged.ok) return { ok: true, resolved: [] };
 
   const resolved = resolveConflicts(root);
@@ -212,25 +222,45 @@ function pick(ours, theirs) {
  * loses a race. A SessionStart hook calls this, so it returns a reason rather than
  * throwing, and whatever it committed locally goes out on the next attempt.
  */
-export function sync(root = storeRoot(), { now = new Date() } = {}) {
+export function sync(root = storeRoot(), { now = new Date(), timeout = TIMEOUT_MS } = {}) {
   if (!isSynced(root)) return { ok: false, resolved: [], reason: "not synced" };
 
   const committed = commitLocal(root, { now });
   if (!committed.ok) return { ok: false, resolved: [], reason: committed.reason };
 
-  const pulled = pull(root);
+  const pulled = pull(root, { timeout });
   if (!pulled.ok) return { ok: false, resolved: [], reason: pulled.reason };
 
-  let pushed = tryGit(root, ["push", "origin", "main"]);
+  let pushed = tryGit(root, ["push", "origin", "main"], { timeout });
   if (!pushed.ok) {
     // Someone else pushed between our fetch and our push. Take theirs and retry
     // once; a second failure is reported rather than looped on.
-    const again = pull(root);
+    const again = pull(root, { timeout });
     if (!again.ok) return { ok: false, resolved: pulled.resolved, reason: again.reason };
     pulled.resolved.push(...again.resolved);
-    pushed = tryGit(root, ["push", "origin", "main"]);
+    pushed = tryGit(root, ["push", "origin", "main"], { timeout });
     if (!pushed.ok) return { ok: false, resolved: pulled.resolved, reason: pushed.reason };
   }
 
   return { ok: true, resolved: pulled.resolved };
+}
+
+const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
+
+/**
+ * Send this machine's changes without waiting for the network.
+ *
+ * Writing a handover is the end of a piece of work, and it must not sit on a slow
+ * push - so the save fires this and returns. The child outlives the session that
+ * started it; the returned handle exists so a test can wait for it.
+ */
+export function pushInBackground(root = storeRoot(), env = process.env) {
+  if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return null;
+  const child = spawn(process.execPath, [CLI], {
+    detached: true,
+    stdio: "ignore",
+    env: { ...process.env, CLEAR_RESUME_HOME: root },
+  });
+  child.unref();
+  return child;
 }
