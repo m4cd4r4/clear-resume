@@ -20,6 +20,7 @@ import {
   storeRoot as sharedStoreRoot,
 } from "../../packages/store/store.mjs";
 import { normalisePath } from "../../packages/store/schema.mjs";
+import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
 
 export function storeRoot(env = process.env) {
   return sharedStoreRoot(env);
@@ -171,6 +172,10 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
     },
     { root },
   );
+
+  // Send it to the other machine without waiting. Writing a handover is the end of
+  // a piece of work and must not sit on a slow push.
+  if (isSynced(root)) pushInBackground(root);
 
   return { path: record.path, key: repoKey(top), superseded };
 }
