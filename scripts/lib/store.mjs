@@ -1,16 +1,28 @@
-// Handover store. Everything lives under one local folder (default ~/.clear-resume),
-// one subfolder per repo:
-//   <root>/<repo-key>/waiting/<timestamp>-<slug>.md   handovers not yet loaded
-//   <root>/<repo-key>/archive/...                     loaded or superseded
-// Filenames start with a UTC timestamp, so a plain sort is chronological.
+// Handover store for the plugin's hooks and CLI.
+//
+// Storage itself lives in packages/store - one JSON record per handover under
+// <root>/handovers - so the VS Code extension and these hooks read and write the
+// same thing. Anything written here shows up in the extension's tree, and a
+// handover the extension archives stops being offered here.
+//
+// The functions below keep the shapes the hooks already pass around
+// ({ meta, body, path, file }, and a repo key), because web.mjs works on
+// handovers carried in git that never reach the store at all.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { hostname } from "node:os";
+import { basename, resolve } from "node:path";
+import {
+  archiveRecord,
+  listAll,
+  save,
+  storeRoot as sharedStoreRoot,
+} from "../../packages/store/store.mjs";
+import { normalisePath } from "../../packages/store/schema.mjs";
 
 export function storeRoot(env = process.env) {
-  return env.CLEAR_RESUME_HOME ? resolve(env.CLEAR_RESUME_HOME) : join(homedir(), ".clear-resume");
+  return sharedStoreRoot(env);
 }
 
 function git(cwd, args) {
@@ -31,10 +43,14 @@ export function repoInfo(cwd) {
 }
 
 // Readable and collision-free: folder name plus a hash of the full path, so two
-// checkouts called "app" in different places never share a store. Windows drive
+// checkouts called "app" in different places never share a key. Windows drive
 // letters and separators are normalised so i:\x and I:/x hash the same.
+//
+// Records are keyed by repoPath now, not by this. It survives because web.mjs
+// files its "already loaded" marks per repo key, and those marks are about
+// handovers carried in git, which have no record.
 export function repoKey(top) {
-  const norm = resolve(top).replace(/\\/g, "/").replace(/^([a-z]):/, (_, d) => `${d.toUpperCase()}:`);
+  const norm = normalisePath(top);
   const hash = createHash("sha1").update(norm).digest("hex").slice(0, 8);
   return `${slugify(basename(norm)) || "root"}-${hash}`;
 }
@@ -47,22 +63,8 @@ export function slugify(s) {
     .slice(0, 50);
 }
 
-function stamp(date) {
-  return date.toISOString().replace(/\.\d{3}Z$/, "Z").replace(/:/g, "-");
-}
-
-function dirs(root, key) {
-  const base = join(root, key);
-  return { waiting: join(base, "waiting"), archive: join(base, "archive") };
-}
-
-// Minimal frontmatter: one `key: "json string"` per line. Values are JSON-quoted
-// so a title with a colon or quote round-trips.
-function frontmatter(meta) {
-  const lines = Object.entries(meta).map(([k, v]) => `${k}: ${JSON.stringify(String(v))}`);
-  return `---\n${lines.join("\n")}\n---\n\n`;
-}
-
+// Minimal frontmatter parser, kept for handovers carried in git (web.mjs): those
+// are markdown files in a worktree, not records, so they still arrive as text.
 export function parseHandover(text) {
   const m = /^---\n([\s\S]*?)\n---\n\n?/.exec(text.replace(/\r\n/g, "\n"));
   if (!m) return { meta: {}, body: text };
@@ -79,24 +81,65 @@ export function parseHandover(text) {
   return { meta, body: text.replace(/\r\n/g, "\n").slice(m[0].length) };
 }
 
-export function listWaiting(root, key) {
-  const { waiting } = dirs(root, key);
-  if (!existsSync(waiting)) return [];
-  return readdirSync(waiting)
-    .filter((f) => f.endsWith(".md"))
-    .sort()
-    .map((f) => {
-      const path = join(waiting, f);
-      return { path, file: f, ...parseHandover(readFileSync(path, "utf8")) };
-    });
+// Minimal frontmatter: one `key: "json string"` per line. Values are JSON-quoted
+// so a title with a colon or quote round-trips.
+function frontmatter(meta) {
+  const lines = Object.entries(meta).map(([k, v]) => `${k}: ${JSON.stringify(String(v))}`);
+  return `---\n${lines.join("\n")}\n---\n\n`;
 }
 
+/**
+ * Render a stored record as the markdown the web fallback carries in git.
+ *
+ * The store is JSON, but what travels in a repo stays markdown with frontmatter:
+ * it shows up readable in a diff, and a session on an older version can still
+ * parse it.
+ */
+export function handoverMarkdown(pathOrRecord) {
+  const record =
+    typeof pathOrRecord === "string" ? JSON.parse(readFileSync(pathOrRecord, "utf8")) : pathOrRecord;
+  const meta = { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch };
+  return frontmatter(meta) + String(record.body).trim() + "\n";
+}
+
+/** Present a record the way the hooks and web.mjs expect a handover to look. */
+function asHandover(record) {
+  return {
+    path: record.path,
+    file: basename(record.path),
+    id: record.id,
+    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch },
+    body: record.body,
+  };
+}
+
+/**
+ * Waiting handovers for one repo, oldest first.
+ *
+ * `repoOrKey` accepts a repo path or a repo key: the hooks hold a path, and a
+ * caller that only has the key still gets the right rows.
+ */
+export function listWaiting(root = storeRoot(), repoOrKey = "") {
+  const want = String(repoOrKey);
+  const byKey = /-[0-9a-f]{8}$/.test(want) && !want.includes("/") && !want.includes("\\");
+  const match = byKey ? (r) => repoKey(r.repoPath) === want : (r) => normalisePath(r.repoPath) === normalisePath(want);
+
+  return listAll(root)
+    .filter((r) => r.status === "waiting" && (!want || match(r)))
+    .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+    .map(asHandover);
+}
+
+/**
+ * Mark a handover loaded. The record stays where it is and flips to archived, so
+ * nothing is renamed across directories and the extension keeps its history.
+ * `key` is ignored; it is still accepted because the hooks pass it.
+ */
 export function archive(root, key, path) {
-  const { archive: dir } = dirs(root, key);
-  mkdirSync(dir, { recursive: true });
-  const dest = join(dir, basename(path));
-  renameSync(path, dest);
-  return dest;
+  const record = listAll(root).find((r) => r.path === path || r.id === path);
+  if (!record) return path;
+  archiveRecord(record.id, { root });
+  return record.path;
 }
 
 // Save a handover. A newer save on the same branch supersedes the waiting one,
@@ -106,17 +149,28 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   if (!title || !String(title).trim()) throw new Error("title is required");
   if (!body || !String(body).trim()) throw new Error("handover body is empty");
   const { top, branch } = repoInfo(cwd);
-  const key = repoKey(top);
-  const superseded = listWaiting(root, key)
+
+  const superseded = listWaiting(root, top)
     .filter((h) => (h.meta.branch ?? "") === branch)
-    .map((h) => archive(root, key, h.path));
+    .map((h) => archive(root, null, h.path));
 
-  const { waiting } = dirs(root, key);
-  mkdirSync(waiting, { recursive: true });
-  let path = join(waiting, `${stamp(now)}-${slugify(title) || "handover"}.md`);
-  for (let n = 2; existsSync(path); n++) path = path.replace(/(-\d+)?\.md$/, `-${n}.md`);
+  const record = save(
+    {
+      title: String(title).trim(),
+      body: String(body).trim(),
+      // What gets pre-filled when the handover is resumed from the extension.
+      resumePrompt: `Resume from handover "${String(title).trim()}":\n\n${String(body).trim()}`,
+      repo: basename(normalisePath(top)),
+      repoPath: top,
+      branch,
+      machine: hostname(),
+      pid: process.pid,
+      createdAt: new Date(now).toISOString(),
+      status: "waiting",
+      source: "plugin",
+    },
+    { root },
+  );
 
-  const meta = { title: String(title).trim(), created: now.toISOString(), repo: top, branch };
-  writeFileSync(path, frontmatter(meta) + String(body).trim() + "\n", "utf8");
-  return { path, key, superseded };
+  return { path: record.path, key: repoKey(top), superseded };
 }

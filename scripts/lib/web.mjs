@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { parseHandover } from "./store.mjs";
+import { handoverMarkdown, parseHandover } from "./store.mjs";
 
 export const REPO_FILE = ".clear-resume/HANDOVER.md";
 const MAX_REFS = 50;
@@ -45,7 +45,7 @@ export function commitHandover(top, savedPath, branch) {
   const ref = handoverRef(branch);
   const result = { ref, pushed: false, error: null };
   try {
-    const blob = gitIn(top, ["hash-object", "-w", "--stdin"], readFileSync(savedPath, "utf8"));
+    const blob = gitIn(top, ["hash-object", "-w", "--stdin"], handoverMarkdown(savedPath));
     const [dir, name] = REPO_FILE.split("/");
     const inner = gitIn(top, ["mktree"], `100644 blob ${blob}\t${name}\n`);
     const outer = gitIn(top, ["mktree"], `040000 tree ${inner}\t${dir}\n`);
