@@ -16,8 +16,12 @@ export const GROUPS = [
  * Empty groups are dropped - a tree of four headings and one row reads worse than
  * one heading and one row.
  */
-export function group(records, { repoPath = "", now = new Date() } = {}) {
+export function group(records, { repoPath = "", now = new Date(), roots = [] } = {}) {
   const here = normalisePath(repoPath);
+  // A handover written in a git worktree carries that worktree's path, so an exact
+  // match files it under "Other repos" while its row still reads the repo's name.
+  // The caller passes every checkout of the open repo and they all count as here.
+  const mine = [...new Set([here, ...roots.map(normalisePath)].filter(Boolean))];
   const buckets = { current: [], other: [], stale: [], archived: [] };
 
   for (const r of records) {
@@ -26,11 +30,18 @@ export function group(records, { repoPath = "", now = new Date() } = {}) {
     if (r.status === "deleted") continue;
     if (r.status === "archived") buckets.archived.push(r);
     else if (isStale(r, now)) buckets.stale.push(r);
-    else if (here && normalisePath(r.repoPath) === here) buckets.current.push(r);
+    else if (isUnder(normalisePath(r.repoPath), mine)) buckets.current.push(r);
     else buckets.other.push(r);
   }
 
   return GROUPS.map((g) => ({ ...g, records: buckets[g.id] })).filter((g) => g.records.length > 0);
+}
+
+
+// The trailing separator is what stops "solaisoft-ship-preview" counting as a child
+// of "solaisoft". A worktree that IS a sibling is matched by its own entry in mine.
+function isUnder(path, mine) {
+  return mine.some((root) => path === root || path.startsWith(root + "/"));
 }
 
 /** "3h" / "2d" / "5w" - short enough for a tree row's description column. */
