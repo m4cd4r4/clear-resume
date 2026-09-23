@@ -3,13 +3,30 @@
 Spotted while doing the polish-and-launch work, deliberately not fixed there. Each one is
 its own change; nothing here is a blocker for that PR.
 
-## 1. `sync.test.mjs` tolerates a Windows temp-cleanup race
+## 1. Two tests are flaky on Windows under a parallel run
 
-Known before this work started. The suite reports 122 passed / 1 failed on Windows, the
-failure being an EPERM in `packages/store/test/sync.test.mjs`'s temp cleanup, reproducible on
-unmodified `origin/main`. It is tolerated rather than fixed, so the suite has no clean green
-on this platform and a real regression in that file would be easy to wave through. Fix the
-teardown (retry the unlink, or hold no handles across it) rather than keeping the tolerance.
+Carried in as "the suite reports 122 passed / 1 failed on Windows, an EPERM temp-cleanup race
+in `packages/store/test/sync.test.mjs`, pre-existing". Four runs of the same tree on
+2026-09-23 say something different:
+
+| Run | Result | Failing |
+|---|---|---|
+| 1 (before this branch's edits) | 122 passed, 1 failed | not captured |
+| 2 | 123 passed, 1 failed | not captured |
+| 3 | 122 passed, 2 failed | `test/web.test.mjs > fetches first on the same branch too`, `packages/store/test/sync.test.mjs > a delete beats a concurrent edit when the delete is later` |
+| 4 | **124 passed, 0 failed** | none |
+| `web.test.mjs` alone | 11 passed | none |
+| `sync.test.mjs` alone | 18 passed | none |
+
+So it is not one deterministic failure and it is not confined to one file. Both flaky tests
+drive real `git` processes against temp directories, both pass in isolation, and the whole
+suite can pass outright. The diagnosis to carry forward is contention under parallel
+execution on Windows, not a single cleanup race.
+
+This matters because "expect 1 failure" trains everyone to wave a failure through. Either
+fix the two tests (serialise the ones that shell out to git, or give each its own
+temp root and retry the teardown unlink), or mark them with vitest's `retry`, so a red run
+means something again.
 
 ## 2. Version numbers disagree across three manifests
 
