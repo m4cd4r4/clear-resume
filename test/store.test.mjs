@@ -129,7 +129,7 @@ describe("saveHandover", () => {
 
 describe("save.mjs CLI", () => {
   it("reads the body from stdin and reports the path", () => {
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test"], {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "# Handover\n\nCost is $600 and `code` stays.\n",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
@@ -141,7 +141,7 @@ describe("save.mjs CLI", () => {
 
   it("exits 1 on empty stdin", () => {
     expect(() =>
-      execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "t"], {
+      execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "t", "--cwd", repo], {
         cwd: repo,
         input: "",
         env: { ...process.env, CLEAR_RESUME_HOME: root },

@@ -35,7 +35,10 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 // Session 1 saves in web mode; session 2 is a fresh clone with an empty home folder.
 function saveInSessionOne(title = "Web work", body = "## Next action\nFinish the parser.") {
-  return execFileSync(process.execPath, [SAVE, "--title", title], {
+  // --cwd because this process runs inside a Claude session and save.mjs would
+  // otherwise file against THAT session's root rather than the temp repo. That
+  // is the point of the flag: a caller that genuinely knows better.
+  return execFileSync(process.execPath, [SAVE, "--title", title, "--cwd", one], {
     cwd: one,
     input: body,
     env: { ...process.env, CLEAR_RESUME_HOME: rootOne, CLEAR_RESUME_WEB: "1" },
