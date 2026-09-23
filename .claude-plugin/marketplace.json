@@ -2,14 +2,14 @@
   "name": "clear-resume",
   "owner": { "name": "Macdara Ó Murchú" },
   "metadata": {
-    "description": "Write a handover, clear the session, and pick up in a fresh context.",
+    "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
     "version": "0.1.1"
   },
   "plugins": [
     {
       "name": "clear-resume",
       "source": "./",
-      "description": "A /handover skill plus a SessionStart hook that loads the waiting handover automatically. Shares its store with the clear-resume VS Code extension.",
+      "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste. Shares its store with the clear-resume VS Code extension.",
       "category": "workflow"
     }
   ]

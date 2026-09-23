@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>clear-resume - the loop</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #100e0b;
+        --surface: #191510;
+        --surface-2: #221d16;
+        --border: #332c22;
+        --fg: #ece5d8;
+        --muted: #948b7b;
+        --accent: #e5a743;
+        --accent-deep: #c07c2a;
+        --accent-dim: #7d6236;
+      }
+
+      html,
+      body {
+        overflow: hidden;
+        background: #100e0b;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "JetBrains Mono", monospace;
+        font-variant-ligatures: none;
+      }
+
+      /* ---- background layer: four decoratives, each with ambient motion ---- */
+
+      #glow {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1720px;
+        height: 1120px;
+        margin-left: -860px;
+        margin-top: -560px;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(229, 167, 67, 0.15) 0%,
+          rgba(229, 167, 67, 0.05) 42%,
+          rgba(229, 167, 67, 0) 70%
+        );
+        will-change: transform, opacity;
+      }
+
+      #rules {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 96px;
+        will-change: opacity;
+      }
+
+      #rules > i {
+        display: block;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(51, 44, 34, 0) 0%,
+          rgba(51, 44, 34, 1) 24%,
+          rgba(51, 44, 34, 1) 76%,
+          rgba(51, 44, 34, 0) 100%
+        );
+      }
+
+      .ghost {
+        position: absolute;
+        right: -26px;
+        bottom: 16px;
+        font-family: "Archivo Black", sans-serif;
+        font-size: 110px;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        color: var(--accent-dim);
+        opacity: 0;
+        white-space: nowrap;
+        will-change: transform, opacity;
+      }
+
+      #grain {
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.82%22%20numOctaves%3D%223%22%20seed%3D%227%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22220%22%20height%3D%22220%22%20filter%3D%22url(%23n)%22%20opacity%3D%220.6%22%2F%3E%3C%2Fsvg%3E");
+        background-size: 220px 220px;
+        mix-blend-mode: soft-light;
+        opacity: 0.16;
+      }
+
+      /* ---- the persistent window ---- */
+
+      #window {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1400px;
+        height: 800px;
+        margin-left: -700px;
+        margin-top: -400px;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.52);
+        will-change: transform, opacity;
+      }
+
+      #titlebar {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 20px 30px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-2);
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      #repo {
+        font-weight: 700;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+      }
+
+      #branch {
+        color: var(--muted);
+      }
+
+      #meter {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      #meter-label {
+        font-size: 20px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+
+      #track {
+        position: relative;
+        width: 250px;
+        height: 10px;
+        border-radius: 5px;
+        background: #2a2419;
+        overflow: hidden;
+      }
+
+      #fill {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--accent);
+        transform-origin: left center;
+      }
+
+      #readout {
+        width: 70px;
+        text-align: right;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+
+      #body {
+        position: relative;
+        flex: 1 1 auto;
+        overflow: hidden;
+      }
+
+      .phase {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 34px 40px;
+      }
+
+      /* ---- terminal lines ---- */
+
+      .line {
+        font-size: 26px;
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+        white-space: pre;
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      .line.spaced {
+        margin-top: 20px;
+      }
+
+      /* Earlier turns, already on screen when the piece opens: a long session is
+         why the context meter starts at a third. Masked into the top edge so it
+         reads as scrollback rather than as content anyone is meant to finish. */
+      #p1-scrollback {
+        margin-bottom: 26px;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 62%);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 62%);
+      }
+
+      #p1-scrollback .line {
+        opacity: 1;
+      }
+
+      .glyph {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .said {
+        color: var(--fg);
+      }
+
+      .tool {
+        color: var(--muted);
+      }
+
+      .tool b {
+        display: inline-block;
+        width: 132px;
+        font-weight: 700;
+        color: #b4aa99;
+      }
+
+      .note {
+        color: var(--muted);
+      }
+
+      .voice {
+        color: var(--accent);
+      }
+
+      .caret {
+        display: inline-block;
+        width: 13px;
+        height: 27px;
+        margin-left: 2px;
+        vertical-align: -5px;
+        background: var(--accent);
+      }
+
+      /* ---- the handover panel ---- */
+
+      #brief,
+      #restored {
+        will-change: transform, opacity;
+      }
+
+      #brief {
+        margin-top: 33px;
+      }
+
+      .h1 {
+        font-size: 28px;
+        line-height: 1.4;
+        font-weight: 700;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+      }
+
+      .h2 {
+        font-size: 23px;
+        line-height: 1.4;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0.01em;
+      }
+
+      .bd {
+        font-size: 24px;
+        line-height: 1.5;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+      }
+
+      .brief-line {
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      .gap {
+        margin-top: 16px;
+      }
+
+      #p2-clear {
+        margin-top: 30px;
+      }
+
+      /* ---- phase 4 ---- */
+
+      #chip {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 20px;
+        border: 1px solid rgba(229, 167, 67, 0.46);
+        border-radius: 8px;
+        background: rgba(229, 167, 67, 0.08);
+        font-size: 23px;
+        line-height: 1.3;
+        color: var(--accent);
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      #chip i {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      #restored {
+        margin-top: 30px;
+      }
+
+      .kv {
+        display: flex;
+        gap: 22px;
+        font-size: 24px;
+        line-height: 1.5;
+        color: var(--fg);
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      .kv em {
+        flex: 0 0 176px;
+        font-style: normal;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      /* ---- beat markers ---- */
+
+      .beat {
+        position: absolute;
+        left: 96px;
+        bottom: 52px;
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        font-family: "Archivo Black", sans-serif;
+        font-size: 28px;
+        line-height: 1.2;
+        letter-spacing: 0.1em;
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      .beat i {
+        font-style: normal;
+        color: var(--accent);
+      }
+
+      .beat u {
+        text-decoration: none;
+        color: var(--muted);
+      }
+
+      /* ---- close card ---- */
+
+      #close {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+      }
+
+      #close-name {
+        font-family: "Archivo Black", sans-serif;
+        font-size: 112px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--fg);
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      #close-line {
+        font-size: 32px;
+        line-height: 1.4;
+        color: var(--muted);
+        letter-spacing: -0.01em;
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+
+      #close-cmd {
+        margin-top: 16px;
+        padding: 20px 34px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        font-size: 28px;
+        line-height: 1.3;
+        color: var(--accent);
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="36"
+      data-fps="30"
+    >
+      <div id="glow"></div>
+      <div id="rules"><i></i><i></i></div>
+
+      <div class="ghost" id="ghost-1" data-layout-allow-overflow>WORK</div>
+      <div class="ghost" id="ghost-2" data-layout-allow-overflow>HANDOVER</div>
+      <div class="ghost" id="ghost-3" data-layout-allow-overflow>CLEAR</div>
+      <div class="ghost" id="ghost-4" data-layout-allow-overflow>RESUME</div>
+
+      <div id="window">
+        <div id="titlebar">
+          <div id="repo">widget-shop</div>
+          <div id="branch">feat/cart-totals</div>
+          <div id="meter">
+            <div id="meter-label">context</div>
+            <div id="track"><div id="fill"></div></div>
+            <div id="readout">34%</div>
+          </div>
+        </div>
+
+        <div id="body">
+          <!-- 01 work -->
+          <section class="phase clip" id="p1" data-start="0" data-duration="8.5" data-track-index="1">
+            <div id="p1-scrollback">
+              <div class="line note">All 22 cart tests pass.</div>
+              <div class="line spaced"><span class="glyph">&gt;</span> <span class="said">now the discount rules, 3-for-2 and 10 per cent off</span></div>
+              <div class="line tool spaced"><b>Read</b>src/discounts.js</div>
+              <div class="line tool"><b>Edit</b>src/discounts.js</div>
+              <div class="line tool"><b>Bash</b>npm test -- discounts</div>
+              <div class="line note spaced">Discounts land. Two rounding helpers now disagree.</div>
+            </div>
+            <div class="line" id="p1-ask"><span class="glyph">&gt;</span> <span class="said">the basket total is a cent out when the 3-for-2 offer applies</span></div>
+            <div class="line tool spaced" id="p1-t1"><b>Read</b>src/cart.js</div>
+            <div class="line tool" id="p1-t2"><b>Read</b>src/money.js</div>
+            <div class="line tool" id="p1-t3"><b>Edit</b>src/money.js</div>
+            <div class="line tool" id="p1-t4"><b>Bash</b>npm test -- totals</div>
+            <div class="line note spaced" id="p1-r1">Rounding at the line rather than at the total.</div>
+            <div class="line note" id="p1-r2">14 of 15 tests pass. The 3-for-2 case is still a cent out.</div>
+          </section>
+
+          <!-- 02 handover, and the /clear that ends it -->
+          <section class="phase clip" id="p2" data-start="8.5" data-duration="12.4" data-track-index="1">
+            <div class="line" id="p2-cmd"><span class="glyph">&gt;</span> <span class="said" id="p2-typed">/clear-resume:handover</span></div>
+            <div id="brief">
+              <div class="brief-line h1" id="b1">Cart totals rounding</div>
+              <div class="brief-line h2 gap" id="b2">Goal</div>
+              <div class="brief-line bd" id="b3">Make the basket total match the line items when a discount is applied.</div>
+              <div class="brief-line h2 gap" id="b4">Next action</div>
+              <div class="brief-line bd" id="b5">Run npm test -- totals and fix the failing case for a 3-for-2 offer.</div>
+              <div class="brief-line h2 gap" id="b6">State</div>
+              <div class="brief-line bd" id="b7">Branch feat/cart-totals, last commit a1b2c3d, no PR yet.</div>
+              <div class="brief-line bd" id="b8">Rounding helper written in src/money.js, unit tests pass.</div>
+              <div class="brief-line h2 gap" id="b9">Decisions already made</div>
+              <div class="brief-line bd" id="b10">Round at the line, not at the total.</div>
+              <div class="brief-line line voice" id="b11" style="margin-top: 26px">Saved to ~/.clear-resume/handovers/. Type /clear and the fresh session loads it.</div>
+            </div>
+            <div class="line" id="p2-clear"><span class="glyph">&gt;</span> <span class="said" id="p2-cleartyped">/clear</span></div>
+          </section>
+
+          <!-- 03 clear: the emptied window -->
+          <section class="phase clip" id="p3" data-start="20.9" data-duration="2.1" data-track-index="1">
+            <div class="line" id="p3-fresh"><span class="glyph">&gt;</span> <span class="caret" id="p3-caret"></span></div>
+          </section>
+
+          <!-- 04 resume -->
+          <section class="phase clip" id="p4" data-start="23" data-duration="10.2" data-track-index="1">
+            <div id="chip"><i></i>clear-resume: loaded handover "Cart totals rounding" (saved 2h ago).</div>
+            <div id="restored">
+              <div class="kv" id="r1"><em>handover</em>Cart totals rounding</div>
+              <div class="kv" id="r2"><em>next action</em>Run npm test -- totals and fix the 3-for-2 case.</div>
+              <div class="kv" id="r3"><em>state</em>feat/cart-totals at a1b2c3d, src/money.js done, no PR.</div>
+              <div class="line" id="r4" style="margin-top: 38px"><span class="glyph">&gt;</span> <span class="said" id="p4-typed">carry on</span></div>
+              <div class="line tool" id="r5" style="margin-top: 22px"><b>Bash</b>npm test -- totals</div>
+              <div class="line note" id="r6">The 3-for-2 case passes. 15 of 15.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="beat" id="beat-1"><i>01</i><u>WORK</u></div>
+      <div class="beat" id="beat-2"><i>02</i><u>HANDOVER</u></div>
+      <div class="beat" id="beat-3"><i>03</i><u>CLEAR</u></div>
+      <div class="beat" id="beat-4"><i>04</i><u>RESUME</u></div>
+
+      <section class="clip" id="close" data-start="32.9" data-duration="3.1" data-track-index="2">
+        <div id="close-name">clear-resume</div>
+        <div id="close-line">Write a handover, clear the session, carry on in a fresh context.</div>
+        <div id="close-cmd">claude plugin marketplace add m4cd4r4/clear-resume</div>
+      </section>
+
+      <div id="grain"></div>
+    </div>
+
+    <script>
+      (function () {
+        var F = 1 / 30;
+        var DURATION = 36;
+        var tl = gsap.timeline({ paused: true });
+
+        /* ------------------------------------------------------------------
+         * Typing: the typed-prompt law, taken from the registry component
+         * code-terminal-run. One chars-at-time row table is built
+         * synchronously before the timeline registers; the timeline only ever
+         * reads it, so a given time renders the same string whichever
+         * direction it was seeked from. The caret blinks on integer sine
+         * cycles across exactly the typing window, then pins solid and hides
+         * when the line is submitted.
+         * ---------------------------------------------------------------- */
+        var lcg = 0x51ec0ded;
+        function rnd() {
+          lcg = (Math.imul(1664525, lcg) + 1013904223) >>> 0;
+          return lcg / 4294967296;
+        }
+
+        function typeInto(element, startAt, speed) {
+          var full = element.textContent;
+          element.textContent = "";
+
+          var caret = document.createElement("span");
+          caret.className = "caret";
+          caret.setAttribute("aria-hidden", "true");
+          element.parentNode.appendChild(caret);
+
+          var rows = [{ t: 0, n: 0 }];
+          var t = startAt;
+          var n = 0;
+          var i = 0;
+          while (i < full.length) {
+            var chunk = full.slice(i, i + 1 + Math.floor(rnd() * 3));
+            t += chunk.length * speed * (0.72 + rnd() * 0.6);
+            n += chunk.length;
+            rows.push({ t: t, n: n });
+            i += chunk.length;
+          }
+          var endAt = rows[rows.length - 1].t;
+
+          function charsAt(time) {
+            for (var k = rows.length - 1; k >= 0; k -= 1) {
+              if (time >= rows[k].t - 0.001) return rows[k].n;
+            }
+            return 0;
+          }
+
+          var driver = { t: 0 };
+          tl.to(
+            driver,
+            {
+              t: endAt,
+              duration: endAt,
+              ease: "none",
+              onUpdate: function () {
+                element.textContent = full.slice(0, charsAt(driver.t));
+              },
+            },
+            0,
+          );
+
+          var span = Math.max(0.3, endAt - startAt);
+          var blink = { p: 0 };
+          tl.to(
+            blink,
+            {
+              p: Math.PI * 2 * Math.max(1, Math.round(span / 0.62)),
+              duration: span,
+              ease: "none",
+              onUpdate: function () {
+                caret.style.opacity = Math.sin(blink.p) >= 0 ? "1" : "0";
+              },
+            },
+            startAt,
+          );
+          tl.set(caret, { opacity: 1 }, endAt);
+          tl.set(caret, { opacity: 0 }, endAt + 0.26);
+
+          return endAt + 0.26;
+        }
+
+        /* ---- a printed terminal line: it arrives, it never fades in ---- */
+        function print(selector, at) {
+          tl.set(selector, { opacity: 1, y: 10 }, at);
+          tl.to(selector, { y: 0, duration: 0.14, ease: "power4.out" }, at);
+        }
+
+        /* ------------------------------------------------------------------
+         * The context meter. One ease:none driver over the whole piece, and
+         * the value is a pure function of time read from a baked schedule -
+         * so it is identical whichever way the renderer seeks to a frame.
+         * Six tl.to tweens re-owning the same property would not be.
+         * ---------------------------------------------------------------- */
+        var fill = document.getElementById("fill");
+        var readout = document.getElementById("readout");
+        var SEGMENTS = [
+          { t0: 0.9, t1: 4.0, v0: 0.34, v1: 0.52, ease: "linear" },
+          { t0: 4.2, t1: 7.6, v0: 0.52, v1: 0.78, ease: "linear" },
+          { t0: 8.8, t1: 13.0, v0: 0.78, v1: 0.86, ease: "linear" },
+          { t0: 19.88, t1: 20.68, v0: 0.86, v1: 0.04, ease: "out3" },
+          { t0: 23.35, t1: 24.95, v0: 0.04, v1: 0.11, ease: "out2" },
+          { t0: 27.6, t1: 29.4, v0: 0.11, v1: 0.19, ease: "linear" },
+        ];
+        function shape(p, ease) {
+          if (ease === "out3") return 1 - Math.pow(1 - p, 3);
+          if (ease === "out2") return 1 - Math.pow(1 - p, 2);
+          return p;
+        }
+        function meterAt(time) {
+          var value = SEGMENTS[0].v0;
+          for (var k = 0; k < SEGMENTS.length; k += 1) {
+            var s = SEGMENTS[k];
+            if (time >= s.t1) {
+              value = s.v1;
+            } else if (time > s.t0) {
+              return s.v0 + (s.v1 - s.v0) * shape((time - s.t0) / (s.t1 - s.t0), s.ease);
+            } else {
+              return value;
+            }
+          }
+          return value;
+        }
+        var lastPercent = null;
+        function paintMeter(time) {
+          var v = meterAt(time);
+          fill.style.transform = "scaleX(" + v.toFixed(4) + ")";
+          fill.style.backgroundColor = v > 0.7 ? "#c07c2a" : "#e5a743";
+          var percent = Math.round(v * 100);
+          if (percent !== lastPercent) {
+            readout.textContent = percent + "%";
+            lastPercent = percent;
+          }
+        }
+        paintMeter(0);
+
+        var clock = { t: 0 };
+        tl.to(
+          clock,
+          {
+            t: DURATION,
+            duration: DURATION,
+            ease: "none",
+            onUpdate: function () {
+              paintMeter(clock.t);
+            },
+          },
+          0,
+        );
+
+        /* ---- ambient decoratives: finite repeats, slow, never static ---- */
+        function breathe(selector, from, to, cycle) {
+          tl.fromTo(
+            selector,
+            { opacity: from },
+            {
+              opacity: to,
+              duration: cycle / 2,
+              ease: "sine.inOut",
+              yoyo: true,
+              repeat: Math.max(0, Math.floor(DURATION / cycle) * 2 - 1),
+            },
+            0,
+          );
+        }
+        tl.fromTo(
+          "#glow",
+          { scale: 0.95, opacity: 0.72 },
+          {
+            scale: 1.05,
+            opacity: 1,
+            duration: 3.6,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: 9,
+          },
+          0,
+        );
+        breathe("#rules", 0.55, 1, 9);
+
+        /* ---- ghost word and beat marker, one pair per phase ---- */
+        var PHASES = [
+          { ghost: "#ghost-1", beat: "#beat-1", at: 0, until: 8.5 },
+          { ghost: "#ghost-2", beat: "#beat-2", at: 8.5, until: 19.6 },
+          { ghost: "#ghost-3", beat: "#beat-3", at: 19.6, until: 23 },
+          { ghost: "#ghost-4", beat: "#beat-4", at: 23, until: 32.4 },
+        ];
+        PHASES.forEach(function (phase) {
+          tl.fromTo(
+            phase.ghost,
+            { opacity: 0, y: 26 },
+            { opacity: 0.06, y: 0, duration: 0.7, ease: "power2.out" },
+            phase.at,
+          );
+          tl.fromTo(
+            phase.ghost,
+            { y: 0 },
+            {
+              y: -22,
+              duration: phase.until - phase.at - 1.1,
+              ease: "sine.inOut",
+              immediateRender: false,
+            },
+            phase.at + 0.7,
+          );
+          tl.fromTo(
+            phase.ghost,
+            { opacity: 0.06 },
+            { opacity: 0, duration: 0.4, ease: "power2.in", immediateRender: false },
+            phase.until - 0.4,
+          );
+
+          tl.set(phase.beat, { opacity: 1, y: 14 }, phase.at + 0.15);
+          tl.to(phase.beat, { y: 0, duration: 0.18, ease: "power4.out" }, phase.at + 0.15);
+          tl.to(phase.beat, { opacity: 0, duration: 0.3, ease: "power2.in" }, phase.until - 0.34);
+        });
+
+        /* ================================================================
+         * 01 WORK - 0.0 to 8.5
+         * ============================================================== */
+        print("#p1-ask", 0.9);
+        print("#p1-t1", 1.9);
+        print("#p1-t2", 2.5);
+        print("#p1-t3", 3.3);
+        print("#p1-t4", 4.2);
+        print("#p1-r1", 5.4);
+        print("#p1-r2", 6.2);
+
+        /* ================================================================
+         * 02 HANDOVER - 8.5 to 20.9, ending in the /clear
+         * ============================================================== */
+        tl.set("#p2-cmd", { opacity: 1 }, 8.7);
+        var handoverTyped = typeInto(document.getElementById("p2-typed"), 8.8, 0.055);
+
+        // The brief arrives as a cascade: the title travels furthest, the gaps
+        // shrink across the wave, and every reveal is binary rather than a fade.
+        var BRIEF = [
+          { id: "#b1", y: 74, d: 0.2, gap: 2 },
+          { id: "#b2", y: 46, d: 0.15, gap: 1 },
+          { id: "#b3", y: 44, d: 0.15, gap: -1 },
+          { id: "#b4", y: 46, d: 0.15, gap: 1 },
+          { id: "#b5", y: 44, d: 0.15, gap: -1 },
+          { id: "#b6", y: 46, d: 0.14, gap: 1 },
+          { id: "#b7", y: 42, d: 0.14, gap: -1 },
+          { id: "#b8", y: 42, d: 0.13, gap: -1 },
+          { id: "#b9", y: 46, d: 0.13, gap: -1 },
+          { id: "#b10", y: 42, d: 0.12, gap: -2 },
+        ];
+        var cursor = handoverTyped + 0.18;
+        BRIEF.forEach(function (row) {
+          tl.set(row.id, { opacity: 1, y: row.y }, cursor);
+          tl.to(row.id, { y: 0, duration: row.d, ease: "power4.out" }, cursor);
+          cursor = cursor + row.d + row.gap * F;
+        });
+        print("#b11", cursor + 0.55);
+
+        // The /clear that ends the session belongs to this phase: the brief is
+        // still on screen while it is typed, so the emptying is visible.
+        tl.set("#p2-clear", { opacity: 1 }, 19.1);
+        var clearTyped = typeInto(document.getElementById("p2-cleartyped"), 19.2, 0.07);
+
+        /* ================================================================
+         * 03 CLEAR - the session leaves as one group, the meter follows
+         * ============================================================== */
+        tl.fromTo(
+          ["#brief", "#p2-cmd", "#p2-clear"],
+          { y: 0 },
+          { y: -74, duration: 0.46, ease: "power3.in", immediateRender: false },
+          clearTyped,
+        );
+        tl.fromTo(
+          ["#brief", "#p2-cmd", "#p2-clear"],
+          { opacity: 1 },
+          { opacity: 0, duration: 0.46, ease: "power3.in", immediateRender: false },
+          clearTyped,
+        );
+
+        // The emptied window: one fresh prompt, one solid caret, holding.
+        tl.set("#p3-fresh", { opacity: 1 }, 20.95);
+        var freshSpan = 23 - 20.95;
+        var freshBlink = { p: 0 };
+        var freshCaret = document.getElementById("p3-caret");
+        tl.to(
+          freshBlink,
+          {
+            p: Math.PI * 2 * Math.max(1, Math.round(freshSpan / 0.62)),
+            duration: freshSpan,
+            ease: "none",
+            onUpdate: function () {
+              freshCaret.style.opacity = Math.sin(freshBlink.p) >= 0 ? "1" : "0";
+            },
+          },
+          20.95,
+        );
+
+        /* ================================================================
+         * 04 RESUME - 23.0 to 32.5
+         * ============================================================== */
+        // The hook's own line, popped rather than faded: it is the payoff.
+        tl.fromTo(
+          "#chip",
+          { opacity: 0, scale: 0.86 },
+          { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(2)" },
+          23.35,
+        );
+        print("#r1", 24.3);
+        print("#r2", 24.9);
+        print("#r3", 25.5);
+
+        tl.set("#r4", { opacity: 1 }, 26.5);
+        var carryTyped = typeInto(document.getElementById("p4-typed"), 26.6, 0.075);
+        print("#r5", carryTyped + 0.5);
+        print("#r6", carryTyped + 1.5);
+
+        /* ================================================================
+         * 05 CLOSE - 32.5 to 36.0
+         * ============================================================== */
+        tl.fromTo(
+          "#window",
+          { scale: 1, opacity: 1 },
+          { scale: 0.93, opacity: 0, duration: 0.6, ease: "power3.inOut", immediateRender: false },
+          32.5,
+        );
+        tl.set("#close-name", { opacity: 1, y: 78 }, 33.05);
+        tl.to("#close-name", { y: 0, duration: 0.2, ease: "power4.out" }, 33.05);
+        tl.set("#close-line", { opacity: 1, y: 46 }, 33.28);
+        tl.to("#close-line", { y: 0, duration: 0.16, ease: "power4.out" }, 33.28);
+        tl.set("#close-cmd", { opacity: 1, y: 40 }, 33.47);
+        tl.to("#close-cmd", { y: 0, duration: 0.15, ease: "power4.out" }, 33.47);
+
+        tl.seek(0);
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>
