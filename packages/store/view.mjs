@@ -38,8 +38,8 @@ export function group(records, { repoPath = "", now = new Date(), roots = [] } =
 }
 
 
-// The trailing separator is what stops "solaisoft-ship-preview" counting as a child
-// of "solaisoft". A worktree that IS a sibling is matched by its own entry in mine.
+// The trailing separator is what stops "app-ship-preview" counting as a child of
+// "app". A worktree that IS a sibling is matched by its own entry in mine.
 function isUnder(path, mine) {
   return mine.some((root) => path === root || path.startsWith(root + "/"));
 }

@@ -20,21 +20,21 @@ afterEach(() => {
 });
 
 function writePair({ file, body = "# full handover\n\nthe long version", prompt }) {
-  const md = join(handoffs, "solaisoft-2026-09-19-thing.md");
+  const md = join(handoffs, "acme-2026-09-19-thing.md");
   writeFileSync(md, body, "utf8");
-  writeFileSync(join(notes, file), prompt ?? `do the thing (solaisoft): Resume from handover: ${md}\n\nmore`, "utf8");
+  writeFileSync(join(notes, file), prompt ?? `do the thing (acme): Resume from handover: ${md}\n\nmore`, "utf8");
   return md;
 }
 
 describe("migrate", () => {
   it("pairs a resume prompt with the handover body it names", () => {
-    const md = writePair({ file: "Solaisoft 09-19 2308 Do the thing.txt" });
+    const md = writePair({ file: "Acme 09-19 2308 Do the thing.txt" });
     const report = migrate({ notesDir: notes, root });
 
     expect(report.imported).toBe(1);
     const [r] = listAll(root);
     expect(r.title).toBe("Do the thing");
-    expect(r.repo).toBe("solaisoft");
+    expect(r.repo).toBe("acme");
     expect(r.body).toBe("# full handover\n\nthe long version");
     expect(r.resumePrompt).toContain(`Resume from handover: ${md}`);
     expect(r.source).toBe("notes-resume");
@@ -42,7 +42,7 @@ describe("migrate", () => {
   });
 
   it("re-running never overwrites a record the user has since changed, and leaves the originals on disk", () => {
-    const md = writePair({ file: "Solaisoft 09-19 2308 Do the thing.txt" });
+    const md = writePair({ file: "Acme 09-19 2308 Do the thing.txt" });
     migrate({ notesDir: notes, root });
     const [first] = listAll(root);
     archiveRecord(first.id, { root });
@@ -57,13 +57,13 @@ describe("migrate", () => {
     expect(all[0].status).toBe("archived");
     expect(all[0].pinned).toBe(true);
     expect(existsSync(md)).toBe(true);
-    expect(existsSync(join(notes, "Solaisoft 09-19 2308 Do the thing.txt"))).toBe(true);
+    expect(existsSync(join(notes, "Acme 09-19 2308 Do the thing.txt"))).toBe(true);
     expect(readFileSync(md, "utf8")).toBe("# full handover\n\nthe long version");
   });
 
   it("keeps two handovers written in the same minute with no index row", () => {
-    writeFileSync(join(notes, "Solaisoft 09-19 2308 First.txt"), "first prompt", "utf8");
-    writeFileSync(join(notes, "Solaisoft 09-19 2308 Second.txt"), "second prompt", "utf8");
+    writeFileSync(join(notes, "Acme 09-19 2308 First.txt"), "first prompt", "utf8");
+    writeFileSync(join(notes, "Acme 09-19 2308 Second.txt"), "second prompt", "utf8");
 
     const report = migrate({ notesDir: notes, root });
 
@@ -73,8 +73,8 @@ describe("migrate", () => {
 
   it("imports the archive/ subfolder and marks those records archived", () => {
     mkdirSync(join(notes, "archive"), { recursive: true });
-    writeFileSync(join(notes, "Solaisoft 09-19 2308 Waiting one.txt"), "waiting prompt", "utf8");
-    writeFileSync(join(notes, "archive", "Solaisoft 09-01 0900 Old one.txt"), "old prompt", "utf8");
+    writeFileSync(join(notes, "Acme 09-19 2308 Waiting one.txt"), "waiting prompt", "utf8");
+    writeFileSync(join(notes, "archive", "Acme 09-01 0900 Old one.txt"), "old prompt", "utf8");
 
     const report = migrate({ notesDir: notes, root });
 

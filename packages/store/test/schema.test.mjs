@@ -19,19 +19,19 @@ const BASE = {
   title: "clear-resume extension phase 1",
   body: "# handover\n\nbody text",
   repoPath: "I:/Scratch/clear-resume",
-  machine: "HARD-WORKER",
+  machine: "WORKSTATION",
   pid: 26096,
   createdAt: "2026-09-19T23:28:51.277Z",
 };
 
 describe("recordId", () => {
   it("is machine-pid-timestamp with colons stripped, milliseconds kept", () => {
-    expect(recordId(BASE)).toBe("hard-worker-26096-2026-09-19T23-28-51-277Z");
+    expect(recordId(BASE)).toBe("workstation-26096-2026-09-19T23-28-51-277Z");
   });
 
   it("round-trips through parseId", () => {
     expect(parseId(recordId(BASE))).toEqual({
-      machine: "hard-worker",
+      machine: "workstation",
       pid: "26096",
       stamp: "2026-09-19T23-28-51-277Z",
     });
@@ -40,8 +40,8 @@ describe("recordId", () => {
   // The first 500-odd records were written before the stamp carried
   // milliseconds. Their ids are still their filenames, so they have to parse.
   it("still parses a second-resolution id written by an older version", () => {
-    expect(parseId("hard-worker-26096-2026-09-19T23-28-51Z")).toEqual({
-      machine: "hard-worker",
+    expect(parseId("workstation-26096-2026-09-19T23-28-51Z")).toEqual({
+      machine: "workstation",
       pid: "26096",
       stamp: "2026-09-19T23-28-51Z",
     });

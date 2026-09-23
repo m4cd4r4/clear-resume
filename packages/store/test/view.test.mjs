@@ -7,7 +7,7 @@ const rec = (over) =>
   normalise({
     title: "t",
     body: "b",
-    repoPath: "I:/Scratch/solaisoft",
+    repoPath: "I:/code/acme",
     machine: "desk",
     pid: 1,
     createdAt: "2026-09-19T12:00:00.000Z",
@@ -18,12 +18,12 @@ describe("group", () => {
   it("splits into current repo, other repos, stale and archived", () => {
     const records = [
       rec({ pid: 1, title: "here" }),
-      rec({ pid: 2, title: "elsewhere", repoPath: "I:/Scratch/clear-resume" }),
+      rec({ pid: 2, title: "elsewhere", repoPath: "I:/code/other-repo" }),
       rec({ pid: 3, title: "old", createdAt: "2026-09-01T00:00:00.000Z" }),
       rec({ pid: 4, title: "done", status: "archived", archivedAt: "2026-09-19T13:00:00.000Z" }),
     ];
 
-    const groups = group(records, { repoPath: "i:\\Scratch\\solaisoft", now: NOW });
+    const groups = group(records, { repoPath: "i:\\code\\acme", now: NOW });
 
     expect(groups.map((g) => g.id)).toEqual(["current", "other", "stale", "archived"]);
     expect(Object.fromEntries(groups.map((g) => [g.id, g.records.map((r) => r.title)]))).toEqual({
@@ -36,20 +36,20 @@ describe("group", () => {
 });
 
 // A handover written in a git worktree carries the worktree's path, so an exact
-// path match files it under "Other repos" while its row still reads "solaisoft".
+// path match files it under "Other repos" while its row still reads "acme".
 // The worktrees of the open repo are the same repo and belong with it.
 describe("worktrees", () => {
-  const roots = ["I:/Scratch/solaisoft", "I:/Scratch/solaisoft-ship-preview", "I:/Scratch/solaisoft/.claude/worktrees/agent-a09"];
+  const roots = ["I:/code/acme", "I:/code/acme-ship-preview", "I:/code/acme/.claude/worktrees/agent-a09"];
 
   it("counts a worktree of the open repo as the current repo", () => {
     const records = [
       rec({ pid: 1, title: "main tree" }),
-      rec({ pid: 2, title: "ship preview", repoPath: "I:/Scratch/solaisoft-ship-preview" }),
-      rec({ pid: 3, title: "agent worktree", repoPath: "I:/Scratch/solaisoft/.claude/worktrees/agent-a09" }),
-      rec({ pid: 4, title: "somewhere else", repoPath: "I:/Scratch/clear-resume" }),
+      rec({ pid: 2, title: "ship preview", repoPath: "I:/code/acme-ship-preview" }),
+      rec({ pid: 3, title: "agent worktree", repoPath: "I:/code/acme/.claude/worktrees/agent-a09" }),
+      rec({ pid: 4, title: "somewhere else", repoPath: "I:/code/other-repo" }),
     ];
 
-    const groups = group(records, { repoPath: "I:/Scratch/solaisoft", roots, now: NOW });
+    const groups = group(records, { repoPath: "I:/code/acme", roots, now: NOW });
 
     expect(Object.fromEntries(groups.map((g) => [g.id, g.records.map((r) => r.title)]))).toEqual({
       current: ["main tree", "ship preview", "agent worktree"],
@@ -59,11 +59,11 @@ describe("worktrees", () => {
 
   it("counts a subdirectory of a worktree, but not a sibling that merely shares a prefix", () => {
     const records = [
-      rec({ pid: 1, title: "inside", repoPath: "I:/Scratch/solaisoft/.clone-kit" }),
-      rec({ pid: 2, title: "lookalike", repoPath: "I:/Scratch/solaisoft-unrelated-repo" }),
+      rec({ pid: 1, title: "inside", repoPath: "I:/code/acme/.clone-kit" }),
+      rec({ pid: 2, title: "lookalike", repoPath: "I:/code/acme-unrelated-repo" }),
     ];
 
-    const groups = group(records, { repoPath: "I:/Scratch/solaisoft", roots, now: NOW });
+    const groups = group(records, { repoPath: "I:/code/acme", roots, now: NOW });
 
     expect(Object.fromEntries(groups.map((g) => [g.id, g.records.map((r) => r.title)]))).toEqual({
       current: ["inside"],
@@ -72,13 +72,13 @@ describe("worktrees", () => {
   });
 
   it("falls back to the open folder alone when no roots are given", () => {
-    const records = [rec({ pid: 1, title: "wt", repoPath: "I:/Scratch/solaisoft-ship-preview" })];
-    expect(group(records, { repoPath: "I:/Scratch/solaisoft", now: NOW })[0].id).toBe("other");
+    const records = [rec({ pid: 1, title: "wt", repoPath: "I:/code/acme-ship-preview" })];
+    expect(group(records, { repoPath: "I:/code/acme", now: NOW })[0].id).toBe("other");
   });
 
   it("is not fooled by windows separators or drive casing in a root", () => {
-    const records = [rec({ pid: 1, title: "wt", repoPath: "I:/Scratch/solaisoft-ship-preview" })];
-    const groups = group(records, { repoPath: "i:\\Scratch\\solaisoft", roots: ["i:\\Scratch\\solaisoft-ship-preview"], now: NOW });
+    const records = [rec({ pid: 1, title: "wt", repoPath: "I:/code/acme-ship-preview" })];
+    const groups = group(records, { repoPath: "i:\\code\\acme", roots: ["i:\\code\\acme-ship-preview"], now: NOW });
     expect(groups.map((g) => g.id)).toEqual(["current"]);
     expect(groups[0].records.map((r) => r.title)).toEqual(["wt"]);
   });
