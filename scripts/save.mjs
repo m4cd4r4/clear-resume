@@ -6,7 +6,7 @@
 // With CLEAR_RESUME_WEB=1 (or --commit) it is also pushed to its own ref,
 // clear-resume/<branch>, for cloud sessions whose home folder does not survive.
 import { readFileSync } from "node:fs";
-import { repoInfo, saveHandover } from "./lib/store.mjs";
+import { listWaiting, repoInfo, saveHandover, storeRoot } from "./lib/store.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
 
 function arg(name) {
@@ -22,16 +22,32 @@ try {
 }
 
 try {
-  const { path, superseded } = saveHandover({ cwd: process.cwd(), title: arg("--title"), body });
+  const { path, id, top, main, superseded } = saveHandover({ cwd: process.cwd(), title: arg("--title"), body });
   console.log(`Saved handover: ${path}`);
   for (const p of superseded) console.log(`Archived older handover for this branch: ${p}`);
+  // A handover nobody can find is worse than none: the session is told to /clear
+  // and starts empty with nothing saying a handover exists. So prove the record
+  // comes back through the same lookup the SessionStart hook uses, from the main
+  // checkout, before promising anything. This is cheap - the store is small - and
+  // it is the only thing standing between a bad save and a lost session.
+  const found = listWaiting(storeRoot(), main).some((h) => h.id === id);
+  if (top !== main) console.log(`Written in the worktree ${top}, filed under ${main}.`);
   if (webEnabled() || process.argv.includes("--commit")) {
     const { top, branch } = repoInfo(process.cwd());
     const r = commitHandover(top, path, branch);
     if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can load it.`);
     else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
-  console.log("After /clear, the next session in this repo loads it automatically.");
+  if (found) {
+    console.log(`After /clear, the next session in ${main} loads it automatically.`);
+  } else {
+    console.error(
+      `clear-resume: WARNING - the handover saved but is NOT discoverable from ${main}, ` +
+        `so /clear would start an empty session. Do not tell the user to clear. ` +
+        `Load it by hand instead: node "${new URL("load.mjs", import.meta.url).pathname}" ${path}`,
+    );
+    process.exitCode = 1;
+  }
 } catch (err) {
   console.error(`clear-resume: ${err.message}`);
   process.exit(1);
