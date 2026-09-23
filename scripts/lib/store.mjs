@@ -20,6 +20,7 @@ import {
   storeRoot as sharedStoreRoot,
 } from "../../packages/store/store.mjs";
 import { normalisePath } from "../../packages/store/schema.mjs";
+import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
 import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
 
 export function storeRoot(env = process.env) {
@@ -123,7 +124,17 @@ function asHandover(record) {
 export function listWaiting(root = storeRoot(), repoOrKey = "") {
   const want = String(repoOrKey);
   const byKey = /-[0-9a-f]{8}$/.test(want) && !want.includes("/") && !want.includes("\\");
-  const match = byKey ? (r) => repoKey(r.repoPath) === want : (r) => normalisePath(r.repoPath) === normalisePath(want);
+  // A path match covers every checkout of the same repo, not just the one the
+  // caller is standing in. A handover written in a worktree - which is where
+  // most of this repo's work happens - was otherwise invisible to a session
+  // that resumed in the parent checkout, and that is silent: the session starts
+  // with no handover and nothing says one exists. Both sides of the comparison
+  // are widened, so a record filed against a worktree that has since been
+  // removed is still found through its mainPath.
+  const here = byKey ? [] : new Set(worktreePaths(want).map(normalisePath));
+  const match = byKey
+    ? (r) => repoKey(r.repoPath) === want
+    : (r) => here.has(normalisePath(r.repoPath)) || here.has(normalisePath(r.mainPath || r.repoPath));
 
   return listAll(root)
     .filter((r) => r.status === "waiting" && (!want || match(r)))
@@ -150,6 +161,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   if (!title || !String(title).trim()) throw new Error("title is required");
   if (!body || !String(body).trim()) throw new Error("handover body is empty");
   const { top, branch } = repoInfo(cwd);
+  const main = mainWorktree(top);
 
   const superseded = listWaiting(root, top)
     .filter((h) => (h.meta.branch ?? "") === branch)
@@ -163,6 +175,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
       resumePrompt: `Resume from handover "${String(title).trim()}":\n\n${String(body).trim()}`,
       repo: basename(normalisePath(top)),
       repoPath: top,
+      mainPath: main,
       branch,
       machine: hostname(),
       pid: process.pid,
@@ -177,5 +190,5 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   // a piece of work and must not sit on a slow push.
   if (isSynced(root)) pushInBackground(root);
 
-  return { path: record.path, key: repoKey(top), superseded };
+  return { path: record.path, id: record.id, key: repoKey(top), top, main, superseded };
 }

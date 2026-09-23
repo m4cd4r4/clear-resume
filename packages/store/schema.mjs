@@ -79,6 +79,11 @@ export function normalise(input, now = new Date()) {
   r.title = String(r.title).trim();
   r.body = String(r.body || "").replace(/\r\n/g, "\n").trim();
   r.repoPath = normalisePath(r.repoPath);
+  // The main checkout of the repo `repoPath` belongs to. A handover written in a
+  // git worktree records that worktree in repoPath, and `wt-finish` deletes
+  // worktrees routinely - so discovery keys off this, which outlives them.
+  // Records written before this field existed fall back to repoPath.
+  r.mainPath = normalisePath(r.mainPath || r.repoPath);
   r.repo = String(r.repo || basename(r.repoPath) || "unknown");
   r.branch = String(r.branch || "");
   r.machine = String(r.machine || "unknown");
