@@ -24,6 +24,9 @@ brief about the work, and the next session picks it up on its own.
 That is the whole thing. Step 3 needs no input from you: the hook runs on every session
 start, clear and compaction, and stays silent when there is nothing waiting.
 
+[Watch it run](demo/renders/clear-resume-loop.mp4) - 36 seconds, no sound. How it was built
+is in [`demo/`](demo).
+
 ### What a handover looks like
 
 Claude writes something like this, under 40 lines, with empty sections left out:
@@ -34,13 +37,13 @@ Claude writes something like this, under 40 lines, with empty sections left out:
 ## Goal
 Make the basket total match the line items when a discount is applied.
 
+## Next action
+Run `npm test -- totals` and fix the failing case for a 3-for-2 offer.
+
 ## State
 - Branch `feat/cart-totals`, last commit `a1b2c3d`, no PR yet.
 - Rounding helper written in `src/money.js`, unit tests pass.
 - The checkout summary component is not wired up yet.
-
-## Next action
-Run `npm test -- totals` and fix the failing case for a 3-for-2 offer.
 
 ## Decisions already made
 Round at the line, not at the total.
