@@ -1,6 +1,6 @@
 {
   "name": "clear-resume",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write a handover, clear the session, and pick up in a fresh context: a /handover skill plus a SessionStart hook that loads the waiting handover automatically.",
   "author": { "name": "Macdara Ó Murchú" },
   "license": "MIT",
