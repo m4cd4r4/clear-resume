@@ -21,6 +21,8 @@ export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays =
 
 export function age(created, now = new Date()) {
   const mins = Math.max(0, Math.round((now - new Date(created)) / 60_000));
+  // "0m ago" for something written seconds ago reads like a broken clock.
+  if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.round(mins / 60);
   if (hours < 48) return `${hours}h ago`;

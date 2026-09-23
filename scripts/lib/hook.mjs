@@ -9,11 +9,30 @@ import { consumedIds, retireHandoverRef, handoverId, markConsumed, removeWorktre
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
 
+// One list row, over two lines: what it is, then the exact command that resumes it.
+// The reader chooses on the first line, so the title and branch lead and the record
+// filename never appears there - it is 48 characters of machine name, pid and
+// timestamp, which is unreadable and needlessly names the machine.
 function describe(h, now) {
-  const branch = h.meta.branch ? ` [${h.meta.branch}]` : "";
-  const where = h.file ?? (h.ref ? `git show ${h.ref}:${REPO_FILE}` : REPO_FILE);
-  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}: ${where}`;
+  const branch = h.meta.branch ? `, branch ${h.meta.branch}` : "";
+  const how = h.file
+    ? `node "${LOAD_SCRIPT}" ${h.file}`
+    : h.ref
+      ? `git show ${h.ref}:${REPO_FILE}`
+      : `read ${REPO_FILE}`;
+  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}\n    ${how}`;
 }
+
+// The user sees systemMessage and nothing else, so a list they are asked to choose
+// from has to carry the titles. Three is enough to choose by; past that a count
+// reads better than a wall of them.
+function titleList(list) {
+  const shown = list.slice(0, 3).map((h) => `"${h.meta.title ?? h.file}"`);
+  const rest = list.length - shown.length;
+  return shown.join(", ") + (rest > 0 ? `, and ${rest} more` : "");
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // After auto-compaction the summary is lossy about exact state, so the new
 // context is told to re-check it before acting on anything it "remembers".
@@ -81,21 +100,27 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     markConsumed(root, key, load.meta);
     if (repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
     for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
-    const from = load.meta.branch && load.meta.branch !== branch ? ` (written on branch ${load.meta.branch})` : "";
+    // A branch mismatch is the one thing about a loaded handover the user should
+    // notice, so it goes in both strings rather than only in Claude's copy.
+    const from = load.meta.branch && load.meta.branch !== branch ? `, written on branch ${load.meta.branch}` : "";
     parts.push(
       `clear-resume: this session continues earlier work. Handover "${load.meta.title}", saved ${age(load.meta.created, now)}${from}. ` +
-        `Treat its branch, file and status claims as a snapshot: check them before acting.\n\n${load.body.trim()}`,
+        `Its branch, file and status claims are a snapshot: check them before acting.\n\n${load.body.trim()}`,
     );
-    shown = `clear-resume: loaded handover "${load.meta.title}" (saved ${age(load.meta.created, now)}).`;
+    shown = `clear-resume: loaded handover "${load.meta.title}" (saved ${age(load.meta.created, now)}${from}).`;
   }
 
   if (list.length) {
-    parts.push(
-      `clear-resume: ${list.length} other handover(s) waiting for this repo, not loaded:\n` +
-        list.map((h) => describe(h, now)).join("\n") +
-        `\nIf the user asks to resume one, run: node "${LOAD_SCRIPT}" <file>`,
-    );
-    shown ??= `clear-resume: ${list.length} handover(s) waiting for this repo. Say which to resume.`;
+    // "other" only when something else was loaded for them to be other than.
+    const lead = load
+      ? `clear-resume: ${plural(list.length, "other handover")} also waiting for this repo, not loaded:`
+      : `clear-resume: ${plural(list.length, "handover")} waiting for this repo, none loaded. Give the user the titles and ask which one:`;
+    parts.push(`${lead}\n${list.map((h) => describe(h, now)).join("\n")}`);
+    // With a handover already loaded the user still needs telling that others
+    // exist, or they cannot ask for one. This only appears when there are some.
+    shown = load
+      ? `${shown} ${plural(list.length, "other handover")} waiting; say if you want one of those instead.`
+      : `clear-resume: ${plural(list.length, "handover")} waiting for this repo: ${titleList(list)}. Say which to resume.`;
   }
 
   return {

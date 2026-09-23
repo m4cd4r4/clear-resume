@@ -43,6 +43,8 @@ describe("chooseHandover", () => {
 describe("age", () => {
   it("formats minutes, hours and days", () => {
     expect(age("2026-09-19T11:55:00Z", NOW)).toBe("5m ago");
+    expect(age("2026-09-19T12:00:00Z", NOW)).toBe("just now");
+    expect(age("2026-09-19T11:59:45Z", NOW)).toBe("just now");
     expect(age("2026-09-19T09:00:00Z", NOW)).toBe("3h ago");
     expect(age("2026-09-15T12:00:00Z", NOW)).toBe("4d ago");
   });
@@ -86,9 +88,26 @@ describe("SessionStart hook", () => {
     const { key } = saveHandover({ cwd: repo, title: "B work", body: "y", root });
     git("checkout", "-q", "main");
     const out = run({ cwd: repo }, { env });
-    expect(out.hookSpecificOutput.additionalContext).toMatch(/2 other handover\(s\)/);
+    expect(out.hookSpecificOutput.additionalContext).toContain("2 handovers waiting for this repo, none loaded");
     expect(out.hookSpecificOutput.additionalContext).toContain("load.mjs");
+    // The user only ever sees systemMessage, so a list they are asked to choose
+    // from is useless there without the titles.
+    expect(out.systemMessage).toContain('"A work"');
+    expect(out.systemMessage).toContain('"B work"');
+    // "other" needs something else to be other than, and nothing was loaded here.
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("other handover");
     expect(listWaiting(root, key)).toHaveLength(2);
+  });
+
+  it("calls a listed handover \"other\" only when one was loaded, and counts it singular", () => {
+    git("checkout", "-q", "-b", "side");
+    saveHandover({ cwd: repo, title: "Side work", body: "x", root });
+    git("checkout", "-q", "main");
+    saveHandover({ cwd: repo, title: "Main work", body: "y", root });
+    const ctx = run({ cwd: repo }, { env }).hookSpecificOutput.additionalContext;
+    expect(ctx).toContain('Handover "Main work"');
+    expect(ctx).toContain("1 other handover also waiting");
+    expect(ctx).not.toContain("handover(s)");
   });
 
   // The extension prunes when its tree opens. A machine used only from the CLI
