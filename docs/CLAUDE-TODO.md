@@ -26,6 +26,14 @@ Two more full runs on 2026-09-23, on the tree that adds `demo/` and touches only
 | 6 | 121 passed, 3 failed | the same three |
 | `web.test.mjs` alone | 11 passed | none |
 | 7 (same tree, 20 minutes after run 6) | **124 passed, 0 failed** | none, but the process still **exited 1** on an unhandled `Error: [vitest-worker]: Timeout calling "onTaskUpdate"` |
+| 8 (same tree, 5 minutes after run 7) | 123 passed, 1 failed | `test/web.test.mjs > fetches first on the same branch too` |
+
+**The distribution, in one line.** Eight runs of one unchanged tree have returned 124/0,
+123/1, 122/1, 122/2 and 121/3. Every failure has been in `test/web.test.mjs` or
+`packages/store/test/sync.test.mjs`, both of which pass in isolation every time they have
+been asked. No run has ever failed a test outside those two files. So the useful summary is
+not a count: **a red run of this suite carries no information until the named file has been
+re-run alone.**
 
 So it is not one deterministic failure and it is not confined to one file. Both flaky tests
 drive real `git` processes against temp directories, both pass in isolation, and the whole
