@@ -25,18 +25,25 @@ Two more full runs on 2026-09-23, on the tree that adds `demo/` and touches only
 | 5 | 121 passed, 3 failed | all three in `test/web.test.mjs`: `finds the handover on another pushed branch, once`, `fetches first on the same branch too`, `empties the handover ref once loaded` |
 | 6 | 121 passed, 3 failed | the same three |
 | `web.test.mjs` alone | 11 passed | none |
+| 7 (same tree, 20 minutes after run 6) | **124 passed, 0 failed** | none, but the process still **exited 1** on an unhandled `Error: [vitest-worker]: Timeout calling "onTaskUpdate"` |
 
 So it is not one deterministic failure and it is not confined to one file. Both flaky tests
 drive real `git` processes against temp directories, both pass in isolation, and the whole
 suite can pass outright.
 
+Run 7 adds the piece that was missing: **the exit code and the test results are two separate
+signals here.** A run can report 124 passed and still exit 1, because the `onTaskUpdate` RPC
+timeout is an unhandled error rather than a test failure - which is the exact artefact the
+comment in `vitest.config.mjs` was written about. Any CI gate or guard that reads only the
+exit code will call a fully green run red.
+
 **Correct the diagnosis before fixing it.** "Contention under parallel execution" cannot be
 the whole answer: `vitest.config.mjs` already sets `fileParallelism: false`, so the files run
 one after another, and tests within a file run serially too. Whatever the shared resource is,
 it survives between files - a shared temp root, a leftover `git` process, or state left on
-disk by an earlier file. Runs 5 and 6 failed identically, which is the first repeatable
-signal anyone has had here, so reproduce against that pair rather than chasing the earlier
-single-failure runs.
+disk by an earlier file. Runs 5 and 6 failed identically, which is the closest thing to a
+repeatable signal anyone has had here, so start there; but run 7 shows the tree is not
+reliably red either, so reproduce before assuming a fix worked.
 
 This matters because "expect 1 failure" trains everyone to wave a failure through. Either
 fix the two tests (serialise the ones that shell out to git, or give each its own
