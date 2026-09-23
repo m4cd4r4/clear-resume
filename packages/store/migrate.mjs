@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { normalisePath } from "./schema.mjs";
 import { exists, recordIdFor, save, storeRoot } from "./store.mjs";
 
-// "Solaisoft 09-19 2308 Portal gen [ACTIONED].txt"
+// "Acme 09-19 2308 Portal gen [ACTIONED].txt"
 const NAME = /^(.+?)\s+(\d{2})-(\d{2})\s+(\d{4})\s+(.*?)(\s*\[ACTIONED\])?\.txt$/;
 const BODY_REF = /Resume from handover:\s*(\S+\.md)/i;
 
