@@ -12,7 +12,7 @@ import { normalisePath } from "./schema.mjs";
 const TIMEOUT_MS = 3000;
 
 // Git prints the LONG form of a Windows path: a folder reached through an 8.3 name
-// ("HARD-W~1") comes back spelled out ("Hard-Worker"). Two spellings of one folder
+// ("LONGNA~1") comes back spelled out ("Long Name"). Two spellings of one folder
 // compare unequal, so both sides go through realpath before they meet.
 function resolveReal(path) {
   if (!path) return "";
