@@ -78,7 +78,9 @@ describe("SessionStart hook", () => {
     expect(out.hookSpecificOutput.additionalContext).toContain("Run the tests.");
     expect(out.systemMessage).toMatch(/loaded handover "Ship it"/);
     expect(listWaiting(root, key)).toHaveLength(0);
-    expect(run({ cwd: repo }, { env })).toBeNull();
+    // Silent again for a real later session. An immediate re-run is the twin of
+    // the same /clear and re-emits instead; that pair is covered below.
+    expect(run({ cwd: repo }, { env, now: new Date(Date.now() + 60_000) })).toBeNull();
   });
 
   it("lists other branches' handovers without loading them", () => {
@@ -144,6 +146,58 @@ describe("SessionStart hook", () => {
       encoding: "utf8",
     });
     expect(stdout).toBe("");
+  });
+
+  // One /clear fires SessionStart twice in the VS Code extension - once as
+  // `startup`, once as `clear`. Before this, the twin reported "none loaded"
+  // and Claude started with no handover: the plugin's whole job, silently not
+  // done. Seen live 2026-09-24 on solaisoft.
+  describe("a twin SessionStart from the same /clear", () => {
+    it("re-emits the body the first invocation loaded, instead of returning null", () => {
+      saveHandover({ cwd: repo, title: "Only one", body: "## Next action\nFinish the grid.", root });
+
+      const first = run({ cwd: repo }, { env });
+      expect(first.hookSpecificOutput.additionalContext).toContain("Finish the grid.");
+
+      const twin = run({ cwd: repo }, { env });
+      expect(twin).not.toBeNull();
+      expect(twin.hookSpecificOutput.additionalContext).toContain("Finish the grid.");
+      expect(twin.systemMessage).toMatch(/loaded handover "Only one"/);
+    });
+
+    it('does not say "none loaded" while other handovers are still waiting', () => {
+      git("checkout", "-q", "-b", "side");
+      saveHandover({ cwd: repo, title: "Side work", body: "side body", root });
+      git("checkout", "-q", "main");
+      saveHandover({ cwd: repo, title: "Main work", body: "main body", root });
+
+      run({ cwd: repo }, { env });
+      const ctx = run({ cwd: repo }, { env }).hookSpecificOutput.additionalContext;
+
+      expect(ctx).toContain("main body");
+      expect(ctx).not.toContain("none loaded");
+      expect(ctx).toContain("1 other handover also waiting");
+    });
+
+    it("consumes once: the twin neither re-archives nor writes a second consume mark", () => {
+      const { key } = saveHandover({ cwd: repo, title: "Once", body: "body", root });
+      run({ cwd: repo }, { env });
+      const after = readFileSync(join(root, key, "consumed.txt"), "utf8");
+
+      run({ cwd: repo }, { env });
+
+      expect(readFileSync(join(root, key, "consumed.txt"), "utf8")).toBe(after);
+      expect(listWaiting(root, key)).toHaveLength(0);
+    });
+
+    // A short window is what separates a twin from a user who cleared twice
+    // because they wanted a fresh start.
+    it("goes quiet again once the window has passed", () => {
+      saveHandover({ cwd: repo, title: "Stale echo", body: "body", root });
+      run({ cwd: repo }, { env });
+
+      expect(run({ cwd: repo }, { env, now: new Date(Date.now() + 60_000) })).toBeNull();
+    });
   });
 
   it("load.mjs prints and archives a listed handover", () => {

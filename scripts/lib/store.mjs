@@ -154,6 +154,18 @@ export function archive(root, key, path) {
   return record.path;
 }
 
+/**
+ * One handover by its cross-copy id (`created|title`), whatever its status.
+ *
+ * `listWaiting` deliberately hides an archived record, which is right for
+ * choosing what to offer and wrong for re-reporting the one a twin invocation
+ * has just loaded - by then it is already archived.
+ */
+export function findById(root = storeRoot(), id = "") {
+  const record = listAll(root).find((r) => `${r.createdAt ?? ""}|${r.title ?? ""}` === id);
+  return record ? asHandover(record) : null;
+}
+
 // Save a handover. A newer save on the same branch supersedes the waiting one,
 // so re-running /handover never leaves two competing copies; other branches
 // (another window on the same repo) are left alone.
