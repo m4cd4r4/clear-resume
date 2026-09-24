@@ -26,12 +26,20 @@ const GITATTRIBUTES = "* text=auto eol=lf\n";
 // handover loaded on one machine must not be offered again on the other.
 const GITIGNORE = ".nudged/\n";
 
+// Called from a detached, console-less node on Windows. windowsHide alone is not enough:
+// it sets CREATE_NO_WINDOW, and the Git\cmd\git.exe shim then launches mingw64\bin\git.exe
+// into a NEW, VISIBLE console window. Calling the real binary directly avoids the shim
+// (2026-09-24, same fix as ~/.claude/scripts/repo-scanner.py).
+const REAL_GIT = "C:\\Program Files\\Git\\mingw64\\bin\\git.exe";
+const GIT_EXE = process.platform === "win32" && existsSync(REAL_GIT) ? REAL_GIT : "git";
+
 function git(cwd, args, { timeout = TIMEOUT_MS } = {}) {
-  return execFileSync("git", args, {
+  return execFileSync(GIT_EXE, args, {
     cwd,
     timeout,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
   }).trim();
 }
 
@@ -259,6 +267,7 @@ export function pushInBackground(root = storeRoot(), env = process.env) {
   const child = spawn(process.execPath, [CLI], {
     detached: true,
     stdio: "ignore",
+    windowsHide: true,
     env: { ...process.env, CLEAR_RESUME_HOME: root },
   });
   child.unref();
