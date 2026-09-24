@@ -159,6 +159,8 @@ describe("load in a new cloud session", () => {
     expect(out.hookSpecificOutput.additionalContext.match(/Finish the parser\./g)).toHaveLength(1);
     git(one, "fetch", "-q", "origin", "clear-resume/claude/one");
     expect(git(one, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe("");
-    expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) })).toBeNull();
+    // Silent again for a real later session. An immediate re-run is the twin of
+    // the same /clear, which re-emits rather than loading a second time.
+    expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne), now: new Date(Date.now() + 60_000) })).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
 // to its own ref (clear-resume/<branch>). The next session fetches, finds it on
 // any remote branch, loads it once and empties the ref.
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { handoverMarkdown, parseHandover } from "./store.mjs";
 
@@ -86,6 +86,33 @@ export function consumedIds(root, key) {
 export function markConsumed(root, key, meta) {
   mkdirSync(join(root, key), { recursive: true });
   appendFileSync(consumedFile(root, key), handoverId(meta) + "\n", "utf8");
+}
+
+/**
+ * The handover this repo consumed in the last `withinMs`, or null.
+ *
+ * One /clear in the VS Code extension fires SessionStart twice - once as
+ * `startup`, once as `clear`. The first invocation loads a handover and marks it
+ * consumed; the second sees it gone from the waiting list and reports "none
+ * loaded", which is the opposite of what happened, and the loaded body is the one
+ * that never reaches Claude. The consume itself is already idempotent - only the
+ * reporting was not.
+ *
+ * The log is append-only and written ONLY on a load, so its last line names the
+ * handover just loaded and its mtime is when that happened. Nothing else writes
+ * it, so a handover archived by hand in the extension is never mistaken for one.
+ */
+export function lastConsumed(root, key, { now = new Date(), withinMs = 60_000 } = {}) {
+  const f = consumedFile(root, key);
+  if (!existsSync(f)) return null;
+  try {
+    const at = statSync(f).mtime;
+    if (Math.abs(now - at) > withinMs) return null;
+    const id = readFileSync(f, "utf8").split("\n").filter(Boolean).at(-1);
+    return id ? { id, at } : null;
+  } catch {
+    return null;
+  }
 }
 
 // Remote-tracking branches, newest commit first, without the symbolic origin/HEAD

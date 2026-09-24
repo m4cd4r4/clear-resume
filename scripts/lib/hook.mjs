@@ -1,11 +1,11 @@
 // SessionStart logic: decide what to inject for this repo's waiting handovers.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
+import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { age, chooseHandover } from "./select.mjs";
-import { consumedIds, retireHandoverRef, handoverId, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
+import { consumedIds, retireHandoverRef, handoverId, lastConsumed, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
 
@@ -73,6 +73,26 @@ function pruneQuietly(root, now) {
   }
 }
 
+// Window in which a second SessionStart is taken for the twin of the first rather
+// than a genuinely new session. Measured here the pair land within a second of
+// each other; 15s is slack for a slow pull. Kept deliberately short, because a
+// user who really does /clear twice in a row wants a fresh start, not the
+// handover the first /clear already consumed.
+const TWIN_WINDOW_MS = 15_000;
+
+/**
+ * The handover a twin invocation loaded moments ago, ready to re-emit.
+ *
+ * Returns null unless the consume log was written inside the window AND the
+ * record it names is still in the store, so a pruned or hand-deleted record
+ * degrades to the old listing behaviour rather than to a crash.
+ */
+function recentlyLoaded(root, key, now, env) {
+  const withinMs = Number(env.CLEAR_RESUME_TWIN_WINDOW_MS) || TWIN_WINDOW_MS;
+  const recent = lastConsumed(root, key, { now, withinMs });
+  return recent ? findById(root, recent.id) : null;
+}
+
 export function run(input, { env = process.env, now = new Date() } = {}) {
   const cwd = input.cwd || process.cwd();
   const { top, branch } = repoInfo(cwd);
@@ -88,18 +108,33 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const carried = inGit.filter((h) => !known.has(handoverId(h.meta)));
   const waiting = [...stored, ...carried].sort((a, b) => String(a.meta.created).localeCompare(String(b.meta.created)));
   const compact = input.source === "compact";
-  if (!waiting.length && !compact) return null;
-
   const maxAgeDays = Number(env.CLEAR_RESUME_MAX_AGE_DAYS) || 7;
-  const { load, list } = chooseHandover(waiting, branch, { now, maxAgeDays });
+
+  // One /clear fires SessionStart twice in the VS Code extension - once as
+  // `startup`, once as `clear`. The first invocation loads a handover and
+  // consumes it; the second then saw an emptier list and reported "none loaded",
+  // the opposite of what happened, with the loaded body reaching nobody. The
+  // consume was always idempotent; only the reporting was not.
+  //
+  // The echo is decided BEFORE chooseHandover, not after, for two reasons. The
+  // twin's waiting list is usually empty, which exits early below. And where it
+  // is not, chooseHandover would hand the twin a DIFFERENT handover - the
+  // lone-handover rule fires as soon as the first one is taken - quietly burning
+  // a second piece of work on a session that already has one.
+  const echo = recentlyLoaded(root, key, now, env);
+  let load = echo;
+  let list = waiting;
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays }));
+  if (!load && !waiting.length && !compact) return null;
+
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
 
   if (load) {
-    if (load.path) archive(root, key, load.path);
-    markConsumed(root, key, load.meta);
-    if (repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
-    for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
+    if (!echo && load.path) archive(root, key, load.path);
+    if (!echo) markConsumed(root, key, load.meta);
+    if (!echo && repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
+    if (!echo) for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
     // A branch mismatch is the one thing about a loaded handover the user should
     // notice, so it goes in both strings rather than only in Claude's copy.
     const from = load.meta.branch && load.meta.branch !== branch ? `, written on branch ${load.meta.branch}` : "";
