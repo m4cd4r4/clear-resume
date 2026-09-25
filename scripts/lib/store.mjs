@@ -22,6 +22,7 @@ import {
 import { normalisePath } from "../../packages/store/schema.mjs";
 import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
 import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
+import { ownerId } from "./owner.mjs";
 
 export function storeRoot(env = process.env) {
   return sharedStoreRoot(env);
@@ -110,7 +111,7 @@ function asHandover(record) {
     path: record.path,
     file: basename(record.path),
     id: record.id,
-    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch },
+    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "" },
     body: record.body,
   };
 }
@@ -166,17 +167,20 @@ export function findById(root = storeRoot(), id = "") {
   return record ? asHandover(record) : null;
 }
 
-// Save a handover. A newer save on the same branch supersedes the waiting one,
-// so re-running /handover never leaves two competing copies; other branches
-// (another window on the same repo) are left alone.
-export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot() }) {
+// Save a handover. A newer save from the same window supersedes that window's
+// waiting one, so re-running /handover never leaves two competing copies. Other
+// windows are left alone even on the same branch: every session opened in one
+// folder shares its branch, so the branch alone archived a different window's
+// handover (2026-09-25). With no owner known, the old same-branch rule applies,
+// but only to handovers that have no owner either.
+export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId() }) {
   if (!title || !String(title).trim()) throw new Error("title is required");
   if (!body || !String(body).trim()) throw new Error("handover body is empty");
   const { top, branch } = repoInfo(cwd);
   const main = mainWorktree(top);
 
   const superseded = listWaiting(root, top)
-    .filter((h) => (h.meta.branch ?? "") === branch)
+    .filter((h) => (owner ? h.meta.owner === owner : !h.meta.owner && (h.meta.branch ?? "") === branch))
     .map((h) => archive(root, null, h.path));
 
   const record = save(
@@ -191,6 +195,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
       branch,
       machine: hostname(),
       pid: process.pid,
+      owner: owner || "",
       createdAt: new Date(now).toISOString(),
       status: "waiting",
       source: "plugin",

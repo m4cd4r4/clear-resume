@@ -5,6 +5,7 @@ import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { age, chooseHandover } from "./select.mjs";
+import { ownerAlive, ownerId } from "./owner.mjs";
 import { consumedIds, retireHandoverRef, handoverId, lastConsumed, markConsumed, removeWorktreeCopy, REPO_FILE, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
@@ -124,7 +125,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const echo = recentlyLoaded(root, key, now, env);
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? ownerId(env) : "", alive: ownerAlive }));
   if (!load && !waiting.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];

@@ -95,6 +95,20 @@ describe("saveHandover", () => {
     expect(listWaiting(root, second.key).map((h) => h.meta.title)).toEqual(["two"]);
   });
 
+  it("keeps another window's handover waiting on the same branch", () => {
+    saveHandover({ cwd: repo, title: "window A", body: "x", now: at("10:00:00"), root, owner: "111" });
+    const { key, superseded } = saveHandover({ cwd: repo, title: "window B", body: "y", now: at("11:00:00"), root, owner: "222" });
+    expect(superseded).toHaveLength(0);
+    expect(listWaiting(root, key).map((h) => h.meta.title)).toEqual(["window A", "window B"]);
+  });
+
+  it("supersedes its own window's handover, and records the owner", () => {
+    const first = saveHandover({ cwd: repo, title: "one", body: "x", now: at("10:00:00"), root, owner: "111" });
+    const second = saveHandover({ cwd: repo, title: "two", body: "y", now: at("11:00:00"), root, owner: "111" });
+    expect(second.superseded).toEqual([first.path]);
+    expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", "111"]]);
+  });
+
   it("keeps another branch's handover waiting", () => {
     saveHandover({ cwd: repo, title: "main work", body: "x", now: at("10:00:00"), root });
     execFileSync("git", ["checkout", "-q", "-b", "feat"], { cwd: repo });
