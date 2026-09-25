@@ -11,5 +11,8 @@ export default defineConfig({
     // and costs about 30s: the sync file is 80s of the run on its own, so there was
     // never much left to overlap.
     fileParallelism: false,
+    // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
+    // launched the tests would make every save in every test one owner's.
+    env: { CLAUDE_PID: "", CLEAR_RESUME_NO_PROCESS_WALK: "1" },
   },
 });

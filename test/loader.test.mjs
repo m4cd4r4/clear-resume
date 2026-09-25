@@ -38,6 +38,34 @@ describe("chooseHandover", () => {
   it("returns nothing for an empty store", () => {
     expect(chooseHandover([], "main", { now: NOW })).toEqual({ load: null, list: [] });
   });
+
+  describe("window ownership (2026-09-25: one window's /clear took another's handover)", () => {
+    const owned = (title, branch, owner, created) => ({ ...h(title, branch, created), meta: { ...h(title, branch, created).meta, owner } });
+    const alive = (pid) => pid === "111" || pid === "222";
+
+    it("loads this window's own handover even when another window's is newer on the branch", () => {
+      const mine = owned("mine", "main", "111", "2026-09-19T10:00:00Z");
+      const theirs = owned("theirs", "main", "222", "2026-09-19T11:00:00Z");
+      const { load, list } = chooseHandover([mine, theirs], "main", { now: NOW, owner: "111", alive });
+      expect(load.meta.title).toBe("mine");
+      expect(list.map((x) => x.meta.title)).toEqual(["theirs"]);
+    });
+
+    it("loads this window's own handover on another branch", () => {
+      const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive });
+      expect(load.meta.title).toBe("mine");
+    });
+
+    it("never auto-loads a handover owned by another running window, even alone on the branch", () => {
+      const theirs = owned("theirs", "main", "222");
+      expect(chooseHandover([theirs], "main", { now: NOW, owner: "111", alive })).toEqual({ load: null, list: [theirs] });
+    });
+
+    it("lets a new window pick up a handover whose window has closed", () => {
+      const { load } = chooseHandover([owned("orphan", "main", "999")], "main", { now: NOW, owner: "111", alive });
+      expect(load.meta.title).toBe("orphan");
+    });
+  });
 });
 
 describe("age", () => {
