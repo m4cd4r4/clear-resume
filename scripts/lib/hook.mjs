@@ -145,13 +145,19 @@ const TWIN_WINDOW_MS = 15_000;
  * write the same consume log, and echoing their load made this window skip its
  * own handover (review of #28). The owners are compared only when both are
  * known: `me` is whatever is known without walking the process table.
+ *
+ * They are compared by pid alone. The first run stamps `pid@start` once it has
+ * looked its owner up, and the twin knows only the bare CLAUDE_PID, so comparing
+ * the strings refused every echo in a real window (review, 2026-09-27). Both runs
+ * sit inside the same 15 seconds, too soon for the pid to have been reused.
  */
 function recentlyLoaded(root, key, now, env, me) {
   const withinMs = Number(env.CLEAR_RESUME_TWIN_WINDOW_MS) || TWIN_WINDOW_MS;
   const recent = lastConsumed(root, key, { now, withinMs });
   const h = recent ? findById(root, recent.id) : null;
   if (h?.archivedBy?.via !== "hook") return null;
-  if (h.archivedBy.owner && me && h.archivedBy.owner !== me) return null;
+  const pidOf = (owner) => String(owner).split("@")[0];
+  if (h.archivedBy.owner && me && pidOf(h.archivedBy.owner) !== pidOf(me)) return null;
   return h;
 }
 

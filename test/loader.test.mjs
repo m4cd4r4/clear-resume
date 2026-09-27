@@ -3,9 +3,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { age, chooseHandover } from "../scripts/lib/select.mjs";
 import { run } from "../scripts/lib/hook.mjs";
+import { ownerId } from "../scripts/lib/owner.mjs";
 import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
 import { listAll, read, save } from "../packages/store/store.mjs";
 
@@ -233,6 +234,48 @@ describe("SessionStart hook", () => {
 
       expect(readFileSync(join(root, key, "consumed.txt"), "utf8")).toBe(after);
       expect(listWaiting(root, key)).toHaveLength(0);
+    });
+
+    // With the process walk on, as in a real window, the first run's owner is
+    // `pid@start` while the twin knows only the bare CLAUDE_PID. Comparing those
+    // strings refused the echo, so the twin said nothing, or took a different
+    // handover by the lone-handover rule (review of fix/owner-and-hook-cost,
+    // 2026-09-27). The config turns the walk off for every other test, which is
+    // how this went unseen.
+    describe("with the process walk on and CLAUDE_PID set", () => {
+      let windowEnv, me;
+      beforeEach(() => {
+        vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+        windowEnv = { ...env, CLAUDE_PID: String(process.pid), CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" };
+        me = ownerId(windowEnv);
+        // Without a start time this would not be the case under test.
+        expect(me).toMatch(new RegExp(`^${process.pid}@\\d+$`));
+      });
+      afterEach(() => vi.unstubAllEnvs());
+
+      it("re-emits this window's handover", () => {
+        saveHandover({ cwd: repo, title: "Mine", body: "## Next action\nMine body.", root, owner: me });
+
+        expect(run({ cwd: repo, source: "startup" }, { env: windowEnv }).systemMessage).toMatch(/loaded handover "Mine"/);
+        const twin = run({ cwd: repo, source: "clear" }, { env: windowEnv });
+
+        expect(twin).not.toBeNull();
+        expect(twin.systemMessage).toMatch(/loaded handover "Mine"/);
+        expect(twin.hookSpecificOutput.additionalContext).toContain("Mine body.");
+      });
+
+      it("does not take a second handover by the lone-handover rule", () => {
+        git("checkout", "-q", "-b", "side");
+        const { key } = saveHandover({ cwd: repo, title: "Other", body: "other body", root, owner: "" });
+        git("checkout", "-q", "main");
+        saveHandover({ cwd: repo, title: "Mine", body: "mine body", root, owner: me });
+
+        run({ cwd: repo, source: "startup" }, { env: windowEnv });
+        const twin = run({ cwd: repo, source: "clear" }, { env: windowEnv });
+
+        expect(twin.systemMessage).toMatch(/loaded handover "Mine"/);
+        expect(listWaiting(root, key).map((x) => x.meta.title)).toEqual(["Other"]);
+      });
     });
 
     // A short window is what separates a twin from a user who cleared twice
