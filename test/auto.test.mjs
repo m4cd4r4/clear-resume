@@ -1,5 +1,5 @@
 // tdd-guard:allow - auto-mode rules, each mutation-checked.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -204,5 +204,33 @@ describe("SessionStart after compaction", () => {
 
   it("adds no note on a normal startup", () => {
     expect(run({ cwd: repo, source: "startup" }, { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+  });
+});
+
+// PostToolUse runs after every tool call and Stop after every turn, auto mode or
+// not. With auto mode off they must cost no more than starting node: nothing is
+// imported or read before the switch is checked. Stdin is left open here, so a
+// script that reads it (or anything else) before checking hangs until killed.
+describe("hook scripts with auto mode off", () => {
+  it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
+    const child = spawn(process.execPath, [join(import.meta.dirname, "../scripts", script)], {
+      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    const code = await new Promise((done) => {
+      const timer = setTimeout(() => {
+        child.kill();
+        done("hung");
+      }, 5000);
+      child.on("exit", (c) => {
+        clearTimeout(timer);
+        done(c);
+      });
+    });
+    child.stdin.destroy();
+    expect(code).toBe(0);
+    expect(out).toBe("");
   });
 });

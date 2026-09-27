@@ -5,6 +5,7 @@
 import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
+import { autoEnabled } from "./auto-flag.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
 // A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
@@ -56,9 +57,7 @@ export function lastContextTokens(transcriptPath) {
   return null;
 }
 
-export function autoEnabled(env) {
-  return /^(1|true|on|yes)$/i.test(String(env.CLEAR_RESUME_AUTO ?? "").trim());
-}
+export { autoEnabled };
 
 export function threshold(env) {
   const n = Number(env.CLEAR_RESUME_NUDGE_AT);
