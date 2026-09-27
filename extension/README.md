@@ -17,7 +17,7 @@ writes them and loads them automatically when you `/clear`.
   shared store. Additive and idempotent: it never deletes the originals.
 
 The plugin covers the common path - write a handover, `/clear`, the next session
-in that repo loads it with no typing. The sidebar is for the rest: an older
+in that folder loads it with no typing. The sidebar is for the rest: an older
 handover, one from another repo, or one you want to read before resuming.
 
 ## Settings
@@ -25,7 +25,7 @@ handover, one from another repo, or one you want to read before resuming.
 | Setting | Default | What it does |
 |---|---|---|
 | `clearResume.storePath` | `~/.clear-resume` | Folder holding the handover store. |
-| `clearResume.showArchived` | `false` | Show already-resumed handovers in the tree. |
+| `clearResume.showArchived` | `false` | Show archived handovers (loaded, resumed or replaced by a newer save) in the tree. |
 
 The extension does not read Claude Code's settings. If you moved the store with
 `CLEAR_RESUME_HOME` there, set `clearResume.storePath` to the same folder.

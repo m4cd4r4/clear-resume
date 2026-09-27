@@ -36,8 +36,9 @@ acting, because a branch or a file can move between sessions.
 One JSON file per handover in `~/.clear-resume/handovers/`, named
 `<machine>-<pid>-<time>.json`. `CLEAR_RESUME_HOME` moves the whole store.
 
-A handover is filed against the folder the session started in, even after a `cd`, and against
-the repo's main checkout. A session in any worktree of that repo finds it.
+A handover is filed against the folder the session started in, even after a `cd`. It loads only
+in that checkout. A handover written in a git worktree is not offered in the repo's main
+checkout, and one written in the main checkout is not offered in a worktree.
 
 | Record | What happens | When |
 |---|---|---|
@@ -46,16 +47,17 @@ the repo's main checkout. A session in any worktree of that repo finds it.
 | Loaded (archived) | Body dropped, record kept as a tombstone | 30 days after loading |
 | Tombstone | File deleted | 90 days after that |
 
-A pinned handover (from the sidebar) is exempt from all of these. The store is tidied at every
-session start and when the sidebar starts.
+Pinning a handover in the sidebar keeps it out of the Stale group and the two deletion timers.
+The hook still lists, and does not load, a pinned handover older than 7 days. The store is tidied
+at every session start and when the sidebar starts.
 
-Beside the handovers folder, each repo gets a `consumed.txt` log (one line per loaded handover)
+Beside the handovers folder, each repo gets a folder with a `consumed.txt` log (one line per loaded handover)
 and auto mode keeps one marker file per nudged session in `.nudged/`. Nothing prunes either.
 
 ## Which handover loads
 
 At session start, `/clear` or compaction, the hook looks at the handovers waiting for this repo
-and applies the first rule that fits. "Fresh" means under 7 days old and not dated more than 5
+and applies the first rule that fits. "Fresh" means no more than 7 days old and not dated more than 5
 minutes in the future.
 
 1. The newest fresh handover this window wrote loads, whatever its branch.
@@ -109,7 +111,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 | `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
-| `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops it on this machine, both directions. |
+| `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
 | `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
 
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
@@ -149,8 +151,7 @@ what is already fetched). Then it looks for handovers in git: on `clear-resume/*
 the remote, and in a `.clear-resume/HANDOVER.md` committed to the repo. It lists up to three
 of them as untrusted repo content, each with a command that prints it, counts the rest, and
 never loads them. Anyone who can push to the repo could have written them. Ask Claude to print
-the one you want. A handover already in your store, or already loaded once, is not listed
-again.
+the one you want. A handover still waiting in your store, or loaded once, is not listed again.
 
 An untracked `.clear-resume/HANDOVER.md` in your working tree is treated as yours: it can load
 like a stored handover, and it is deleted once it has loaded.
@@ -208,7 +209,8 @@ so the cost is a repeat listing.
 | Sidebar resume, pin, delete | Push, detached | Same |
 | Two machines rewrote one record | Later `updatedAt` wins | Settled at the next pull |
 
-Set `CLEAR_RESUME_SYNC=off` on a machine that should keep a private store.
+`CLEAR_RESUME_SYNC=off` stops the plugin's sync on one machine. The sidebar reads its own
+environment, not Claude Code's settings, so it still pushes its own changes.
 
 ### Proving it before you trust it
 
@@ -261,7 +263,7 @@ window you have open.
 - **Two more hooks.** PostToolUse runs after every tool call and Stop after every turn, auto
   mode or not. With auto mode off, each starts node and exits before importing anything else. In
   auto mode each reads the last 256 KB of the transcript file, and reads further back, up to
-  16 MB, only when that part holds no complete entry.
+  16 MB, only when that part holds no main-thread assistant turn with a token count.
 
 ## Privacy
 
@@ -275,7 +277,8 @@ The plugin runs locally. What it reads:
 
 What it writes: each handover record holds its title and body, the repo path, branch, machine
 name, and the owning window's process id and start time. What the plugin prints names a
-handover by its title and a short id, with paths relative to `~`.
+handover by its title and a short id, not its file name, which holds the machine name. The one
+exception is the warning printed when a save cannot find its own record again.
 
 A loaded handover becomes part of the session's context, like any text Claude reads.
 
@@ -293,6 +296,8 @@ Handovers are plain text. Do not put secrets in them.
 - A handover loads on its own only in the window that wrote it, while that window is open.
   Once that window has closed, the branch rules in [Which handover loads](#which-handover-loads)
   decide.
+- A handover loads only in the checkout it was written in. Another worktree of the same repo,
+  or its main checkout, does not see it.
 - Nothing loads on `--resume` or `/resume`. The hook runs at startup, `/clear` and compaction.
 - When the process list cannot be read in time, a handover whose window may still be open is
   listed, not loaded. `load.mjs --take` moves it.
@@ -313,8 +318,9 @@ Handovers are plain text. Do not put secrets in them.
    `CLEAR_RESUME_MAX_AGE_DAYS`.
 4. **Were several waiting on other branches?** They are listed. Say which one.
 5. **Did you start with `--resume` or `/resume`?** The hook does not run then.
-6. **Is the new session in the same repo?** Any worktree of the repo finds it. Nowhere else
-   does.
+6. **Is the new session in the same folder?** A handover loads only in the checkout it was
+   written in. A save made in a worktree still prints the main checkout's folder; open the
+   session in the worktree instead.
 7. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
    to run `node --version`: the hooks need `node` on the PATH Claude Code sees.
 
