@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs after `git commit --amend` or `git rebase` rewrites commits, so a
+# `git pull --rebase` on main also triggers the plugin auto-update (confirmed:
+# rebase sets ORIG_HEAD to the pre-rebase tip and calls this hook with "rebase"
+# as $1; --amend also calls it, with "amend"). See .githooks/post-merge for
+# what this does and why; the two hooks share scripts/auto-update-on-pull.mjs,
+# which skips straight away when $1 is "amend".
+#
+# Never blocks: same contract as post-merge.
+hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH= cd -- "$hook_dir/.." && pwd)
+
+if command -v node >/dev/null 2>&1; then
+  node "$repo_root/scripts/auto-update-on-pull.mjs" post-rewrite "$1"
+else
+  echo "clear-resume auto-update: skipped (node not found on PATH)"
+fi
+
+exit 0
