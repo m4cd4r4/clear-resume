@@ -135,6 +135,25 @@ const SAFE_TOP = /^[\p{L}\p{M}\p{N} ._\/\\:~+,@()=-]+$/u;
 const gitAt = (top) => (SAFE_TOP.test(top) ? `git -C "${top}"` : "git");
 
 /**
+ * The blob a revision names, and the text in it, or null.
+ *
+ * A listed handover is printed with `git cat-file -p <blob>`, never `git show
+ * <ref>:<path>`. Git Bash, the shell Claude Code runs commands in on Windows,
+ * rewrites any `a/b:c/d` argument as a path list, so that form failed there as
+ * printed. A blob id is hex, which every shell passes through untouched. It also
+ * pins the content: the command prints the handover that was listed, even if the
+ * ref is pushed again after the user read the title (security review 2, 2026-09-27).
+ */
+function blobAt(top, rev) {
+  const blob = tryGit(top, ["rev-parse", "--verify", "--quiet", rev]);
+  if (!blob || !/^[0-9a-f]{40,64}$/.test(blob)) return null;
+  // `cat-file blob` refuses anything that is not a blob, such as a tree at that path.
+  const text = tryGit(top, ["cat-file", "blob", blob]);
+  return text ? { blob, text } : null;
+}
+const showBlob = (top, blob) => `${gitAt(top)} cat-file -p ${blob}`;
+
+/**
  * What the index holds at or under .clear-resume, ignoring letter case (on a
  * case-insensitive disk a committed `.Clear-Resume/handover.md` is REPO_FILE).
  * `null` when git cannot say, which callers read as tracked. Otherwise `any` says
@@ -212,8 +231,8 @@ export function repoHandovers(top, { web = false } = {}) {
     if (local) {
       found.push({ source: "worktree", ref: null, show: null, path: local, ...parseHandover(readFileSync(local, "utf8")) });
     } else if (index?.file) {
-      const text = tryGit(top, ["show", `:${index.file}`]);
-      if (text) found.push({ source: "committed", ref: null, show: `${gitAt(top)} show :${index.file}`, fromTop, ...parseHandover(text) });
+      const got = blobAt(top, `:${index.file}`);
+      if (got) found.push({ source: "committed", ref: null, show: showBlob(top, got.blob), fromTop, ...parseHandover(got.text) });
     }
   }
 
@@ -221,8 +240,8 @@ export function repoHandovers(top, { web = false } = {}) {
   // command: a remote can name a branch `$(anything)`, and the user runs this line.
   refreshRemotes(top);
   for (const ref of remoteBranches(top).filter((r) => r.split("/")[1] === REF_PREFIX.slice(0, -1) && SAFE_REF.test(r))) {
-    const text = tryGit(top, ["show", `${ref}:${REPO_FILE}`]);
-    if (text) found.push({ source: "remote", ref, show: `${gitAt(top)} show "${ref}:${REPO_FILE}"`, fromTop, ...parseHandover(text) });
+    const got = blobAt(top, `${ref}:${REPO_FILE}`);
+    if (got) found.push({ source: "remote", ref, show: showBlob(top, got.blob), fromTop, ...parseHandover(got.text) });
   }
 
   const seen = new Set();

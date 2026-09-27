@@ -9,7 +9,7 @@
 //   B2. Loading a committed copy ran `git rm` + `git commit` on the user's branch.
 // Every test here also asserts the repo is untouched: HEAD, status, branches, index
 // and, where there is a remote, every ref on it.
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -69,6 +69,37 @@ const untracked = ({ title = "Untracked", created = new Date().toISOString(), bo
   writeFileSync(join(repo, REPO_FILE), markdown({ title, created, body }), "utf8");
 };
 
+// Every shell a listed command may be pasted into. On Windows, Claude Code's Bash
+// tool is Git Bash, whose MSYS layer rewrites an `a/b:c/d` argument as a path list,
+// so a command that works in cmd can fail there (security review 2, 2026-09-27).
+function shells() {
+  const list = [["default shell", (cmd, cwd) => execSync(cmd, { cwd, encoding: "utf8" })]];
+  if (process.platform === "win32") {
+    const bash = join(execFileSync("git", ["--exec-path"], { encoding: "utf8" }).trim(), "..", "..", "..", "bin", "bash.exe");
+    if (!existsSync(bash)) throw new Error(`Git Bash not found at ${bash}`);
+    list.push(["git bash", (cmd, cwd) => execFileSync(bash, ["-c", cmd], { cwd, encoding: "utf8" })]);
+    const encoded = (cmd) => Buffer.from(cmd, "utf16le").toString("base64");
+    list.push(["powershell", (cmd, cwd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded(cmd)], { cwd, encoding: "utf8" })]);
+  } else {
+    list.push(["bash", (cmd, cwd) => execFileSync("bash", ["-c", cmd], { cwd, encoding: "utf8" })]);
+  }
+  return list;
+}
+// What each shell printed for the command, or the error it failed with.
+const runEverywhere = (cmd, cwd) =>
+  Object.fromEntries(
+    shells().map(([name, sh]) => {
+      try {
+        return [name, sh(cmd, cwd)];
+      } catch (err) {
+        return [name, `FAILED: ${String(err.stderr || err.message).trim()}`];
+      }
+    }),
+  );
+const expectEverywhere = (cmd, cwd, text) => {
+  for (const [name, output] of Object.entries(runEverywhere(cmd, cwd))) expect(output, `${name} ran: ${cmd}`).toContain(text);
+};
+
 const loaded = (out) => out?.hookSpecificOutput.additionalContext.includes("this session continues earlier work") ?? false;
 const commandFor = (out, label) => {
   const lines = out.hookSpecificOutput.additionalContext.split("\n");
@@ -106,7 +137,9 @@ describe("B1: a handover carried by the repo never beats the user's own", () => 
   });
 });
 
-describe("B2: the hook never writes to the repo", () => {
+// Several of these spawn the script or a shell per case, which on a loaded Windows
+// box can pass the default five seconds.
+describe("B2: the hook never writes to the repo", { timeout: 30_000 }, () => {
   it("a committed handover is listed, not loaded, and left in place with no commit", () => {
     commitEvilHandover({ created: new Date().toISOString() });
     const before = snapshot();
@@ -118,7 +151,7 @@ describe("B2: the hook never writes to the repo", () => {
     expect(snapshot()).toEqual(before);
     // The listed command loads it when the user asks, and it works.
     const cmd = commandFor(out, "found in a file committed to this repo");
-    expect(execSync(cmd, { cwd: repo, encoding: "utf8" })).toContain(EVIL);
+    expectEverywhere(cmd, repo, EVIL);
     expect(snapshot()).toEqual(before);
   });
 
@@ -148,7 +181,23 @@ describe("B2: the hook never writes to the repo", () => {
     expect(out.hookSpecificOutput.additionalContext).toMatch(/"From the ref".*found on remote ref origin\/clear-resume\/main/);
     expect(snapshot()).toEqual(before);
     const cmd = commandFor(out, "found on remote ref");
-    expect(execSync(cmd, { cwd: repo, encoding: "utf8" })).toContain("Ref body.");
+    expectEverywhere(cmd, repo, "Ref body.");
+  });
+
+  it("the listed command prints the body that was listed, even after the ref is pushed again", () => {
+    const other = join(dir, "other");
+    execFileSync("git", ["clone", "-q", origin, other], { stdio: "ignore" });
+    const home = join(dir, "home-other");
+    const first = saveHandover({ cwd: other, title: "Listed", body: "## Next action\nListed body.", root: home, owner: "" });
+    expect(commitHandover(other, first.path, "main").pushed).toBe(true);
+    const out = run({ cwd: repo, source: "startup" }, { env: { CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1" } });
+    const cmd = commandFor(out, "found on remote ref");
+    const swapped = saveHandover({ cwd: other, title: "Listed", body: "## Next action\nSwapped body.", root: home, owner: "" });
+    expect(commitHandover(other, swapped.path, "main").pushed).toBe(true);
+    git(repo, "fetch", "-q", "origin");
+    const printed = execSync(cmd, { cwd: repo, encoding: "utf8" });
+    expect(printed).toContain("Listed body.");
+    expect(printed).not.toContain("Swapped body.");
   });
 
   it("a committed copy under another letter case is still treated as committed", () => {
@@ -271,7 +320,7 @@ describe("review: nothing git reports reaches a command line", () => {
     expect(loaded(out)).toBe(false);
     expect(ctx).not.toContain("$(");
     const cmd = commandFor(out, "found in a file committed to this repo");
-    expect(execSync(cmd, { cwd: odd, encoding: "utf8" })).toContain(EVIL);
+    expectEverywhere(cmd, odd, EVIL);
     expect(snapshot(odd)).toEqual(before);
   });
 });
