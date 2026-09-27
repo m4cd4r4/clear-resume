@@ -5,11 +5,15 @@
 // times) falls back to the process name, which must recognise every shape a
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, ownerId, ownerOpen } from "../scripts/lib/owner.mjs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { findClaudeAncestor, ownerId, ownerOpen, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
+
+// A lookup with no explicit timeout runs on the hook's budget, counted from this
+// process's start; each test is a fresh hook run.
+beforeEach(() => startHookClock());
 
 describe("ownerOpen", () => {
   it("is false when the pid's process has become something that is not Claude", () => {
@@ -104,6 +108,29 @@ describe("owner lookup fails safe", () => {
     expect(ownerId({ CLAUDE_PID: LIVE }, { readTable: timedOut })).toBe(LIVE);
     expect(ownerId({ CLAUDE_PID: LIVE }, { readTable: () => [] })).toBe(LIVE);
     expect(ownerId({}, { readTable: timedOut })).toBe("");
+  });
+});
+
+// Claude Code kills SessionStart at 10s and the pull may spend 8s of it, so the
+// hook's reads fit in what is left of 9s, and with almost nothing left do not run.
+describe("the hook's lookup deadline", () => {
+  it("gives a read only what is left of the budget, and skips it when that is under 200ms", () => {
+    const START = 1790503200000;
+    const asked = [];
+    const readTable = (t) => (asked.push(t), [[LIVE, "1", "claude.exe", START]]);
+
+    startHookClock(Date.now() - 8_000);
+    expect(ownerId({ CLAUDE_PID: LIVE }, { readTable })).toBe(`${LIVE}@${START}`);
+    expect(asked[0]).toBeLessThanOrEqual(1_000);
+
+    startHookClock(Date.now() - 8_900);
+    expect(ownerId({ CLAUDE_PID: LIVE }, { readTable })).toBe(LIVE);
+    expect(ownerOpen(`${LIVE}@${START}`, { readTable })).toBe(true);
+    expect(asked).toHaveLength(1);
+
+    // load.mjs and save.mjs pass their own timeout and have no deadline.
+    expect(ownerId({ CLAUDE_PID: LIVE }, { readTable, timeout: 15_000 })).toBe(`${LIVE}@${START}`);
+    expect(asked[1]).toBe(15_000);
   });
 });
 

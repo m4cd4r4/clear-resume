@@ -29,9 +29,26 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-// SessionStart has a 10s budget and may already spend 8s on a pull, so a hook
-// waits this long for the process table and then carries on not knowing.
+// A hook waits at most this long for the process table and then carries on not
+// knowing...
 const HOOK_TIMEOUT_MS = 2500;
+// ...and never past this point in its own run. Claude Code kills a SessionStart
+// hook at 10s, the pull before the lookup may take 8s of that, and the archive
+// and git reads after it need the rest. So a hook's read gets what is left of 9s
+// since the hook started, up to 2.5s. With under 200ms left it does not read at
+// all and answers as a failed lookup does: the bare CLAUDE_PID for this window,
+// "open" for any other. A fixed 2.5s ran a slow-pull start to 10.7s (review of
+// fix/owner-and-hook-cost, 2026-09-27), and Claude Code killed it.
+const HOOK_BUDGET_MS = 9000;
+const MIN_LOOKUP_MS = 200;
+// A hook is its own process, so the process's start is the hook's, node's own
+// startup included.
+let hookStart = performance.timeOrigin;
+
+/** Restart the hook's budget, for a caller that runs hook code inside a longer-lived process (the tests). */
+export function startHookClock(at = Date.now()) {
+  hookStart = at;
+}
 // load.mjs and save.mjs have no budget. Windows PowerShell on a cold CI runner
 // took over 5s.
 export const PATIENT_TIMEOUT_MS = 15_000;
@@ -46,6 +63,17 @@ const MEMO_MS = 5000;
 const walkOff = (env) => Boolean(env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK);
 const timeoutFor = (env, fallback) =>
   Number(env.CLEAR_RESUME_PROCESS_TIMEOUT_MS || process.env.CLEAR_RESUME_PROCESS_TIMEOUT_MS) || fallback;
+
+// How long a read may take now: a function, so a later read in the same run gets
+// what is left by then. An explicit timeout (load.mjs, save.mjs) has no deadline.
+function budget(env, timeout) {
+  if (timeout != null) {
+    const t = timeoutFor(env, timeout);
+    return () => t;
+  }
+  const cap = timeoutFor(env, HOOK_TIMEOUT_MS);
+  return () => Math.min(cap, HOOK_BUDGET_MS - (Date.now() - hookStart));
+}
 
 // ---- reading the process table -------------------------------------------
 // A row is [pid, ppid, name, start]: start in ms (since boot on Linux), or null when unreadable.
@@ -105,9 +133,12 @@ function linuxRow(pid) {
 }
 
 const memo = new Map();
-function remembered(kind, read, timeout) {
+function remembered(kind, read, left) {
   const hit = memo.get(kind);
   if (hit && Date.now() - hit.at < MEMO_MS) return { rows: hit.rows, fresh: false };
+  const timeout = left();
+  // Out of time: not read, and not remembered either, since nothing failed.
+  if (timeout < MIN_LOOKUP_MS) return { rows: null, fresh: true };
   let rows = null;
   try {
     rows = read(timeout);
@@ -120,15 +151,15 @@ function remembered(kind, read, timeout) {
 
 // A pid missing from a remembered table may belong to a process started since;
 // read the table again, once, before calling it unknown.
-function tableLookup(kind, read, timeout) {
-  const first = remembered(kind, read, timeout);
+function tableLookup(kind, read, left) {
+  const first = remembered(kind, read, left);
   const find = byPid(first.rows);
   if (!find) return null;
   return (pid) => {
     const row = find(pid);
     if (row || first.fresh) return row;
     memo.delete(kind);
-    return byPid(remembered(kind, read, timeout).rows)?.(pid) ?? null;
+    return byPid(remembered(kind, read, left).rows)?.(pid) ?? null;
   };
 }
 
@@ -139,9 +170,11 @@ function byPid(rows) {
 }
 
 // A pid -> row lookup, or null when the table could not be read at all.
-function lookupFrom({ table, readTable, tree = false, timeout }) {
+function lookupFrom({ table, readTable, tree = false, left }) {
   if (table) return byPid(table);
   if (readTable) {
+    const timeout = left();
+    if (timeout < MIN_LOOKUP_MS) return null;
     try {
       return byPid(readTable(timeout));
     } catch {
@@ -149,10 +182,10 @@ function lookupFrom({ table, readTable, tree = false, timeout }) {
     }
   }
   if (process.platform === "linux") return linuxRow;
-  if (process.platform !== "win32") return tableLookup("ps", psTable, timeout);
+  if (process.platform !== "win32") return tableLookup("ps", psTable, left);
   const walked = memo.get("tree");
-  if (tree || (walked?.rows && Date.now() - walked.at < MEMO_MS)) return tableLookup("tree", windowsTree, timeout);
-  return tableLookup("processes", windowsProcesses, timeout);
+  if (tree || (walked?.rows && Date.now() - walked.at < MEMO_MS)) return tableLookup("tree", windowsTree, left);
+  return tableLookup("processes", windowsProcesses, left);
 }
 
 const startOf = (row) => {
@@ -200,7 +233,7 @@ function ancestorRow(startPid, lookup) {
 
 /** The pid of the nearest `claude` ancestor, or "" when there is none. */
 export function findClaudeAncestor(startPid = process.pid, table) {
-  const lookup = typeof table === "function" ? table : table ? byPid(table) : lookupFrom({ tree: true, timeout: HOOK_TIMEOUT_MS });
+  const lookup = typeof table === "function" ? table : table ? byPid(table) : lookupFrom({ tree: true, left: budget(process.env) });
   return lookup ? String(ancestorRow(startPid, lookup)?.[0] ?? "") : "";
 }
 
@@ -214,15 +247,15 @@ const myPid = (env) => String(env.CLAUDE_PID ?? "").trim() || walkedPid;
  */
 export function ownerId(env = process.env, { table, readTable, timeout } = {}) {
   const injected = Boolean(table || readTable);
-  const t = timeoutFor(env, timeout ?? HOOK_TIMEOUT_MS);
+  const left = budget(env, timeout);
   const fromEnv = String(env.CLAUDE_PID ?? "").trim();
   if (fromEnv) {
     if ((!injected && walkOff(env)) || !pidAlive(fromEnv)) return fromEnv;
-    const lookup = lookupFrom({ table, readTable, timeout: t });
+    const lookup = lookupFrom({ table, readTable, left });
     return withStart(fromEnv, lookup?.(fromEnv));
   }
   if (!injected && walkOff(env)) return "";
-  const lookup = lookupFrom({ table, readTable, tree: true, timeout: t });
+  const lookup = lookupFrom({ table, readTable, tree: true, left });
   const row = lookup ? ancestorRow(process.pid, lookup) : null;
   if (!row) return "";
   walkedPid = String(row[0]);
@@ -244,7 +277,7 @@ export function ownerOpen(owner, { table, readTable, env = process.env, timeout 
   const { pid, start } = parseOwner(owner);
   if (!pid || pid === myPid(env) || !pidAlive(pid)) return false;
   if (!table && !readTable && walkOff(env)) return true;
-  const row = lookupFrom({ table, readTable, timeout: timeoutFor(env, timeout ?? HOOK_TIMEOUT_MS) })?.(pid);
+  const row = lookupFrom({ table, readTable, left: budget(env, timeout) })?.(pid);
   if (!row) return true;
   const seen = startOf(row);
   if (start != null && seen != null) return Math.abs(seen - start) <= START_SLACK_MS;
@@ -253,7 +286,8 @@ export function ownerOpen(owner, { table, readTable, env = process.env, timeout 
 
 /**
  * The SessionStart hook's check: `ownerOpen` on the hook's time budget, so a
- * reused pid is told apart there too, not only in load.mjs.
+ * reused pid is told apart there too, not only in load.mjs. It reads the process
+ * table (once per run, shared with `ownerId`) only while the budget lasts.
  */
 export function ownerAlive(owner) {
   return ownerOpen(owner);

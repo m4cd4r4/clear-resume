@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { age, chooseHandover } from "../scripts/lib/select.mjs";
 import { run } from "../scripts/lib/hook.mjs";
-import { ownerId } from "../scripts/lib/owner.mjs";
+import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
 import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
 import { listAll, read, save } from "../packages/store/store.mjs";
 
@@ -246,6 +246,8 @@ describe("SessionStart hook", () => {
       let windowEnv, me;
       beforeEach(() => {
         vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+        // run() here is the hook inside the long-lived test process; give it a fresh budget.
+        startHookClock();
         windowEnv = { ...env, CLAUDE_PID: String(process.pid), CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" };
         me = ownerId(windowEnv);
         // Without a start time this would not be the case under test.

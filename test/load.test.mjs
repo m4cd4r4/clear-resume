@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId } from "../scripts/lib/owner.mjs";
+import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 
@@ -259,6 +259,7 @@ describe("SessionStart on a pid a closed window left behind", () => {
 
   it("loads a handover whose owner pid now belongs to a non-Claude process", () => {
     vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
     const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
     try {
       const { path } = saveHandover({ cwd: repo, title: "Yesterday's work", body: "y", root, owner: String(squatter.pid) });
