@@ -113,6 +113,9 @@ function asHandover(record) {
     id: record.id,
     meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "" },
     body: record.body,
+    // What archived it, if anything. The twin check needs it to tell its own
+    // load from one made by load.mjs or by another window.
+    archivedBy: record.archivedBy ?? null,
   };
 }
 

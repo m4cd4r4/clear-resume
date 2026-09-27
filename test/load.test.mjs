@@ -5,7 +5,7 @@
 // A's handover alone and listed it. B then ran load.mjs on it just to READ the
 // plan for the user, and load.mjs archived it on read. A's /clear a minute later
 // found nothing waiting, and the record said nothing about who had archived it.
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -78,6 +78,27 @@ describe("load.mjs on a handover another open window owns", () => {
   });
 });
 
+describe("load.mjs on a pid that a closed window left behind", () => {
+  // Windows hands a closed window's pid to the next process. A live pid that is
+  // no longer a Claude process is a closed window, so its handover is claimable.
+  it("archives a handover whose owner pid now belongs to a non-Claude process", () => {
+    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    try {
+      const { path } = saveHandover({ cwd: repo, title: "orphaned", body: "o", root, owner: String(squatter.pid) });
+      const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+        cwd: repo,
+        env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+        encoding: "utf8",
+      });
+      expect(out.status).toBe(0);
+      expect(out.stdout).not.toContain("read only");
+      expect(record(path).status).toBe("archived");
+    } finally {
+      squatter.kill();
+    }
+  });
+});
+
 describe("load.mjs --peek", () => {
   it("never archives, even this window's own handover", () => {
     const { path, key } = saveHandover({ cwd: repo, title: "mine", body: "my body", root, owner: ME });
@@ -95,6 +116,15 @@ describe("load.mjs --peek", () => {
     const out = load(["--peek", "--take", fileOf(path)]);
     expect(out.status).toBe(1);
     expect(out.stderr).toMatch(/--peek and --take/);
+    expect(record(path).status).toBe("waiting");
+  });
+
+  // A typo used to fall through to a plain, consuming load.
+  it("rejects an unknown flag such as --peak, and archives nothing", () => {
+    const { path } = saveHandover({ cwd: repo, title: "x", body: "y", root, owner: ME });
+    const out = load(["--peak", fileOf(path)]);
+    expect(out.status).toBe(1);
+    expect(out.stderr).toContain("--peak");
     expect(record(path).status).toBe("waiting");
   });
 });
@@ -165,5 +195,55 @@ describe("SessionStart listing", () => {
     expect(orphanRow).not.toContain("--peek");
     expect(orphanRow).toContain(fileOf(orphan.path));
     expect(record(theirs.path).status).toBe("waiting");
+  });
+
+  // With no CLAUDE_PID and no walk, this window cannot tell its own handover from
+  // another's. Calling it another window's then steers the user to peek at their
+  // own work and resume it by hand, twice.
+  it("labels nothing as another window's when this window's owner is unknown", () => {
+    const h = saveHandover({ cwd: repo, title: "Maybe mine", body: "m", root, owner: OTHER_LIVE });
+
+    const ctx = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "" } }).hookSpecificOutput.additionalContext;
+
+    expect(ctx).toContain("Maybe mine");
+    expect(ctx).not.toContain("belongs to another open window");
+    expect(ctx).not.toContain("--peek");
+    expect(ctx).toContain(fileOf(h.path));
+  });
+});
+
+// The twin check re-emits whatever was consumed in the last 15s. Once load.mjs
+// started writing the consume mark, a take in one window made the next /clear in
+// another re-emit that handover and skip loading its own (review of #28).
+describe("the twin check only echoes a SessionStart load from this window", () => {
+  const A = "333";
+
+  it("a --take in window B does not stop window A's /clear loading A's own handover", () => {
+    git("checkout", "-q", "-b", "side");
+    const taken = saveHandover({ cwd: repo, title: "Taken by B", body: "B body", root, owner: OTHER_LIVE });
+    git("checkout", "-q", "main");
+    saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: A });
+
+    expect(load(["--take", fileOf(taken.path)], { owner: ME }).status).toBe(0);
+    const out = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: A } });
+
+    expect(out.systemMessage).toMatch(/loaded handover "A's own"/);
+    expect(out.hookSpecificOutput.additionalContext).toContain("A body");
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("B body");
+  });
+
+  it("a SessionStart load in window B is not echoed into window A's /clear", () => {
+    const B = "444";
+    git("checkout", "-q", "-b", "side");
+    saveHandover({ cwd: repo, title: "B's own", body: "B body", root, owner: B });
+    git("checkout", "-q", "main");
+    saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: A });
+
+    const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: B } });
+    expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
+    const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: A } });
+
+    expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
+    expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
   });
 });

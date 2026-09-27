@@ -93,11 +93,19 @@ const TWIN_WINDOW_MS = 15_000;
  * Returns null unless the consume log was written inside the window AND the
  * record it names is still in the store, so a pruned or hand-deleted record
  * degrades to the old listing behaviour rather than to a crash.
+ *
+ * Only a load by this hook in this window counts. load.mjs and other windows
+ * write the same consume log, and echoing their load made this window skip its
+ * own handover (review of #28). The owners are compared only when both are
+ * known: `me` is whatever is known without walking the process table.
  */
-function recentlyLoaded(root, key, now, env) {
+function recentlyLoaded(root, key, now, env, me) {
   const withinMs = Number(env.CLEAR_RESUME_TWIN_WINDOW_MS) || TWIN_WINDOW_MS;
   const recent = lastConsumed(root, key, { now, withinMs });
-  return recent ? findById(root, recent.id) : null;
+  const h = recent ? findById(root, recent.id) : null;
+  if (h?.archivedBy?.via !== "hook") return null;
+  if (h.archivedBy.owner && me && h.archivedBy.owner !== me) return null;
+  return h;
 }
 
 export function run(input, { env = process.env, now = new Date() } = {}) {
@@ -128,11 +136,15 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   // is not, chooseHandover would hand the twin a DIFFERENT handover - the
   // lone-handover rule fires as soon as the first one is taken - quietly burning
   // a second piece of work on a session that already has one.
-  const echo = recentlyLoaded(root, key, now, env);
-  // This window's owner id, looked up at most once and only when something needs
-  // it: without CLAUDE_PID it means walking the process table.
+  //
+  // This window's owner id, looked up at most once and only when choosing needs
+  // it: without CLAUDE_PID it means walking the process table, a couple of
+  // seconds against a 10s hook budget. Everything else settles for `cheapMe()`,
+  // which never walks.
   let me;
   const whoAmI = () => (me ??= ownerId(env));
+  const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
+  const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
   if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive }));
@@ -143,9 +155,8 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
 
   if (load) {
     // The owner is already known whenever any waiting handover has one. For an
-    // all-legacy list, settle for CLAUDE_PID rather than add a process walk to a
-    // hook with a 10s budget.
-    if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: me ?? String(env.CLAUDE_PID ?? "").trim() });
+    // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
+    if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: cheapMe() });
     if (!echo) markConsumed(root, key, load.meta);
     if (!echo && repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
     if (!echo) for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
@@ -164,7 +175,13 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     const lead = load
       ? `clear-resume: ${plural(list.length, "other handover")} also waiting for this repo, not loaded:`
       : `clear-resume: ${plural(list.length, "handover")} waiting for this repo, none loaded. Give the user the titles and ask which one:`;
-    const othersOpen = (h) => Boolean(h.meta.owner) && h.meta.owner !== whoAmI() && ownerAlive(h.meta.owner);
+    // Never walks: on the echo path nothing has looked the owner up, and a walk
+    // here would land on top of the pull. An unknown owner labels nothing, since
+    // "another window's" would then be a guess that could be this window's own.
+    const othersOpen = (h) => {
+      const mine = cheapMe();
+      return Boolean(mine) && Boolean(h.meta.owner) && h.meta.owner !== mine && ownerAlive(h.meta.owner);
+    };
     parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others
     // exist, or they cannot ask for one. This only appears when there are some.

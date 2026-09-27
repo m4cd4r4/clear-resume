@@ -11,7 +11,7 @@
 // handover just to show the user its plan, the read archived it, and that
 // window's /clear a minute later found nothing waiting.
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./lib/store.mjs";
-import { ownerAlive, ownerId } from "./lib/owner.mjs";
+import { ownerId, ownerOpen } from "./lib/owner.mjs";
 import { markConsumed } from "./lib/web.mjs";
 
 const args = process.argv.slice(2);
@@ -19,6 +19,12 @@ const peek = args.includes("--peek");
 const take = args.includes("--take");
 const want = args.find((a) => !a.startsWith("--"));
 
+// A typo such as --peak must not fall through to a load that archives.
+const unknown = args.filter((a) => a.startsWith("--") && a !== "--peek" && a !== "--take");
+if (unknown.length) {
+  console.error(`clear-resume: unknown option ${unknown.join(", ")}. Options are --peek and --take.`);
+  process.exit(1);
+}
 if (peek && take) {
   console.error("clear-resume: --peek and --take contradict each other. Use one.");
   process.exit(1);
@@ -46,7 +52,7 @@ if (peek) {
 } else {
   const me = ownerId();
   const owner = h.meta.owner;
-  const theirs = Boolean(owner) && owner !== me && ownerAlive(owner);
+  const theirs = Boolean(owner) && owner !== me && ownerOpen(owner);
   if (theirs && !take) {
     console.log(
       `clear-resume: read only. This handover belongs to another open Claude window (pid ${owner}), ` +
