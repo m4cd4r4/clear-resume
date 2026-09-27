@@ -12,7 +12,8 @@
 // fallback walks up the process tree to the claude executable.
 //
 // An owner is written `<pid>@<start>`: the pid plus the start time of the
-// process holding it, in epoch milliseconds. The pid alone is not enough.
+// process holding it, in milliseconds (since 1970; on Linux, since boot). The
+// pid alone is not enough.
 // Windows hands a closed window's pid to the next process within minutes, and
 // on macOS and Linux the native binary is named after its version
 // (~/.local/share/claude/versions/2.1.232), so the process name cannot say
@@ -47,7 +48,7 @@ const timeoutFor = (env, fallback) =>
   Number(env.CLEAR_RESUME_PROCESS_TIMEOUT_MS || process.env.CLEAR_RESUME_PROCESS_TIMEOUT_MS) || fallback;
 
 // ---- reading the process table -------------------------------------------
-// A row is [pid, ppid, name, start]: start in epoch ms, or null when unreadable.
+// A row is [pid, ppid, name, start]: start in ms (since boot on Linux), or null when unreadable.
 
 function exec(cmd, args, timeout, env) {
   return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true, timeout, env });
@@ -86,16 +87,18 @@ function psTable(timeout) {
 
 // Linux: read /proc directly. No process to spawn, so nothing to time out, and it
 // works in a container with no procps.
-let bootMs;
+//
+// The start is kept as milliseconds since boot, not converted to a date: the
+// boot time in /proc/stat moves whenever the wall clock is stepped (NTP, a WSL
+// resume), and a start that drifted would make an open window look closed.
 function linuxRow(pid) {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
     const close = stat.lastIndexOf(")");
     const name = stat.slice(stat.indexOf("(") + 1, close);
     const f = stat.slice(close + 2).split(" ");
-    bootMs ??= Number(/^btime (\d+)$/m.exec(readFileSync("/proc/stat", "utf8"))[1]) * 1000;
     // Field 22, starttime, counts clock ticks since boot; USER_HZ is 100.
-    return [String(pid), f[1], name, bootMs + Number(f[19]) * 10];
+    return [String(pid), f[1], name, Number(f[19]) * 10];
   } catch {
     return null;
   }

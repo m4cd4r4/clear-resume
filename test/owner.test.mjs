@@ -1,6 +1,6 @@
 // Windows reuses pids quickly, so a closed window's pid can belong to some other
 // process by the time anything asks. An owner is the pid plus the start time of
-// its process (`<pid>@<epoch ms>`), and a pid whose process started at another
+// its process (`<pid>@<start ms>`), and a pid whose process started at another
 // time is a different process. An owner written as a bare pid (before start
 // times) falls back to the process name, which must recognise every shape a
 // Claude window takes - including a native install named after its version.
@@ -33,7 +33,7 @@ describe("ownerOpen on a native install named after its version", () => {
   });
 });
 
-// An owner is the pid plus its process's start time (<pid>@<epoch ms>). A pid
+// An owner is the pid plus its process's start time (<pid>@<start ms>). A pid
 // whose process started at another time is a different process: the window that
 // wrote the handover has closed, whatever now holds its pid is called.
 describe("ownerOpen with the start time", () => {
@@ -130,7 +130,7 @@ describe("on this machine's real process table", () => {
   it("reads a start time that another process reads identically, and tells a later start apart", () => {
     vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
     const me = ownerId({ CLAUDE_PID: LIVE }, { timeout });
-    expect(me).toMatch(new RegExp(`^${LIVE}@[0-9]{12,}$`));
+    expect(me).toMatch(new RegExp(`^${LIVE}@[0-9]+$`));
 
     // What save.mjs records in one process, load.mjs and the hook re-read in another.
     const owner = new URL("../scripts/lib/owner.mjs", import.meta.url).href;
