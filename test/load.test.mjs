@@ -6,12 +6,13 @@
 // plan for the user, and load.mjs archived it on read. A's /clear a minute later
 // found nothing waiting, and the record said nothing about who had archived it.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
+import { ownerId, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 
@@ -59,7 +60,8 @@ describe("load.mjs on a handover another open window owns", () => {
     expect(out.stdout).toContain("Ship the grid.");
     expect(record(path).status).toBe("waiting");
     expect(out.stdout).toMatch(/another open .*window/i);
-    expect(out.stdout).toContain("--take");
+    expect(out.stdout).toMatch(/--take [0-9a-f]{7}/);
+    expect(out.stdout).not.toContain(fileOf(path));
     expect(consumedLines(key)).toEqual([]);
   });
 
@@ -78,7 +80,7 @@ describe("load.mjs on a handover another open window owns", () => {
   });
 });
 
-describe("load.mjs on a pid that a closed window left behind", () => {
+describe("load.mjs on a pid that a closed window left behind", { timeout: 30_000 }, () => {
   // Windows hands a closed window's pid to the next process. A live pid that is
   // no longer a Claude process is a closed window, so its handover is claimable.
   it("archives a handover whose owner pid now belongs to a non-Claude process", () => {
@@ -168,11 +170,13 @@ describe("archivedBy records what archived a handover", () => {
   });
 
   it("a re-save stamps the handover it supersedes via supersede", () => {
-    const first = saveHandover({ cwd: repo, title: "one", body: "x", root, owner: ME, now: new Date("2026-09-27T00:00:00Z") });
-    saveHandover({ cwd: repo, title: "two", body: "y", root, owner: ME, now: new Date("2026-09-27T00:01:00Z") });
+    const began = Date.now() - 4000;
+    const owner = `${ME}@${startFromEpochMs(began)}`;
+    const first = saveHandover({ cwd: repo, title: "one", body: "x", root, owner, now: new Date(began + 1000) });
+    saveHandover({ cwd: repo, title: "two", body: "y", root, owner, now: new Date(began + 2000) });
 
     expect(record(first.path).status).toBe("archived");
-    expect(record(first.path).archivedBy).toEqual({ owner: ME, pid: String(process.pid), via: "supersede" });
+    expect(record(first.path).archivedBy).toEqual({ owner, pid: String(process.pid), via: "supersede" });
   });
 });
 
@@ -190,10 +194,10 @@ describe("SessionStart listing", () => {
 
     expect(ctx).toContain("none loaded");
     expect(theirRow).toContain("(belongs to another open window)");
-    expect(theirRow).toContain(`--peek ${fileOf(theirs.path)}`);
+    expect(theirRow).toContain(`--peek ${theirs.short}`);
     expect(orphanRow).not.toContain("belongs to another open window");
     expect(orphanRow).not.toContain("--peek");
-    expect(orphanRow).toContain(fileOf(orphan.path));
+    expect(orphanRow).toContain(orphan.short);
     expect(record(theirs.path).status).toBe("waiting");
   });
 
@@ -208,7 +212,7 @@ describe("SessionStart listing", () => {
     expect(ctx).toContain("Maybe mine");
     expect(ctx).not.toContain("belongs to another open window");
     expect(ctx).not.toContain("--peek");
-    expect(ctx).toContain(fileOf(h.path));
+    expect(ctx).toContain(h.short);
   });
 });
 
@@ -232,18 +236,179 @@ describe("the twin check only echoes a SessionStart load from this window", () =
     expect(out.hookSpecificOutput.additionalContext).not.toContain("B body");
   });
 
-  it("a SessionStart load in window B is not echoed into window A's /clear", () => {
-    const B = "444";
+  // B's handover is on another branch, so it loads only as B's own, which takes
+  // B's real start time: two live processes stand in for the windows.
+  it("a SessionStart load in window B is not echoed into window A's /clear", { timeout: 30_000 }, () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const windowB = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
+    try {
+      const [pidA, pidB] = [String(process.pid), String(windowB.pid)];
+      startHookClock();
+      const [ownerA, ownerB] = [ownerId({ CLAUDE_PID: pidA }), ownerId({ CLAUDE_PID: pidB })];
+      expect(ownerB).toMatch(/@/);
+      git("checkout", "-q", "-b", "side");
+      saveHandover({ cwd: repo, title: "B's own", body: "B body", root, owner: ownerB });
+      git("checkout", "-q", "main");
+      saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: ownerA });
+
+      startHookClock();
+      const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidB } });
+      expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
+      startHookClock();
+      const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidA } });
+
+      expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
+      expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
+    } finally {
+      windowB.kill();
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+// XP-2: the SessionStart hook judged an owner by `kill(pid, 0)` alone. A user who
+// quits Claude instead of running /clear comes back to a handover whose pid some
+// other process now holds; the hook called it "another open window's" and offered
+// it only with --peek, which never archives, so it came back at every start.
+describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 }, () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("loads a handover whose owner pid now belongs to a non-Claude process", () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
+    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    try {
+      const { path } = saveHandover({ cwd: repo, title: "Yesterday's work", body: "y", root, owner: String(squatter.pid) });
+
+      const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME } });
+
+      expect(out.systemMessage).toMatch(/loaded handover "Yesterday's work"/);
+      expect(out.hookSpecificOutput.additionalContext).not.toContain("belongs to another open window");
+      expect(record(path).status).toBe("archived");
+    } finally {
+      squatter.kill();
+    }
+  });
+});
+
+// XP-3: the macOS and Linux native install runs a binary named after its version
+// (~/.local/share/claude/versions/2.1.232). load.mjs judged the pid by name alone,
+// called that open window closed, and took its handover - the bug #28 fixed.
+describe("load.mjs on a window run by a binary named after its version", { timeout: 30_000 }, () => {
+  let home, window;
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "cr-native-"));
+    const dir = join(home, ".local", "share", "claude", "versions");
+    mkdirSync(dir, { recursive: true });
+    const bin = join(dir, process.platform === "win32" ? "2.1.232.exe" : "2.1.232");
+    copyFileSync(process.execPath, bin);
+    window = spawn(bin, ["-e", "setInterval(() => {}, 1e6)"], { stdio: "ignore" });
+  });
+  // The binary stays locked on Windows until its process has gone.
+  afterEach(async () => {
+    const gone = new Promise((done) => (window.exitCode !== null || window.signalCode !== null ? done() : window.once("exit", done)));
+    window.kill();
+    await gone;
+    rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
+
+  it("leaves its handover waiting (owner written as a bare pid)", () => {
+    const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner: String(window.pid) });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).toContain("read only");
+    expect(record(path).status).toBe("waiting");
+  });
+
+  it("leaves its handover waiting (owner written with its start time)", () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const owner = ownerId({ CLAUDE_PID: String(window.pid) }, { timeout: 20_000 });
+    vi.unstubAllEnvs();
+    expect(owner).toMatch(/@/);
+    const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).toContain("read only");
+    expect(record(path).status).toBe("waiting");
+  });
+});
+
+// A pid reused by another Claude-shaped process (here node, this test runner):
+// the name says Claude, the start time says it is not the window that wrote it.
+describe("load.mjs on a pid a later Claude-shaped process now holds", { timeout: 30_000 }, () => {
+  it("archives the handover: its window has closed", () => {
+    const { path } = saveHandover({ cwd: repo, title: "old window", body: "o", root, owner: `${OTHER_LIVE}@1000` });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).not.toContain("read only");
+    expect(record(path).status).toBe("archived");
+  });
+});
+
+// On windows-latest the process lookup took over 5s, and a lookup that fails must
+// never be read as "that window has closed": taking an open window's handover is
+// the one mistake this cannot make. /proc is read directly on Linux, with no
+// process to time out.
+describe.skipIf(process.platform === "linux")("load.mjs when the process lookup times out", { timeout: 30_000 }, () => {
+  it("leaves a live owner's handover waiting rather than guess the window closed", () => {
+    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    try {
+      const { path } = saveHandover({ cwd: repo, title: "unknown", body: "u", root, owner: String(squatter.pid) });
+      const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+        cwd: repo,
+        env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "", CLEAR_RESUME_PROCESS_TIMEOUT_MS: "1" },
+        encoding: "utf8",
+      });
+      expect(out.stdout).toContain("read only");
+      expect(record(path).status).toBe("waiting");
+    } finally {
+      squatter.kill();
+    }
+  });
+});
+
+// XP-5: the listing printed record file names, <hostname>-<pid>-<time>.json, and
+// the read-only hint the absolute script path. Both carry the owner's name.
+describe("load.mjs names a handover by a short id", () => {
+  it("lists title and short id without the machine name, and loads by that id", () => {
+    const { path } = saveHandover({ cwd: repo, title: "Listed work", body: "listed body", root, owner: ME });
+
+    const listing = load([]);
+    const short = /^([0-9a-f]{7}) {2}"Listed work"/m.exec(listing.stdout)?.[1];
+    expect(short).toBeTruthy();
+    expect(listing.stdout).not.toContain(fileOf(path));
+
+    const out = load([short]);
+    expect(out.status).toBe(0);
+    expect(out.stdout).toContain("listed body");
+    expect(record(path).status).toBe("archived");
+  });
+});
+
+describe("load.mjs by title", () => {
+  it("loads a handover by its exact title, and refuses a title two handovers share", () => {
     git("checkout", "-q", "-b", "side");
-    saveHandover({ cwd: repo, title: "B's own", body: "B body", root, owner: B });
+    const a = saveHandover({ cwd: repo, title: "Same name", body: "a", root, owner: "5" });
     git("checkout", "-q", "main");
-    saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: A });
+    saveHandover({ cwd: repo, title: "Same name", body: "b", root, owner: "6" });
+    const one = saveHandover({ cwd: repo, title: "Only one", body: "the only body", root, owner: ME });
 
-    const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: B } });
-    expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
-    const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: A } });
+    const dup = load(["--peek", "Same name"]);
+    expect(dup.status).toBe(1);
+    expect(dup.stderr).toMatch(/2 waiting handovers are titled "Same name"/);
+    expect(record(a.path).status).toBe("waiting");
 
-    expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
-    expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
+    const out = load(["Only one"]);
+    expect(out.stdout).toContain("the only body");
+    expect(record(one.path).status).toBe("archived");
   });
 });

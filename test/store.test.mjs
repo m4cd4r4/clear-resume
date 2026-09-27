@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listAll } from "../packages/store/store.mjs";
 import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../scripts/lib/store.mjs";
+import { startFromEpochMs } from "../scripts/lib/owner.mjs";
 
 let root, repo;
 
@@ -103,10 +104,38 @@ describe("saveHandover", () => {
   });
 
   it("supersedes its own window's handover, and records the owner", () => {
+    const began = Date.now() - 4000;
+    const owner = `111@${startFromEpochMs(began)}`;
+    const first = saveHandover({ cwd: repo, title: "one", body: "x", now: new Date(began + 1000), root, owner });
+    const second = saveHandover({ cwd: repo, title: "two", body: "y", now: new Date(began + 2000), root, owner });
+    expect(second.superseded).toEqual([first.path]);
+    expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", owner]]);
+  });
+
+  it("supersedes nothing while the saving window's start is unknown", () => {
     const first = saveHandover({ cwd: repo, title: "one", body: "x", now: at("10:00:00"), root, owner: "111" });
     const second = saveHandover({ cwd: repo, title: "two", body: "y", now: at("11:00:00"), root, owner: "111" });
-    expect(second.superseded).toEqual([first.path]);
-    expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", "111"]]);
+    expect(second.superseded).toEqual([]);
+    expect(listWaiting(root, second.key).map((h) => h.meta.title)).toEqual(["one", "two"]);
+    expect(first.path).toBeTruthy();
+  });
+
+  // The start is written in this platform's form (ms since boot on Linux), so the
+  // times are real ones a few seconds ago, not fixed dates.
+  it("supersedes its own handover saved before the upgrade (a bare pid)", () => {
+    const began = Date.now() - 4000;
+    const old = saveHandover({ cwd: repo, title: "v1 stale", body: "x", now: new Date(began + 1000), root, owner: "111" });
+    const next = saveHandover({ cwd: repo, title: "v2 current", body: "y", now: new Date(began + 2000), root, owner: `111@${startFromEpochMs(began)}` });
+    expect(next.superseded).toEqual([old.path]);
+    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["v2 current"]);
+  });
+
+  it("keeps a bare handover saved before this window started: a closed window's, whose pid it was given", () => {
+    const began = Date.now() - 4000;
+    saveHandover({ cwd: repo, title: "closed window's", body: "x", now: new Date(began - 60_000), root, owner: "111" });
+    const next = saveHandover({ cwd: repo, title: "this window's", body: "y", now: new Date(began + 2000), root, owner: `111@${startFromEpochMs(began)}` });
+    expect(next.superseded).toEqual([]);
+    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["closed window's", "this window's"]);
   });
 
   it("keeps another branch's handover waiting", () => {
@@ -142,15 +171,34 @@ describe("saveHandover", () => {
 });
 
 describe("save.mjs CLI", () => {
-  it("reads the body from stdin and reports the path", () => {
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+  it("reads the body from stdin", () => {
+    execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "# Handover\n\nCost is $600 and `code` stays.\n",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",
     });
-    const path = /Saved handover: (.+)/.exec(out)[1].trim();
-    expect(readFileSync(path, "utf8")).toContain("Cost is $600 and `code` stays.");
+    const [record] = listAll(root);
+    expect(readFileSync(record.path, "utf8")).toContain("Cost is $600 and `code` stays.");
+  });
+
+  // XP-5: the record file is named <hostname>-<pid>-<time>, and the hostname is
+  // often the owner's full name on macOS ("Johns-MacBook-Pro"). save.mjs printed
+  // the whole path, home folder and all, and the skill showed it to the user - on
+  // a screenshare, in a demo. It prints the title and a short id instead.
+  it("reports the title and a short id, never the machine name or a home-folder path", () => {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+      cwd: repo,
+      input: "body",
+      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      encoding: "utf8",
+    });
+    const [record] = listAll(root);
+    expect(out).toContain('"cli test"');
+    expect(out).toMatch(/\bid [0-9a-f]{7}\b/);
+    expect(out).not.toContain(hostname());
+    expect(out).not.toContain(record.id);
+    expect(out).not.toMatch(/[\\/](Users|home)[\\/]/i);
   });
 
   it("exits 1 on empty stdin", () => {

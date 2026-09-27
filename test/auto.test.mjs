@@ -1,12 +1,13 @@
 // tdd-guard:allow - auto-mode rules, each mutation-checked.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { lastContextTokens, runMidTurn, runStop, threshold } from "../scripts/lib/nudge.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
+import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
 
 const call = (ctx, extra = {}) =>
   JSON.stringify({
@@ -188,10 +189,21 @@ describe("SessionStart after compaction", () => {
     expect(out.hookSpecificOutput.additionalContext).toMatch(/just compacted.*re-check git status/);
   });
 
-  it("injects this window's own waiting handover after the note", () => {
-    saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner: "4242" });
-    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
-    expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
+  // Proving a handover is this window's own takes the window's start time, so this
+  // one looks up the real process: this test process stands in for the window.
+  it("injects this window's own waiting handover after the note", { timeout: 30_000 }, () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    try {
+      startHookClock();
+      const owner = ownerId({ CLAUDE_PID: String(process.pid) });
+      expect(owner).toMatch(/@/);
+      saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner });
+      startHookClock();
+      const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: String(process.pid) } }).hookSpecificOutput.additionalContext;
+      expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("lists, never loads, a handover this window did not write", () => {
@@ -204,5 +216,33 @@ describe("SessionStart after compaction", () => {
 
   it("adds no note on a normal startup", () => {
     expect(run({ cwd: repo, source: "startup" }, { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+  });
+});
+
+// PostToolUse runs after every tool call and Stop after every turn, auto mode or
+// not. With auto mode off they must cost no more than starting node: nothing is
+// imported or read before the switch is checked. Stdin is left open here, so a
+// script that reads it (or anything else) before checking hangs until killed.
+describe("hook scripts with auto mode off", () => {
+  it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
+    const child = spawn(process.execPath, [join(import.meta.dirname, "../scripts", script)], {
+      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    const code = await new Promise((done) => {
+      const timer = setTimeout(() => {
+        child.kill();
+        done("hung");
+      }, 5000);
+      child.on("exit", (c) => {
+        clearTimeout(timer);
+        done(c);
+      });
+    });
+    child.stdin.destroy();
+    expect(code).toBe(0);
+    expect(out).toBe("");
   });
 });

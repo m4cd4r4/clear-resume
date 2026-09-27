@@ -1,11 +1,12 @@
 // tdd-guard:allow - tests backfilled onto the loader, each rule mutation-checked.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { age, chooseHandover } from "../scripts/lib/select.mjs";
 import { run } from "../scripts/lib/hook.mjs";
+import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
 import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
 import { listAll, read, save } from "../packages/store/store.mjs";
 
@@ -41,18 +42,22 @@ describe("chooseHandover", () => {
 
   describe("window ownership (2026-09-25: one window's /clear took another's handover)", () => {
     const owned = (title, branch, owner, created) => ({ ...h(title, branch, created), meta: { ...h(title, branch, created).meta, owner } });
-    const alive = (pid) => pid === "111" || pid === "222";
+    const alive = (owner) => ["111", "222"].includes(String(owner).split("@")[0]);
+    // This window: pid 111, started at 10:00; handovers default to 11:00 that day.
+    const ME_START = Date.parse("2026-09-19T10:00:00Z");
+    const ME = `111@${ME_START}`;
+    const toEpoch = (s) => s;
 
     it("loads this window's own handover even when another window's is newer on the branch", () => {
-      const mine = owned("mine", "main", "111", "2026-09-19T10:00:00Z");
+      const mine = owned("mine", "main", ME, "2026-09-19T10:30:00Z");
       const theirs = owned("theirs", "main", "222", "2026-09-19T11:00:00Z");
-      const { load, list } = chooseHandover([mine, theirs], "main", { now: NOW, owner: "111", alive });
+      const { load, list } = chooseHandover([mine, theirs], "main", { now: NOW, owner: ME, alive, toEpoch });
       expect(load.meta.title).toBe("mine");
       expect(list.map((x) => x.meta.title)).toEqual(["theirs"]);
     });
 
     it("loads this window's own handover on another branch", () => {
-      const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive });
+      const { load } = chooseHandover([owned("mine", "feat", ME)], "main", { now: NOW, owner: ME, alive, toEpoch });
       expect(load.meta.title).toBe("mine");
     });
 
@@ -66,9 +71,35 @@ describe("chooseHandover", () => {
       expect(load.meta.title).toBe("orphan");
     });
 
+    describe("one window, both owner forms (reviews 3 and 4, 2026-09-27)", () => {
+      const START = Date.parse("2026-09-19T10:00:00Z"); // handovers default to 11:00 the same day
+      const opts = (owner) => ({ now: NOW, owner, alive, ownOnly: true, toEpoch: (s) => s });
+
+      it("loads this window's own handover saved before the upgrade (a bare pid), on another branch", () => {
+        const { load } = chooseHandover([owned("pre-upgrade", "feat", "111")], "main", opts(`111@${START}`));
+        expect(load.meta.title).toBe("pre-upgrade");
+      });
+
+      it("does not take a bare handover saved before this window started, whose pid it was given", () => {
+        const closed = owned("closed window's", "feat", "111", "2026-09-19T09:00:00Z");
+        expect(chooseHandover([closed], "main", opts(`111@${START}`))).toEqual({ load: null, list: [closed] });
+      });
+
+      it("does not take a handover whose pid matches but whose window started at another time", () => {
+        const dead = owned("closed window's", "feat", `111@${START - 3_600_000}`);
+        expect(chooseHandover([dead], "main", opts(`111@${START}`))).toEqual({ load: null, list: [dead] });
+      });
+
+      it("claims nothing while this window's own start could not be read", () => {
+        const withStart = owned("which window?", "feat", `111@${START}`);
+        const bare = owned("a bare one", "feat", "111");
+        expect(chooseHandover([withStart, bare], "main", opts("111"))).toEqual({ load: null, list: [withStart, bare] });
+      });
+    });
+
     describe("after a compaction (ownOnly)", () => {
       it("still loads this window's own handover, on any branch", () => {
-        const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive, ownOnly: true });
+        const { load } = chooseHandover([owned("mine", "feat", ME)], "main", { now: NOW, owner: ME, alive, ownOnly: true, toEpoch });
         expect(load.meta.title).toBe("mine");
       });
 
@@ -144,6 +175,36 @@ describe("SessionStart hook", () => {
     // "other" needs something else to be other than, and nothing was loaded here.
     expect(out.hookSpecificOutput.additionalContext).not.toContain("other handover");
     expect(listWaiting(root, key)).toHaveLength(2);
+  });
+
+  it("names a listed handover by short id, never by the record file (machine name) or a full home path", () => {
+    git("checkout", "-q", "-b", "a");
+    saveHandover({ cwd: repo, title: "A work", body: "body of A", root });
+    git("checkout", "-q", "-b", "b");
+    const { key } = saveHandover({ cwd: repo, title: "B work", body: "body of B", root });
+    git("checkout", "-q", "main");
+    const ctx = run({ cwd: repo }, { env }).hookSpecificOutput.additionalContext;
+    const waiting = listWaiting(root, key);
+    for (const w of waiting) {
+      expect(ctx).toContain(w.short);
+      expect(ctx).not.toContain(w.file);
+    }
+    expect(ctx).not.toContain(hostname());
+    // The printed command, run as printed, loads that handover.
+    const line = ctx.split("\n").find((l) => l.includes(waiting[0].short) && l.includes("load.mjs")).trim();
+    // In each shell Claude may run it in, with --peek so it stays waiting; then as printed.
+    const shellEnv = { ...process.env, ...env, HOME: homedir() };
+    const runs = [];
+    if (process.platform === "win32") {
+      const bash = join(execFileSync("git", ["--exec-path"], { encoding: "utf8" }).trim(), "..", "..", "..", "bin", "bash.exe");
+      runs.push((cmd) => execFileSync(bash, ["-c", cmd], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+      runs.push((cmd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(cmd, "utf16le").toString("base64")], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+    } else {
+      runs.push((cmd) => execFileSync("/bin/sh", ["-c", cmd], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+    }
+    const body = `body of ${waiting[0].meta.title[0]}`;
+    for (const runIt of runs) expect(runIt(line.replace(` ${waiting[0].short}`, ` --peek ${waiting[0].short}`))).toContain(body);
+    expect(runs[0](line)).toContain(body);
   });
 
   it("calls a listed handover \"other\" only when one was loaded, and counts it singular", () => {
@@ -233,6 +294,50 @@ describe("SessionStart hook", () => {
 
       expect(readFileSync(join(root, key, "consumed.txt"), "utf8")).toBe(after);
       expect(listWaiting(root, key)).toHaveLength(0);
+    });
+
+    // With the process walk on, as in a real window, the first run's owner is
+    // `pid@start` while the twin knows only the bare CLAUDE_PID. Comparing those
+    // strings refused the echo, so the twin said nothing, or took a different
+    // handover by the lone-handover rule (review of fix/owner-and-hook-cost,
+    // 2026-09-27). The config turns the walk off for every other test, which is
+    // how this went unseen.
+    describe("with the process walk on and CLAUDE_PID set", () => {
+      let windowEnv, me;
+      beforeEach(() => {
+        vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+        // run() here is the hook inside the long-lived test process; give it a fresh budget.
+        startHookClock();
+        windowEnv = { ...env, CLAUDE_PID: String(process.pid), CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" };
+        me = ownerId(windowEnv);
+        // Without a start time this would not be the case under test.
+        expect(me).toMatch(new RegExp(`^${process.pid}@\\d+$`));
+      });
+      afterEach(() => vi.unstubAllEnvs());
+
+      it("re-emits this window's handover", () => {
+        saveHandover({ cwd: repo, title: "Mine", body: "## Next action\nMine body.", root, owner: me });
+
+        expect(run({ cwd: repo, source: "startup" }, { env: windowEnv }).systemMessage).toMatch(/loaded handover "Mine"/);
+        const twin = run({ cwd: repo, source: "clear" }, { env: windowEnv });
+
+        expect(twin).not.toBeNull();
+        expect(twin.systemMessage).toMatch(/loaded handover "Mine"/);
+        expect(twin.hookSpecificOutput.additionalContext).toContain("Mine body.");
+      });
+
+      it("does not take a second handover by the lone-handover rule", () => {
+        git("checkout", "-q", "-b", "side");
+        const { key } = saveHandover({ cwd: repo, title: "Other", body: "other body", root, owner: "" });
+        git("checkout", "-q", "main");
+        saveHandover({ cwd: repo, title: "Mine", body: "mine body", root, owner: me });
+
+        run({ cwd: repo, source: "startup" }, { env: windowEnv });
+        const twin = run({ cwd: repo, source: "clear" }, { env: windowEnv });
+
+        expect(twin.systemMessage).toMatch(/loaded handover "Mine"/);
+        expect(listWaiting(root, key).map((x) => x.meta.title)).toEqual(["Other"]);
+      });
     });
 
     // A short window is what separates a twin from a user who cleared twice
