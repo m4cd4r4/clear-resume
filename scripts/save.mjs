@@ -7,7 +7,7 @@
 // clear-resume/<branch>, for cloud sessions whose home folder does not survive.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { listWaiting, repoInfo, saveHandover, storeRoot } from "./lib/store.mjs";
+import { listWaiting, repoInfo, repoKey, saveHandover, storeRoot } from "./lib/store.mjs";
 import { sessionRoot } from "./lib/session.mjs";
 import { normalisePath } from "../packages/store/schema.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
@@ -45,11 +45,14 @@ try {
     console.log(`Filed against the session root ${tildePath(normalisePath(startedIn))}, not the current directory.`);
   // A handover nobody can find is worse than none: the session is told to /clear
   // and starts empty with nothing saying a handover exists. So prove the record
-  // comes back through the same lookup the SessionStart hook uses, from the main
-  // checkout, before promising anything. This is cheap - the store is small - and
-  // it is the only thing standing between a bad save and a lost session.
-  const found = listWaiting(storeRoot(), main).some((h) => h.id === id);
-  if (top !== main) console.log(`Written in the worktree ${tildePath(top)}, filed under ${tildePath(main)}.`);
+  // comes back through the lookup the SessionStart hook uses (by this checkout's
+  // repo key) before promising anything. This is cheap - the store is small - and
+  // it is the only thing standing between a bad save and a lost session. It used
+  // to look it up by path from the main checkout, which also matches a worktree's
+  // handovers, so a save in a worktree promised a load there that never came
+  // (docs check, 2026-09-27).
+  const found = listWaiting(storeRoot(), repoKey(top)).some((h) => h.id === id);
+  if (top !== main) console.log(`Written in the worktree ${tildePath(top)}: it loads in a session started there, not in ${tildePath(main)}.`);
   if (webEnabled() || process.argv.includes("--commit")) {
     const { top, branch } = repoInfo(startedIn);
     const r = commitHandover(top, path, branch);
@@ -57,10 +60,10 @@ try {
     else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
   if (found) {
-    console.log(`After /clear, the next session in ${tildePath(main)} loads it automatically.`);
+    console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
   } else {
     console.error(
-      `clear-resume: WARNING - the handover saved but is NOT discoverable from ${tildePath(main)}, ` +
+      `clear-resume: WARNING - the handover saved but is NOT discoverable from ${tildePath(top)}, ` +
         `so /clear would start an empty session. Do not tell the user to clear. ` +
         `Load it by hand instead: node ${shellPath(fileURLToPath(new URL("load.mjs", import.meta.url)))} ${short} ` +
         `(the record is ${tildePath(path)}).`,

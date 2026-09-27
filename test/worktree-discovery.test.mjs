@@ -9,9 +9,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
+import { run } from "../scripts/lib/hook.mjs";
 import { forgetWorktrees } from "../packages/store/worktree.mjs";
 
 let root, main, tree;
@@ -51,5 +52,25 @@ describe("a handover written in a worktree", () => {
     } finally {
       rmSync(other, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
+  });
+});
+
+// The SessionStart hook finds a handover by its own checkout, so one saved in a
+// worktree loads in that worktree. save.mjs promised the main checkout instead,
+// because its check looked the record up from there by path (docs check, 2026-09-27).
+describe("save.mjs in a worktree", () => {
+  it("names the worktree as the folder that loads it, and the hook loads it there and only there", () => {
+    const env = { ...process.env, CLEAR_RESUME_HOME: root };
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "Worktree work", "--cwd", tree], {
+      cwd: tree,
+      input: "# Handover\n\nbody\n",
+      env,
+      encoding: "utf8",
+    });
+    expect(out).toContain("it loads in a session started there");
+    expect(out).toContain(`${basename(tree)} loads it automatically`);
+
+    expect(run({ cwd: main }, { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+    expect(run({ cwd: tree }, { env: { CLEAR_RESUME_HOME: root } }).systemMessage).toMatch(/loaded handover "Worktree work"/);
   });
 });
