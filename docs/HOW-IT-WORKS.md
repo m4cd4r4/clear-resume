@@ -319,8 +319,7 @@ Handovers are plain text. Do not put secrets in them.
 4. **Were several waiting on other branches?** They are listed. Say which one.
 5. **Did you start with `--resume` or `/resume`?** The hook does not run then.
 6. **Is the new session in the same folder?** A handover loads only in the checkout it was
-   written in. A save made in a worktree still prints the main checkout's folder; open the
-   session in the worktree instead.
+   written in, the folder the save names. A save made in a worktree says so.
 7. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
    to run `node --version`: the hooks need `node` on the PATH Claude Code sees.
 
