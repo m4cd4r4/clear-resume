@@ -60,8 +60,8 @@ branch or a file can move between sessions.
 Two windows on one repo write two handovers. The plugin never guesses between them:
 
 - A handover for the branch you are on loads.
-- If none matches your branch but exactly one is waiting, that one loads. A cloud session
-  starts on a fresh branch, so a mismatch there is normal.
+- If none matches your branch but exactly one is waiting, that one loads. A handover found in
+  git (web mode, below) is never loaded this way, only listed.
 - Otherwise it lists them by title and branch and waits for you to say which.
 - A handover that belongs to another open window is listed with `load.mjs --peek`, which
   reads it without taking it. Plain `load.mjs` also leaves it waiting for that window;
@@ -271,8 +271,9 @@ npm install
 npx vitest run
 ```
 
-Web mode was tested live on Claude Code on the web on 2026-09-19: saved in one cloud session,
-loaded in the next.
+Web mode's save and push were tested live on Claude Code on the web on 2026-09-19. Since
+0.1.5 the next cloud session lists that handover with the command that prints it, rather than
+loading it.
 
 ### Developing this plugin
 

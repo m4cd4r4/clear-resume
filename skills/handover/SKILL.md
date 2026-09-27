@@ -77,11 +77,12 @@ window's own earlier handover, never another window's - since #27 the record is 
 window (owner), not per branch. Two windows on the same branch each keep their own waiting
 handover.
 
-With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also commits
-`.clear-resume/HANDOVER.md` on the current branch and pushes it, so the next cloud
-session can find it. That session lists it with the command that prints it; it does not
-load it automatically. If the output says the push failed, push the branch before
-telling the user to start a new session.
+With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also pushes
+`.clear-resume/HANDOVER.md` to its own branch, `clear-resume/<branch>`, leaving the
+current branch untouched, so the next cloud session can find it. That session lists it
+with the command that prints it; it does not load it automatically. If the output says
+the push failed, tell the user: the handover is saved on this machine, but a new cloud
+session will not see it.
 
 ## 4. Tell the user
 
