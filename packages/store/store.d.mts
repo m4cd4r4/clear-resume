@@ -1,5 +1,5 @@
-import type { Handover } from "./schema.d.mts";
-export type { Handover };
+import type { ArchivedBy, Handover } from "./schema.d.mts";
+export type { ArchivedBy, Handover };
 
 export interface StoredHandover extends Handover {
   path: string;
@@ -11,7 +11,7 @@ export function recordIdFor(r: { machine: unknown; pid: unknown; createdAt: Date
 export function exists(id: string, root?: string): boolean;
 export function read(id: string, root?: string): StoredHandover;
 export function update(id: string, patch: Partial<Handover>, opts?: { root?: string; now?: Date }): StoredHandover;
-export function archiveRecord(id: string, opts?: { root?: string; now?: Date }): StoredHandover;
+export function archiveRecord(id: string, opts?: { root?: string; now?: Date; by?: ArchivedBy }): StoredHandover;
 export function remove(id: string, opts?: { root?: string; now?: Date }): boolean;
 export function setPinned(id: string, pinned: boolean, opts?: { root?: string }): StoredHandover;
 export function save(input: Partial<Handover>, opts?: { root?: string; now?: Date }): StoredHandover;

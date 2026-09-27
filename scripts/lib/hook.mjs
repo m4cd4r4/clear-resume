@@ -14,14 +14,20 @@ const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mj
 // The reader chooses on the first line, so the title and branch lead and the record
 // filename never appears there - it is 48 characters of machine name, pid and
 // timestamp, which is unreadable and needlessly names the machine.
-function describe(h, now) {
+//
+// A handover another open window owns is offered with --peek, which reads it
+// without taking it. On 2026-09-27 a session ran the plain command from this list
+// just to read such a handover for the user, and that took it from its own window.
+function describe(h, now, { othersOpen = () => false } = {}) {
   const branch = h.meta.branch ? `, branch ${h.meta.branch}` : "";
+  const busy = othersOpen(h);
   const how = h.file
-    ? `node "${LOAD_SCRIPT}" ${h.file}`
+    ? `node "${LOAD_SCRIPT}" ${busy ? "--peek " : ""}${h.file}`
     : h.ref
       ? `git show ${h.ref}:${REPO_FILE}`
       : `read ${REPO_FILE}`;
-  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}\n    ${how}`;
+  const whose = busy ? " (belongs to another open window)" : "";
+  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}${whose}\n    ${how}`;
 }
 
 // The user sees systemMessage and nothing else, so a list they are asked to choose
@@ -123,16 +129,23 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   // lone-handover rule fires as soon as the first one is taken - quietly burning
   // a second piece of work on a session that already has one.
   const echo = recentlyLoaded(root, key, now, env);
+  // This window's owner id, looked up at most once and only when something needs
+  // it: without CLAUDE_PID it means walking the process table.
+  let me;
+  const whoAmI = () => (me ??= ownerId(env));
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? ownerId(env) : "", alive: ownerAlive }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive }));
   if (!load && !waiting.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
 
   if (load) {
-    if (!echo && load.path) archive(root, key, load.path);
+    // The owner is already known whenever any waiting handover has one. For an
+    // all-legacy list, settle for CLAUDE_PID rather than add a process walk to a
+    // hook with a 10s budget.
+    if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: me ?? String(env.CLAUDE_PID ?? "").trim() });
     if (!echo) markConsumed(root, key, load.meta);
     if (!echo && repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
     if (!echo) for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
@@ -151,7 +164,8 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     const lead = load
       ? `clear-resume: ${plural(list.length, "other handover")} also waiting for this repo, not loaded:`
       : `clear-resume: ${plural(list.length, "handover")} waiting for this repo, none loaded. Give the user the titles and ask which one:`;
-    parts.push(`${lead}\n${list.map((h) => describe(h, now)).join("\n")}`);
+    const othersOpen = (h) => Boolean(h.meta.owner) && h.meta.owner !== whoAmI() && ownerAlive(h.meta.owner);
+    parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others
     // exist, or they cannot ask for one. This only appears when there are some.
     shown = load
