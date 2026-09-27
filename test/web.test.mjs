@@ -50,6 +50,15 @@ function freshSessionTwo(branch = "claude/two") {
   git(two, "checkout", "-q", "-B", branch, branch === "claude/two" ? "origin/main" : `origin/${branch}`);
 }
 const webEnv = (root) => ({ CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1" });
+const loaded = (out) => out?.hookSpecificOutput.additionalContext.includes("this session continues earlier work") ?? false;
+// Everything the hook could change: the user's HEAD, branches, index and files,
+// and every ref on the remote. Only remote-tracking refs may move (the fetch).
+const repoState = (cwd) => [
+  git(cwd, "rev-parse", "HEAD"),
+  git(cwd, "for-each-ref", "--format=%(refname) %(objectname)", "refs/heads"),
+  git(cwd, "status", "--porcelain", "--untracked-files=all"),
+  git(cwd, "ls-remote", "origin"),
+];
 
 describe("save in web mode", () => {
   it("pushes to its own ref, leaving the user's branch, index and files alone", () => {
@@ -95,30 +104,39 @@ describe("save in web mode", () => {
   });
 });
 
+// A handover on a remote ref is listed with the command that prints it, never
+// loaded: anyone who can push to the remote could have written it (2026-09-27).
 describe("load in a new cloud session", () => {
-  it("finds the handover on another pushed branch, once", () => {
+  it("lists the handover on another pushed branch's ref, without loading it", () => {
     saveInSessionOne();
     freshSessionTwo();
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
-    expect(out.hookSpecificOutput.additionalContext).toContain("written on branch claude/one");
-    expect(run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) })).toBeNull();
+    const ctx = out.hookSpecificOutput.additionalContext;
+    expect(loaded(out)).toBe(false);
+    expect(ctx).not.toContain("Finish the parser.");
+    expect(ctx).toMatch(/"Web work", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
+    expect(out.systemMessage).toContain('"Web work"');
   });
 
   it("fetches first, so a clone older than the save still finds it", () => {
     freshSessionTwo();
     saveInSessionOne();
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
+    expect(out.hookSpecificOutput.additionalContext).toContain("found on remote ref origin/clear-resume/claude/one");
   });
 
   it("fetches first on the same branch too, when the clone predates the push", () => {
     saveInSessionOne("Earlier");
     freshSessionTwo("claude/one");
     run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    const stale = git(two, "rev-parse", "origin/clear-resume/claude/one");
     saveInSessionOne("Later", "## Next action\nShip the fetch.");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("Ship the fetch.");
+    // The title alone passed without a fetch too; the ref has to have moved.
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Later", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
+    const pushed = git(two, "ls-remote", "origin", "refs/heads/clear-resume/claude/one").split("\t")[0];
+    expect(pushed).not.toBe(stale);
+    expect(git(two, "rev-parse", "origin/clear-resume/claude/one")).toBe(pushed);
   });
 
   it("does not scan other branches unless web mode is on", () => {
@@ -127,19 +145,17 @@ describe("load in a new cloud session", () => {
     expect(run({ cwd: two, source: "startup" }, { env: { CLEAR_RESUME_HOME: rootTwo } })).toBeNull();
   });
 
-  it("empties the handover ref once loaded, so a later session with an empty home does not reload it", () => {
+  it("never pushes: the handover ref, the user's branch and the tree are left as they were", () => {
     saveInSessionOne();
     freshSessionTwo("claude/one");
-    const head = git(two, "rev-parse", "HEAD");
-    const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("Finish the parser.");
+    const before = repoState(two);
+    run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    expect(repoState(two)).toEqual(before);
     git(two, "fetch", "-q", "origin", "clear-resume/claude/one");
-    expect(git(two, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe("");
-    expect(git(two, "rev-parse", "HEAD")).toBe(head);
-    expect(run({ cwd: one, source: "startup" }, { env: webEnv(join(dir, "home-three")) })).toBeNull();
+    expect(git(two, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe(REPO_FILE);
   });
 
-  it("still loads a legacy working-tree copy and deletes it in a commit", () => {
+  it("lists a committed working-tree copy without loading it, deleting it or committing", () => {
     freshSessionTwo("claude/one");
     const { path } = saveHandover({ cwd: one, title: "Legacy", body: "## Next action\nOld style.", root: rootOne });
     const dest = join(two, REPO_FILE);
@@ -147,18 +163,24 @@ describe("load in a new cloud session", () => {
     writeFileSync(dest, handoverMarkdown(path), "utf8"); // the legacy copy in a worktree is markdown, not a record
     git(two, "add", REPO_FILE);
     git(two, "commit", "-q", "-m", "legacy handover");
+    const before = repoState(two);
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("Old style.");
-    expect(existsSync(dest)).toBe(false);
-    expect(git(two, "log", "-1", "--format=%s")).toBe("chore: clear-resume handover loaded");
+    expect(loaded(out)).toBe(false);
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("Old style.");
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Legacy".*found in a file committed to this repo/);
+    expect(existsSync(dest)).toBe(true);
+    expect(git(two, "log", "-1", "--format=%s")).toBe("legacy handover");
+    expect(repoState(two)).toEqual(before);
   });
 
-  it("when the home folder survived, loads the store copy once and empties the ref", () => {
+  it("when the home folder survived, loads the store copy once and leaves the ref alone", () => {
     saveInSessionOne();
+    const before = repoState(one);
     const out = run({ cwd: one, source: "clear" }, { env: webEnv(rootOne) });
     expect(out.hookSpecificOutput.additionalContext.match(/Finish the parser\./g)).toHaveLength(1);
-    git(one, "fetch", "-q", "origin", "clear-resume/claude/one");
-    expect(git(one, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe("");
+    // The same handover on the ref is not listed a second time as found in git.
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("found on remote ref");
+    expect(repoState(one)).toEqual(before);
     // Silent again for a real later session. An immediate re-run is the twin of
     // the same /clear, which re-emits rather than loading a second time.
     expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne), now: new Date(Date.now() + 60_000) })).toBeNull();

@@ -13,9 +13,18 @@
 //     another window's handover would take it from that window.
 //   - Older than maxAgeDays -> list only, so a forgotten handover never lands in
 //     unrelated work.
+//   - Dated more than FUTURE_SKEW_MS ahead of now -> list only, and it never wins.
+//     A future date read as fresh, sorted newest and printed "just now", which let
+//     a handover committed to a cloned repo beat the user's own (2026-09-27).
+export const FUTURE_SKEW_MS = 5 * 60_000;
+
+export function inFuture(created, now = new Date()) {
+  return new Date(created) - now > FUTURE_SKEW_MS;
+}
+
 export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false } = {}) {
   const ageDays = (h) => (now - new Date(h.meta.created ?? 0)) / 86_400_000;
-  const fresh = waiting.filter((h) => ageDays(h) <= maxAgeDays);
+  const fresh = waiting.filter((h) => ageDays(h) <= maxAgeDays && !inFuture(h.meta.created, now));
 
   const mine = owner ? fresh.filter((h) => h.meta.owner === owner) : [];
   if (mine.length) {
