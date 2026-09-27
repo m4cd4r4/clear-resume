@@ -10,6 +10,7 @@ import { listWaiting, repoInfo, saveHandover, storeRoot } from "./lib/store.mjs"
 import { sessionRoot } from "./lib/session.mjs";
 import { normalisePath } from "../packages/store/schema.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
+import { ownerId, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -30,7 +31,10 @@ try {
 const startedIn = arg("--cwd") || sessionRoot() || process.cwd();
 
 try {
-  const { path, id, top, main, superseded } = saveHandover({ cwd: startedIn, title: arg("--title"), body });
+  // The owner's start time is what tells this window from a later process that
+  // gets its pid, so a save waits for the lookup rather than use the hook budget.
+  const owner = ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
+  const { path, id, top, main, superseded } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner });
   console.log(`Saved handover: ${path}`);
   for (const p of superseded) console.log(`Archived older handover for this branch: ${p}`);
   if (normalisePath(startedIn) !== normalisePath(process.cwd()))

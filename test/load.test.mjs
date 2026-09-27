@@ -6,12 +6,13 @@
 // plan for the user, and load.mjs archived it on read. A's /clear a minute later
 // found nothing waiting, and the record said nothing about who had archived it.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
+import { ownerId } from "../scripts/lib/owner.mjs";
 
 const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 
@@ -245,5 +246,114 @@ describe("the twin check only echoes a SessionStart load from this window", () =
 
     expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
     expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
+  });
+});
+
+// XP-2: the SessionStart hook judged an owner by `kill(pid, 0)` alone. A user who
+// quits Claude instead of running /clear comes back to a handover whose pid some
+// other process now holds; the hook called it "another open window's" and offered
+// it only with --peek, which never archives, so it came back at every start.
+describe("SessionStart on a pid a closed window left behind", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("loads a handover whose owner pid now belongs to a non-Claude process", () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    try {
+      const { path } = saveHandover({ cwd: repo, title: "Yesterday's work", body: "y", root, owner: String(squatter.pid) });
+
+      const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME } });
+
+      expect(out.systemMessage).toMatch(/loaded handover "Yesterday's work"/);
+      expect(out.hookSpecificOutput.additionalContext).not.toContain("belongs to another open window");
+      expect(record(path).status).toBe("archived");
+    } finally {
+      squatter.kill();
+    }
+  });
+});
+
+// XP-3: the macOS and Linux native install runs a binary named after its version
+// (~/.local/share/claude/versions/2.1.232). load.mjs judged the pid by name alone,
+// called that open window closed, and took its handover - the bug #28 fixed.
+describe("load.mjs on a window run by a binary named after its version", () => {
+  let home, window;
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "cr-native-"));
+    const dir = join(home, ".local", "share", "claude", "versions");
+    mkdirSync(dir, { recursive: true });
+    const bin = join(dir, process.platform === "win32" ? "2.1.232.exe" : "2.1.232");
+    copyFileSync(process.execPath, bin);
+    window = spawn(bin, ["-e", "setInterval(() => {}, 1e6)"], { stdio: "ignore" });
+  });
+  // The binary stays locked on Windows until its process has gone.
+  afterEach(async () => {
+    const gone = new Promise((done) => (window.exitCode !== null || window.signalCode !== null ? done() : window.once("exit", done)));
+    window.kill();
+    await gone;
+    rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
+
+  it("leaves its handover waiting (owner written as a bare pid)", () => {
+    const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner: String(window.pid) });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).toContain("read only");
+    expect(record(path).status).toBe("waiting");
+  });
+
+  it("leaves its handover waiting (owner written with its start time)", () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const owner = ownerId({ CLAUDE_PID: String(window.pid) }, { timeout: 20_000 });
+    vi.unstubAllEnvs();
+    expect(owner).toMatch(/@/);
+    const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).toContain("read only");
+    expect(record(path).status).toBe("waiting");
+  });
+});
+
+// A pid reused by another Claude-shaped process (here node, this test runner):
+// the name says Claude, the start time says it is not the window that wrote it.
+describe("load.mjs on a pid a later Claude-shaped process now holds", () => {
+  it("archives the handover: its window has closed", () => {
+    const { path } = saveHandover({ cwd: repo, title: "old window", body: "o", root, owner: `${OTHER_LIVE}@1000` });
+    const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+      cwd: repo,
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      encoding: "utf8",
+    });
+    expect(out.stdout).not.toContain("read only");
+    expect(record(path).status).toBe("archived");
+  });
+});
+
+// On windows-latest the process lookup took over 5s, and a lookup that fails must
+// never be read as "that window has closed": taking an open window's handover is
+// the one mistake this cannot make. /proc is read directly on Linux, with no
+// process to time out.
+describe.skipIf(process.platform === "linux")("load.mjs when the process lookup times out", () => {
+  it("leaves a live owner's handover waiting rather than guess the window closed", () => {
+    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    try {
+      const { path } = saveHandover({ cwd: repo, title: "unknown", body: "u", root, owner: String(squatter.pid) });
+      const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
+        cwd: repo,
+        env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "", CLEAR_RESUME_PROCESS_TIMEOUT_MS: "1" },
+        encoding: "utf8",
+      });
+      expect(out.stdout).toContain("read only");
+      expect(record(path).status).toBe("waiting");
+    } finally {
+      squatter.kill();
+    }
   });
 });

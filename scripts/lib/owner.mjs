@@ -6,77 +6,258 @@
 // two minutes after it was written, and a later save archived a third window's
 // handover because it sat on the same branch.
 //
-// The Claude process id survives /clear in the same panel, so it is the owner.
-// Claude Code exports it to tool shells as CLAUDE_PID; a hook may not get that
-// variable, so the fallback walks up the process tree to the claude executable.
+// The Claude process survives /clear in the same panel, so it is the owner.
+// Claude Code exports its pid to tool shells and hooks as CLAUDE_PID (measured
+// with Claude Code 2.1.278); when a hook does not get that variable, the
+// fallback walks up the process tree to the claude executable.
+//
+// An owner is written `<pid>@<start>`: the pid plus the start time of the
+// process holding it, in epoch milliseconds. The pid alone is not enough.
+// Windows hands a closed window's pid to the next process within minutes, and
+// on macOS and Linux the native binary is named after its version
+// (~/.local/share/claude/versions/2.1.232), so the process name cannot say
+// "Claude" either. A pid whose process started at another time is a different
+// process, whatever it is called.
+//
+// An owner written before the start time was recorded is a bare pid. It is
+// judged the old way: a live pid must still name a Claude-shaped process.
+//
+// Every doubt answers "open". The cost of that mistake is a handover listed
+// rather than loaded (or a load.mjs --take); the cost of the other is taking a
+// live window's handover.
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-const CLAUDE_EXE = /^claude(\.exe)?$/i;
+// SessionStart has a 10s budget and may already spend 8s on a pull, so a hook
+// waits this long for the process table and then carries on not knowing.
+const HOOK_TIMEOUT_MS = 2500;
+// load.mjs and save.mjs have no budget. Windows PowerShell on a cold CI runner
+// took over 5s.
+export const PATIENT_TIMEOUT_MS = 15_000;
+// Start times read by different tools can round differently. A window that lived
+// for less than a second never wrote a handover, so a second of slack cannot
+// mistake a reused pid for its old owner.
+const START_SLACK_MS = 1000;
+// One hook or CLI run asks about a few pids within milliseconds; one read serves
+// them all.
+const MEMO_MS = 5000;
 
-function processTable() {
+const walkOff = (env) => Boolean(env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK);
+const timeoutFor = (env, fallback) =>
+  Number(env.CLEAR_RESUME_PROCESS_TIMEOUT_MS || process.env.CLEAR_RESUME_PROCESS_TIMEOUT_MS) || fallback;
+
+// ---- reading the process table -------------------------------------------
+// A row is [pid, ppid, name, start]: start in epoch ms, or null when unreadable.
+
+function exec(cmd, args, timeout, env) {
+  return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true, timeout, env });
+}
+
+const FILETIME_UNIX_EPOCH = 116444736000000000n;
+const fileTimeMs = (ft) => (/^\d+$/.test(String(ft).trim()) ? Number((BigInt(String(ft).trim()) - FILETIME_UNIX_EPOCH) / 10000n) : null);
+
+function powershell(script, timeout) {
+  return exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], timeout)
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((l) => l.split("\t"));
+}
+
+// Get-Process skips WMI, which is the slow part (about 1s here, over 5s on a
+// cold CI runner), but in Windows PowerShell 5.1 it has no parent pid. So the
+// tree walk, needed only without CLAUDE_PID, still goes through CIM.
+const WIN_PROCESSES =
+  "Get-Process | ForEach-Object { $s = try { $_.StartTime.ToFileTimeUtc() } catch { '' }; \"$($_.Id)`t$($_.ProcessName)`t$s\" }";
+const WIN_TREE =
+  "Get-CimInstance Win32_Process | ForEach-Object { $s = if ($_.CreationDate) { $_.CreationDate.ToFileTimeUtc() } else { '' }; \"$($_.ProcessId)`t$($_.ParentProcessId)`t$($_.Name)`t$s\" }";
+
+const windowsProcesses = (timeout) => powershell(WIN_PROCESSES, timeout).map(([pid, name, s]) => [pid, "", name, fileTimeMs(s)]);
+const windowsTree = (timeout) => powershell(WIN_TREE, timeout).map(([pid, ppid, name, s]) => [pid, ppid, name, fileTimeMs(s)]);
+
+// macOS and the BSDs. lstart is fixed by the kernel at exec; printed in UTC and
+// the C locale it parses the same way every time.
+function psTable(timeout) {
+  return exec("ps", ["-A", "-o", "pid=,ppid=,lstart=,comm="], timeout, { ...process.env, LC_ALL: "C", TZ: "UTC" })
+    .split("\n")
+    .map((l) => l.trim().split(/\s+/))
+    .filter((t) => t.length >= 8)
+    .map((t) => [t[0], t[1], t.slice(7).join(" "), Date.parse(`${t.slice(2, 7).join(" ")} UTC`) || null]);
+}
+
+// Linux: read /proc directly. No process to spawn, so nothing to time out, and it
+// works in a container with no procps.
+let bootMs;
+function linuxRow(pid) {
   try {
-    if (process.platform === "win32") {
-      const out = execFileSync(
-        "powershell.exe",
-        ["-NoProfile", "-NonInteractive", "-Command",
-          "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId)`t$($_.ParentProcessId)`t$($_.Name)\" }"],
-        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true, timeout: 5000 },
-      );
-      return out.split(/\r?\n/).map((l) => l.split("\t")).filter((r) => r.length === 3);
-    }
-    const out = execFileSync("ps", ["-A", "-o", "pid=,ppid=,comm="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000 });
-    return out.split("\n").map((l) => l.trim().split(/\s+/)).filter((r) => r.length >= 3)
-      .map(([pid, ppid, ...comm]) => [pid, ppid, comm.join(" ").split("/").pop()]);
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    const name = stat.slice(stat.indexOf("(") + 1, close);
+    const f = stat.slice(close + 2).split(" ");
+    bootMs ??= Number(/^btime (\d+)$/m.exec(readFileSync("/proc/stat", "utf8"))[1]) * 1000;
+    // Field 22, starttime, counts clock ticks since boot; USER_HZ is 100.
+    return [String(pid), f[1], name, bootMs + Number(f[19]) * 10];
   } catch {
-    return [];
+    return null;
   }
+}
+
+const memo = new Map();
+function remembered(kind, read, timeout) {
+  const hit = memo.get(kind);
+  if (hit && Date.now() - hit.at < MEMO_MS) return { rows: hit.rows, fresh: false };
+  let rows = null;
+  try {
+    rows = read(timeout);
+  } catch {
+    rows = null; // timed out or failed: remembered too, so it is paid for once
+  }
+  memo.set(kind, { at: Date.now(), rows });
+  return { rows, fresh: true };
+}
+
+// A pid missing from a remembered table may belong to a process started since;
+// read the table again, once, before calling it unknown.
+function tableLookup(kind, read, timeout) {
+  const first = remembered(kind, read, timeout);
+  const find = byPid(first.rows);
+  if (!find) return null;
+  return (pid) => {
+    const row = find(pid);
+    if (row || first.fresh) return row;
+    memo.delete(kind);
+    return byPid(remembered(kind, read, timeout).rows)?.(pid) ?? null;
+  };
+}
+
+function byPid(rows) {
+  if (!Array.isArray(rows)) return null;
+  const map = new Map(rows.map((r) => [String(r[0]), r]));
+  return (pid) => map.get(String(pid)) ?? null;
+}
+
+// A pid -> row lookup, or null when the table could not be read at all.
+function lookupFrom({ table, readTable, tree = false, timeout }) {
+  if (table) return byPid(table);
+  if (readTable) {
+    try {
+      return byPid(readTable(timeout));
+    } catch {
+      return null;
+    }
+  }
+  if (process.platform === "linux") return linuxRow;
+  if (process.platform !== "win32") return tableLookup("ps", psTable, timeout);
+  const walked = memo.get("tree");
+  if (tree || (walked?.rows && Date.now() - walked.at < MEMO_MS)) return tableLookup("tree", windowsTree, timeout);
+  return tableLookup("processes", windowsProcesses, timeout);
+}
+
+const startOf = (row) => {
+  const n = Number(row?.[3]);
+  return row?.[3] != null && row[3] !== "" && Number.isFinite(n) && n > 0 ? n : null;
+};
+
+// ---- what counts as Claude -------------------------------------------------
+
+const base = (name) => String(name ?? "").split(/[\\/]/).pop();
+const VERSIONED = /^\d+\.\d+\.\d+([-+.][0-9A-Za-z.-]+)?$/;
+
+/** The Claude executable itself: claude, claude.exe, or a native build named after its version. */
+export function isClaudeWindow(name) {
+  const b = base(name).replace(/\.exe$/i, "");
+  return /^claude$/i.test(b) || VERSIONED.test(b) || /[\\/]claude[\\/]versions[\\/][^\\/]+$/i.test(String(name ?? ""));
+}
+
+// Node as well, for an npm install. Anything else holding the pid is a reuse of
+// a closed window's pid. Not for the walk: the hook is itself node.
+const isClaudeHost = (name) => isClaudeWindow(name) || /^node(\.exe)?$/i.test(base(name));
+
+// ---- owners ------------------------------------------------------------------
+
+/** Split an owner into its pid and start time; a bare pid (the old format) has no start. */
+export function parseOwner(owner) {
+  const m = /^(\d+)(?:@(\d+))?$/.exec(String(owner ?? "").trim());
+  return m ? { pid: m[1], start: m[2] ? Number(m[2]) : null } : { pid: "", start: null };
+}
+
+const withStart = (pid, row) => (startOf(row) ? `${pid}@${startOf(row)}` : String(pid));
+
+function ancestorRow(startPid, lookup) {
+  let pid = String(startPid);
+  for (let i = 0; i < 32; i++) {
+    const row = lookup(pid);
+    if (!row) break;
+    if (isClaudeWindow(row[2])) return row;
+    const ppid = String(row[1] ?? "");
+    if (!ppid || ppid === pid) break;
+    pid = ppid;
+  }
+  return null;
 }
 
 /** The pid of the nearest `claude` ancestor, or "" when there is none. */
-export function findClaudeAncestor(startPid = process.pid, table = processTable()) {
-  const byPid = new Map(table.map(([pid, ppid, name]) => [String(pid), { ppid: String(ppid), name }]));
-  let pid = String(startPid);
-  for (let i = 0; i < 32 && byPid.has(pid); i++) {
-    const { ppid, name } = byPid.get(pid);
-    if (CLAUDE_EXE.test(name)) return pid;
-    if (ppid === pid) break;
-    pid = ppid;
-  }
-  return "";
+export function findClaudeAncestor(startPid = process.pid, table) {
+  const lookup = typeof table === "function" ? table : table ? byPid(table) : lookupFrom({ tree: true, timeout: HOOK_TIMEOUT_MS });
+  return lookup ? String(ancestorRow(startPid, lookup)?.[0] ?? "") : "";
 }
 
-/** This window's owner id, or "" when it cannot be told. Never throws. */
-export function ownerId(env = process.env) {
-  const fromEnv = String(env.CLAUDE_PID ?? "").trim();
-  if (fromEnv) return fromEnv;
-  if (env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK) return "";
-  return findClaudeAncestor();
-}
-
-// A process that can be a Claude window: the native binary, or node for an npm
-// install. Anything else holding the pid is a reuse of a closed window's pid.
-const CLAUDE_HOST = /^(claude|node)(\.exe)?$/i;
+// The pid this window was found at by a walk, for `ownerOpen` without CLAUDE_PID.
+let walkedPid = "";
+const myPid = (env) => String(env.CLAUDE_PID ?? "").trim() || walkedPid;
 
 /**
- * Whether the window that owns a handover is still open, checked harder than
- * `ownerAlive`: Windows reuses pids quickly, so the pid must still name a
- * Claude-shaped process. Costs a process-table read, so it is for load.mjs,
- * which has no time budget, not for the SessionStart hook.
- *
- * Every doubt answers "open": the cost of that mistake is a --take, the cost of
- * the other is taking a live window's handover. A missing table (the walk failed,
- * or CLEAR_RESUME_NO_PROCESS_WALK is set) or a pid absent from it trusts
- * `ownerAlive`.
+ * This window's owner id: `<pid>@<start>`, the bare pid when the start time
+ * cannot be read in time, or "" when the window cannot be told. Never throws.
  */
-export function ownerOpen(pid, { table, env = process.env } = {}) {
-  if (!ownerAlive(pid)) return false;
-  if (!table && (env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK)) return true;
-  const row = (table ?? processTable()).find(([p]) => String(p) === String(pid));
-  return row ? CLAUDE_HOST.test(row[2]) : true;
+export function ownerId(env = process.env, { table, readTable, timeout } = {}) {
+  const injected = Boolean(table || readTable);
+  const t = timeoutFor(env, timeout ?? HOOK_TIMEOUT_MS);
+  const fromEnv = String(env.CLAUDE_PID ?? "").trim();
+  if (fromEnv) {
+    if ((!injected && walkOff(env)) || !pidAlive(fromEnv)) return fromEnv;
+    const lookup = lookupFrom({ table, readTable, timeout: t });
+    return withStart(fromEnv, lookup?.(fromEnv));
+  }
+  if (!injected && walkOff(env)) return "";
+  const lookup = lookupFrom({ table, readTable, tree: true, timeout: t });
+  const row = lookup ? ancestorRow(process.pid, lookup) : null;
+  if (!row) return "";
+  walkedPid = String(row[0]);
+  return withStart(walkedPid, row);
 }
 
-/** Whether the window that owns a handover is still running. */
-export function ownerAlive(pid) {
+/**
+ * Whether another Claude window that is still open owns a handover.
+ *
+ * - A dead pid, or this window's own pid, is not another open window. A bare
+ *   pid equal to this window's is either this window's own handover from before
+ *   the start time was recorded, or a closed window's whose pid this one got.
+ * - With a start time, the pid's process must have started then (within a second).
+ * - A bare pid must still name a Claude-shaped process.
+ * - A lookup that fails or times out, a pid missing from the table, or the lookup
+ *   turned off (CLEAR_RESUME_NO_PROCESS_WALK) answers open.
+ */
+export function ownerOpen(owner, { table, readTable, env = process.env, timeout } = {}) {
+  const { pid, start } = parseOwner(owner);
+  if (!pid || pid === myPid(env) || !pidAlive(pid)) return false;
+  if (!table && !readTable && walkOff(env)) return true;
+  const row = lookupFrom({ table, readTable, timeout: timeoutFor(env, timeout ?? HOOK_TIMEOUT_MS) })?.(pid);
+  if (!row) return true;
+  const seen = startOf(row);
+  if (start != null && seen != null) return Math.abs(seen - start) <= START_SLACK_MS;
+  return isClaudeHost(row[2]);
+}
+
+/**
+ * The SessionStart hook's check: `ownerOpen` on the hook's time budget, so a
+ * reused pid is told apart there too, not only in load.mjs.
+ */
+export function ownerAlive(owner) {
+  return ownerOpen(owner);
+}
+
+/** Whether a process with this pid exists. */
+export function pidAlive(pid) {
   const n = Number(pid);
   if (!Number.isInteger(n) || n <= 0) return false;
   try {

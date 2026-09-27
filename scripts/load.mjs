@@ -11,7 +11,7 @@
 // handover just to show the user its plan, the read archived it, and that
 // window's /clear a minute later found nothing waiting.
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./lib/store.mjs";
-import { ownerId, ownerOpen } from "./lib/owner.mjs";
+import { ownerId, ownerOpen, parseOwner, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
 import { markConsumed } from "./lib/web.mjs";
 
 const args = process.argv.slice(2);
@@ -50,12 +50,13 @@ if (!h) {
 if (peek) {
   console.log("clear-resume: peek only, the handover stays waiting.\n");
 } else {
-  const me = ownerId();
+  // No time budget here, so the process lookup may take as long as it needs.
+  const me = ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
   const owner = h.meta.owner;
-  const theirs = Boolean(owner) && owner !== me && ownerOpen(owner);
+  const theirs = Boolean(owner) && owner !== me && ownerOpen(owner, { timeout: PATIENT_TIMEOUT_MS });
   if (theirs && !take) {
     console.log(
-      `clear-resume: read only. This handover belongs to another open Claude window (pid ${owner}), ` +
+      `clear-resume: read only. This handover belongs to another open Claude window (pid ${parseOwner(owner).pid}), ` +
         `so it stays waiting for that window's /clear. To move it to this session instead: ` +
         `node "${process.argv[1]}" --take ${h.file}\n`,
     );
