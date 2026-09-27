@@ -65,6 +65,23 @@ describe("chooseHandover", () => {
       const { load } = chooseHandover([owned("orphan", "main", "999")], "main", { now: NOW, owner: "111", alive });
       expect(load.meta.title).toBe("orphan");
     });
+
+    describe("after a compaction (ownOnly)", () => {
+      it("still loads this window's own handover, on any branch", () => {
+        const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive, ownOnly: true });
+        expect(load.meta.title).toBe("mine");
+      });
+
+      it("lists a closed window's handover on the same branch instead of loading it", () => {
+        const orphan = owned("orphan", "main", "999");
+        expect(chooseHandover([orphan], "main", { now: NOW, owner: "111", alive, ownOnly: true })).toEqual({ load: null, list: [orphan] });
+      });
+
+      it("lists the only waiting handover on another branch instead of loading it", () => {
+        const other = h("other", "feat");
+        expect(chooseHandover([other], "main", { now: NOW, owner: "111", alive, ownOnly: true })).toEqual({ load: null, list: [other] });
+      });
+    });
   });
 });
 

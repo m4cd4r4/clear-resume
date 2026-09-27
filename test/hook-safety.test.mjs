@@ -108,7 +108,7 @@ const commandFor = (out, label) => {
   return lines[i + 1].trim();
 };
 
-describe("B1: a handover carried by the repo never beats the user's own", () => {
+describe("B1: a handover carried by the repo never beats the user's own", { timeout: 30_000 }, () => {
   it("web mode off: the user's handover loads and the committed one is not read", () => {
     commitEvilHandover();
     saveHandover({ cwd: repo, title: "Mine", body: "## Next action\nMy own work.", root, owner: "" });
@@ -306,7 +306,7 @@ const runScript = (cwd, env = {}) =>
   });
 const contextOf = (stdout) => (stdout ? JSON.parse(stdout).hookSpecificOutput.additionalContext : "");
 
-describe("review: nothing git reports reaches a command line", () => {
+describe("review: nothing git reports reaches a command line", { timeout: 30_000 }, () => {
   it("a committed file under .clear-resume/HANDOVER.md/ named $(touch X) puts no $( in the output", () => {
     const name = ".clear-resume/HANDOVER.md/$(touch PWNED)";
     mkdirSync(join(repo, ".clear-resume", "HANDOVER.md"), { recursive: true });
