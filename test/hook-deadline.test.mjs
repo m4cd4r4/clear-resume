@@ -10,7 +10,7 @@
 // Linux reads /proc, which cannot be slow in this way, so there the reads are
 // simply not counted.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -85,5 +85,19 @@ describe("SessionStart owner lookup against the hook's 10s budget", () => {
 
     expect(ms).toBeLessThan(10_000);
     expect(JSON.parse(stdout).systemMessage).toMatch(/loaded handover "My work"/);
+  }, 40_000);
+
+  // Without CLAUDE_PID the hook walks the tree (CIM on Windows). When that read
+  // timed out, the check on the next owner fell through to a fresh Get-Process
+  // read and paid a second full timeout: 5.2s with no pull at all (review, run2).
+  it("reads the process table at most once when the first read fails", () => {
+    const [a, b] = windows.map((w) => String(w.pid));
+    saveHandover({ cwd: repo, title: "A", body: "a", root: home, owner: a });
+    saveHandover({ cwd: repo, title: "B", body: "b", root: home, owner: b });
+
+    sessionStart({ CLAUDE_PID: "" });
+
+    const reads = existsSync(tableLog) ? readFileSync(tableLog, "utf8").split("\n").filter(Boolean) : [];
+    expect(reads.length).toBeLessThanOrEqual(1);
   }, 40_000);
 });

@@ -182,6 +182,10 @@ function lookupFrom({ table, readTable, tree = false, left }) {
     }
   }
   if (process.platform === "linux") return linuxRow;
+  // A read that failed moments ago is not tried again in another form: after a
+  // timed-out tree walk, a Get-Process read paid a second full timeout (5.2s with
+  // no pull at all, review of fix/owner-and-hook-cost, 2026-09-27).
+  if ([...memo.values()].some((m) => m.rows == null && Date.now() - m.at < MEMO_MS)) return null;
   if (process.platform !== "win32") return tableLookup("ps", psTable, left);
   const walked = memo.get("tree");
   if (tree || (walked?.rows && Date.now() - walked.at < MEMO_MS)) return tableLookup("tree", windowsTree, left);
