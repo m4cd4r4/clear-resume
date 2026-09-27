@@ -210,7 +210,7 @@ describe("B2: the hook never writes to the repo", { timeout: 30_000 }, () => {
   });
 });
 
-describe("an untracked working-tree copy", () => {
+describe("an untracked working-tree copy", { timeout: 30_000 }, () => {
   it("is not read at all with web mode off", () => {
     untracked();
     const before = snapshot();
@@ -232,6 +232,25 @@ describe("an untracked working-tree copy", () => {
     const after = snapshot();
     expect({ ...after, status: before.status }).toEqual(before);
     expect(after.status).toBe("");
+  });
+
+  // Security review 2 (2026-09-27): with stdout closed by the reader, the write
+  // callback gets EPIPE, and the copy was deleted anyway, 4 runs out of 4. It was
+  // also marked consumed first, so the handover was gone for good.
+  it("survives, and loads next time, when the output never reaches anyone", async () => {
+    untracked({ title: "Undelivered" });
+    const child = spawn(process.execPath, [SESSION_START], {
+      env: { ...process.env, CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1", CLEAR_RESUME_SYNC: "off" },
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    child.stdout.destroy();
+    child.stdin.end(JSON.stringify({ cwd: repo, source: "startup" }));
+    await new Promise((resolve) => child.on("close", resolve));
+    expect(existsSync(join(repo, REPO_FILE))).toBe(true);
+    const later = new Date(Date.now() + 60_000);
+    const out = run({ cwd: repo, source: "startup" }, { env: { CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1" }, now: later });
+    expect(loaded(out)).toBe(true);
+    expect(out.hookSpecificOutput.additionalContext).toContain("Untracked body.");
   });
 
   it("is not deleted by run() itself, before any output exists", () => {

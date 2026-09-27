@@ -203,7 +203,9 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // The owner is already known whenever any waiting handover has one. For an
     // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
     if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: cheapMe() });
-    if (!echo) markConsumed(root, key, load.meta);
+    // An untracked working-tree copy is marked consumed only once the output is
+    // out (afterOutput below): marked here, an undelivered load lost it for good.
+    if (!echo && load.source !== "worktree") markConsumed(root, key, load.meta);
     // A branch mismatch is the one thing about a loaded handover the user should
     // notice, so it goes in both strings rather than only in Claude's copy.
     const from = load.meta.branch && load.meta.branch !== branch ? `, written on branch ${load.meta.branch}` : "";
@@ -253,12 +255,19 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     systemMessage: shown,
     hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: parts.join("\n\n---\n\n") },
   };
-  // An untracked working-tree copy is deleted only once this output has been
-  // written (session-start.mjs calls it), so a hook that dies first leaves it in
-  // place. Non-enumerable, so it never reaches the JSON Claude Code reads.
+  // An untracked working-tree copy is consumed and deleted only once this output
+  // has been written successfully (session-start.mjs calls it), so a hook that dies
+  // first, or whose reader has gone, leaves it in place to load next time.
+  // Non-enumerable, so it never reaches the JSON Claude Code reads.
   if (load?.source === "worktree" && !echo) {
     const id = handoverId(load.meta);
-    Object.defineProperty(out, "afterOutput", { value: () => removeUntrackedCopy(top, id) });
+    const meta = load.meta;
+    Object.defineProperty(out, "afterOutput", {
+      value: () => {
+        markConsumed(root, key, meta);
+        removeUntrackedCopy(top, id);
+      },
+    });
   }
   return out;
 }
