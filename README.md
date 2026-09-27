@@ -68,6 +68,9 @@ Two windows on one repo write two handovers. The plugin never guesses between th
   `--take` moves it to this session.
 - A handover older than 7 days is listed, never loaded, so a forgotten one cannot land in
   unrelated work.
+- A handover dated more than 5 minutes in the future, or one that came through git (a file
+  committed to the repo, or a `clear-resume/*` branch on the remote), is listed with where it
+  came from, never loaded.
 
 ## Install
 
@@ -138,9 +141,11 @@ A cloud session's home folder is not kept between sessions, and a new cloud sess
 from a cached clone that is behind your last push. With `CLEAR_RESUME_WEB=1` the handover
 skill also pushes the handover to its own branch, `clear-resume/<your-branch>`, as a single
 commit holding only `.clear-resume/HANDOVER.md`. Your branch, index and files are never
-touched. The next session fetches, loads the handover once, and overwrites that branch with an
-empty commit (a cloud session may force-push but may not delete a branch). One such branch per
-branch you work on stays on the remote; delete them yourself whenever you like.
+touched. The next session fetches and lists the handover with the command that prints it, but
+does not load it on its own: anything that arrives through git could have been written by
+someone else who can push. The session-start hook never commits or pushes, so one such branch
+per branch you work on stays on the remote until the next save overwrites it; delete them
+yourself whenever you like.
 
 Set it in the repo's `.claude/settings.json`, since a cloud session does not read your local
 settings:
