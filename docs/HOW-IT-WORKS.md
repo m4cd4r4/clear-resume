@@ -75,7 +75,9 @@ listed.
 A window is its Claude Code process: the process id plus the time that process started, so a
 new process that reuses a closed window's pid is not mistaken for it. If the pid is in use but
 the process list cannot be read in time, the plugin assumes the window is still open, and its
-handover is listed rather than loaded.
+handover is listed rather than loaded. If this window's own start time cannot be read, no
+handover counts as its own: one on the current branch still loads by rule 3, and after
+compaction nothing loads.
 
 In web mode, a handover carried in git is listed as untrusted repo content and never loaded.
 See [Claude Code on the web](#claude-code-on-the-web-opt-in).
