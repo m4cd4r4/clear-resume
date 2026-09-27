@@ -23,6 +23,7 @@ import { normalisePath } from "../../packages/store/schema.mjs";
 import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
 import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
 import { ownerId } from "./owner.mjs";
+import { shortId } from "./display.mjs";
 
 export function storeRoot(env = process.env) {
   return sharedStoreRoot(env);
@@ -111,6 +112,9 @@ function asHandover(record) {
     path: record.path,
     file: basename(record.path),
     id: record.id,
+    // What the plugin prints and load.mjs accepts: the file name carries the
+    // machine name, which is often the owner's own name.
+    short: shortId(record.id),
     meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "" },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
@@ -188,9 +192,10 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   const { top, branch } = repoInfo(cwd);
   const main = mainWorktree(top);
 
-  const superseded = listWaiting(root, top)
-    .filter((h) => (owner ? h.meta.owner === owner : !h.meta.owner && (h.meta.branch ?? "") === branch))
-    .map((h) => archive(root, null, h.path, { via: "supersede", owner }));
+  const older = listWaiting(root, top).filter((h) =>
+    owner ? h.meta.owner === owner : !h.meta.owner && (h.meta.branch ?? "") === branch,
+  );
+  const superseded = older.map((h) => archive(root, null, h.path, { via: "supersede", owner }));
 
   const record = save(
     {
@@ -216,5 +221,15 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   // a piece of work and must not sit on a slow push.
   if (isSynced(root)) pushInBackground(root);
 
-  return { path: record.path, id: record.id, key: repoKey(top), top, main, superseded };
+  return {
+    path: record.path,
+    id: record.id,
+    short: shortId(record.id),
+    title: record.title,
+    key: repoKey(top),
+    top,
+    main,
+    superseded,
+    replaced: older.map((h) => ({ title: h.meta.title, short: h.short })),
+  };
 }

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listAll } from "../packages/store/store.mjs";
@@ -142,15 +142,34 @@ describe("saveHandover", () => {
 });
 
 describe("save.mjs CLI", () => {
-  it("reads the body from stdin and reports the path", () => {
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+  it("reads the body from stdin", () => {
+    execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "# Handover\n\nCost is $600 and `code` stays.\n",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",
     });
-    const path = /Saved handover: (.+)/.exec(out)[1].trim();
-    expect(readFileSync(path, "utf8")).toContain("Cost is $600 and `code` stays.");
+    const [record] = listAll(root);
+    expect(readFileSync(record.path, "utf8")).toContain("Cost is $600 and `code` stays.");
+  });
+
+  // XP-5: the record file is named <hostname>-<pid>-<time>, and the hostname is
+  // often the owner's full name on macOS ("Johns-MacBook-Pro"). save.mjs printed
+  // the whole path, home folder and all, and the skill showed it to the user - on
+  // a screenshare, in a demo. It prints the title and a short id instead.
+  it("reports the title and a short id, never the machine name or a home-folder path", () => {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+      cwd: repo,
+      input: "body",
+      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      encoding: "utf8",
+    });
+    const [record] = listAll(root);
+    expect(out).toContain('"cli test"');
+    expect(out).toMatch(/\bid [0-9a-f]{7}\b/);
+    expect(out).not.toContain(hostname());
+    expect(out).not.toContain(record.id);
+    expect(out).not.toMatch(/[\\/](Users|home)[\\/]/i);
   });
 
   it("exits 1 on empty stdin", () => {

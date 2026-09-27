@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Load one waiting handover by file name (as listed at session start) and print it.
-// With no file, lists what is waiting for this repo.
-//   node load.mjs [--peek | --take] [<file>]
+// Load one waiting handover and print it. It is named by the short id this script
+// lists, the file name the SessionStart hook lists, or its exact title. With no
+// name, lists what is waiting for this repo.
+//   node load.mjs [--peek | --take] [<id> | <file> | <title>]
 //
 //   (no flag)  print it, and archive it - unless another open window owns it
 //   --peek     print it, never archive it, whoever owns it
@@ -13,6 +14,7 @@
 import { archive, listWaiting, repoInfo, repoKey, storeRoot } from "./lib/store.mjs";
 import { ownerId, ownerOpen, parseOwner, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
 import { markConsumed } from "./lib/web.mjs";
+import { shellPath } from "./lib/display.mjs";
 
 const args = process.argv.slice(2);
 const peek = args.includes("--peek");
@@ -37,11 +39,18 @@ const waiting = listWaiting(root, key);
 
 if (!want) {
   if (!waiting.length) console.log("No handovers waiting for this repo.");
-  for (const h of waiting) console.log(`${h.file}  "${h.meta.title ?? ""}" [${h.meta.branch ?? ""}]`);
+  // The short id, not the file name: that carries the machine name.
+  for (const h of waiting) console.log(`${h.short}  "${h.meta.title ?? ""}" [${h.meta.branch ?? ""}]`);
   process.exit(0);
 }
 
-const h = waiting.find((w) => w.file === want || w.path === want);
+const byName = waiting.filter((w) => [w.short, w.file, w.path, w.id].includes(want));
+const found = byName.length ? byName : waiting.filter((w) => w.meta.title === want);
+if (found.length > 1) {
+  console.error(`clear-resume: ${found.length} waiting handovers are titled "${want}". Name one by its id; run with no argument to list them.`);
+  process.exit(1);
+}
+const [h] = found;
 if (!h) {
   console.error(`clear-resume: no waiting handover named ${want}. Run with no argument to list them.`);
   process.exit(1);
@@ -58,7 +67,7 @@ if (peek) {
     console.log(
       `clear-resume: read only. This handover belongs to another open Claude window (pid ${parseOwner(owner).pid}), ` +
         `so it stays waiting for that window's /clear. To move it to this session instead: ` +
-        `node "${process.argv[1]}" --take ${h.file}\n`,
+        `node ${shellPath(process.argv[1])} --take ${h.short}\n`,
     );
   } else {
     archive(root, key, h.path, { via: "load", owner: me });

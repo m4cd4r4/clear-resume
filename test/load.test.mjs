@@ -60,7 +60,8 @@ describe("load.mjs on a handover another open window owns", () => {
     expect(out.stdout).toContain("Ship the grid.");
     expect(record(path).status).toBe("waiting");
     expect(out.stdout).toMatch(/another open .*window/i);
-    expect(out.stdout).toContain("--take");
+    expect(out.stdout).toMatch(/--take [0-9a-f]{7}/);
+    expect(out.stdout).not.toContain(fileOf(path));
     expect(consumedLines(key)).toEqual([]);
   });
 
@@ -355,5 +356,42 @@ describe.skipIf(process.platform === "linux")("load.mjs when the process lookup 
     } finally {
       squatter.kill();
     }
+  });
+});
+
+// XP-5: the listing printed record file names, <hostname>-<pid>-<time>.json, and
+// the read-only hint the absolute script path. Both carry the owner's name.
+describe("load.mjs names a handover by a short id", () => {
+  it("lists title and short id without the machine name, and loads by that id", () => {
+    const { path } = saveHandover({ cwd: repo, title: "Listed work", body: "listed body", root, owner: ME });
+
+    const listing = load([]);
+    const short = /^([0-9a-f]{7}) {2}"Listed work"/m.exec(listing.stdout)?.[1];
+    expect(short).toBeTruthy();
+    expect(listing.stdout).not.toContain(fileOf(path));
+
+    const out = load([short]);
+    expect(out.status).toBe(0);
+    expect(out.stdout).toContain("listed body");
+    expect(record(path).status).toBe("archived");
+  });
+});
+
+describe("load.mjs by title", () => {
+  it("loads a handover by its exact title, and refuses a title two handovers share", () => {
+    git("checkout", "-q", "-b", "side");
+    const a = saveHandover({ cwd: repo, title: "Same name", body: "a", root, owner: "5" });
+    git("checkout", "-q", "main");
+    saveHandover({ cwd: repo, title: "Same name", body: "b", root, owner: "6" });
+    const one = saveHandover({ cwd: repo, title: "Only one", body: "the only body", root, owner: ME });
+
+    const dup = load(["--peek", "Same name"]);
+    expect(dup.status).toBe(1);
+    expect(dup.stderr).toMatch(/2 waiting handovers are titled "Same name"/);
+    expect(record(a.path).status).toBe("waiting");
+
+    const out = load(["Only one"]);
+    expect(out.stdout).toContain("the only body");
+    expect(record(one.path).status).toBe("archived");
   });
 });
