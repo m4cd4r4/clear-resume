@@ -52,6 +52,24 @@ Both families are pre-bundled by the renderer, so nothing is fetched at build ti
 `01 WORK`, `02 HANDOVER`, `03 CLEAR`, `04 RESUME`. Bottom left, Archivo Black 28px,
 letter-spaced, the numeral in accent and the word in muted.
 
+## The 9:16 cut
+
+Same palette, same two faces, same beats and timings; only the layout changes, so it reads
+on a phone held upright without zooming.
+
+- Canvas 1080x1920. Window 960x1300, 60px from each side, top at 282px.
+- Title bar in two rows: repo and branch, then the context meter across the full width.
+- Nothing under 28px: terminal text 30px, the handover title 34px, its headings 28px.
+- Lines wrap. A wrapped prompt hangs under its own text and a wrapped tool line under its
+  command; a path, branch, flag or id never breaks at its hyphen.
+- Beat marker above the window, top left, 40px, where a phone reads first. Ghost word at
+  the foot, 150px.
+- After `/clear` the content starts at the top of the window, next to the meter that has
+  just emptied.
+- Close card: the name at 120px, the line at 34px, the install commands at 30px. The first
+  command breaks with a shell continuation and an indented URL, so it still reads as two
+  commands.
+
 ## What this spec bans
 
 - No green-on-black terminal cliche, no traffic-light window dots, no cyan.

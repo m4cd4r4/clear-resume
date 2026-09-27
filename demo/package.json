@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "npx --yes hyperframes@0.8.62 preview",
-    "check": "npx --yes hyperframes@0.8.62 check",
+    "dev:vertical": "npx --yes hyperframes@0.8.62 preview vertical",
+    "check": "npx --yes hyperframes@0.8.62 check && npx --yes hyperframes@0.8.62 check vertical",
     "render": "npx --yes hyperframes@0.8.62 render",
+    "render:16x9": "npx --yes hyperframes@0.8.62 render --output renders/clear-resume-loop.mp4 --crf 23",
+    "render:9x16": "npx --yes hyperframes@0.8.62 render vertical --output renders/clear-resume-loop-9x16.mp4 --crf 23",
     "publish": "npx --yes hyperframes@0.8.62 publish"
   }
 }
