@@ -6,7 +6,7 @@
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, ownerId, ownerOpen, startHookClock } from "../scripts/lib/owner.mjs";
+import { findClaudeAncestor, ownerId, ownerOpen, sameOwner, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
@@ -14,6 +14,21 @@ const row = (name) => [[LIVE, "1", name]];
 // A lookup with no explicit timeout runs on the hook's budget, counted from this
 // process's start; each test is a fresh hook run.
 beforeEach(() => startHookClock());
+
+describe("sameOwner", () => {
+  it("matches one window in either form, and never another pid or another start", () => {
+    expect(sameOwner("111@1790000000000", "111@1790000000000")).toBe(true);
+    expect(sameOwner("111@1790000000000", "111@1790000000900")).toBe(true); // inside the 1s slack
+    expect(sameOwner("111", "111@1790000000000")).toBe(true); // written before the upgrade
+    expect(sameOwner("111@1790000000000", "111")).toBe(true); // this window's lookup failed
+    expect(sameOwner("111", "111")).toBe(true);
+    expect(sameOwner("111@1790000000000", "111@1790000005000")).toBe(false); // the pid was reused
+    expect(sameOwner("111@1790000000000", "222@1790000000000")).toBe(false);
+    expect(sameOwner("111", "1111")).toBe(false);
+    expect(sameOwner("", "")).toBe(false);
+    expect(sameOwner(undefined, "111")).toBe(false);
+  });
+});
 
 describe("ownerOpen", () => {
   it("is false when the pid's process has become something that is not Claude", () => {

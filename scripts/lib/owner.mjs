@@ -220,6 +220,22 @@ export function parseOwner(owner) {
   return m ? { pid: m[1], start: m[2] ? Number(m[2]) : null } : { pid: "", start: null };
 }
 
+/**
+ * Whether two owners name the same window: the same pid and, when both carry a
+ * start time, starts within a second. A bare pid matches its pid at any start.
+ * Both forms of one window meet on disk: a handover written before the upgrade,
+ * or while the lookup failed, is a bare pid, and the next save from that window
+ * is `<pid>@<start>`. Compared as strings, they never matched: the newer save left
+ * the older one waiting, and a later /clear loaded the stale one (review 3,
+ * 2026-09-27).
+ */
+export function sameOwner(a, b) {
+  const x = parseOwner(a);
+  const y = parseOwner(b);
+  if (!x.pid || x.pid !== y.pid) return false;
+  return x.start == null || y.start == null || Math.abs(x.start - y.start) <= START_SLACK_MS;
+}
+
 const withStart = (pid, row) => (startOf(row) ? `${pid}@${startOf(row)}` : String(pid));
 
 function ancestorRow(startPid, lookup) {

@@ -1,7 +1,7 @@
 // tdd-guard:allow - tests backfilled onto the loader, each rule mutation-checked.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { age, chooseHandover } from "../scripts/lib/select.mjs";
@@ -65,6 +65,23 @@ describe("chooseHandover", () => {
     it("lets a new window pick up a handover whose window has closed", () => {
       const { load } = chooseHandover([owned("orphan", "main", "999")], "main", { now: NOW, owner: "111", alive });
       expect(load.meta.title).toBe("orphan");
+    });
+
+    describe("one window, both owner forms (review 3, 2026-09-27)", () => {
+      it("loads this window's own handover written before the upgrade (a bare pid) on another branch", () => {
+        const { load } = chooseHandover([owned("pre-upgrade", "feat", "111")], "main", { now: NOW, owner: "111@1790000000000", alive, ownOnly: true });
+        expect(load.meta.title).toBe("pre-upgrade");
+      });
+
+      it("still finds this window's handover when its own start time could not be read", () => {
+        const { load } = chooseHandover([owned("mine", "feat", "111@1790000000000")], "main", { now: NOW, owner: "111", alive, ownOnly: true });
+        expect(load.meta.title).toBe("mine");
+      });
+
+      it("does not take a handover whose pid matches but whose window started at another time", () => {
+        const dead = owned("closed window's", "feat", "111@1790000000000");
+        expect(chooseHandover([dead], "main", { now: NOW, owner: "111@1790000500000", alive, ownOnly: true })).toEqual({ load: null, list: [dead] });
+      });
     });
 
     describe("after a compaction (ownOnly)", () => {
@@ -145,6 +162,28 @@ describe("SessionStart hook", () => {
     // "other" needs something else to be other than, and nothing was loaded here.
     expect(out.hookSpecificOutput.additionalContext).not.toContain("other handover");
     expect(listWaiting(root, key)).toHaveLength(2);
+  });
+
+  it("names a listed handover by short id, never by the record file (machine name) or a full home path", () => {
+    git("checkout", "-q", "-b", "a");
+    saveHandover({ cwd: repo, title: "A work", body: "body of A", root });
+    git("checkout", "-q", "-b", "b");
+    const { key } = saveHandover({ cwd: repo, title: "B work", body: "body of B", root });
+    git("checkout", "-q", "main");
+    const ctx = run({ cwd: repo }, { env }).hookSpecificOutput.additionalContext;
+    const waiting = listWaiting(root, key);
+    for (const w of waiting) {
+      expect(ctx).toContain(w.short);
+      expect(ctx).not.toContain(w.file);
+    }
+    expect(ctx).not.toContain(hostname());
+    // The printed command, run as printed, loads that handover.
+    const line = ctx.split("\n").find((l) => l.includes(waiting[0].short) && l.includes("load.mjs")).trim();
+    const shellEnv = { ...process.env, ...env, HOME: homedir() };
+    const out = process.platform === "win32"
+      ? execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(line, "utf16le").toString("base64")], { cwd: repo, env: shellEnv, encoding: "utf8" })
+      : execFileSync("/bin/sh", ["-c", line], { cwd: repo, env: shellEnv, encoding: "utf8" });
+    expect(out).toContain(`body of ${waiting[0].meta.title[0]}`);
   });
 
   it("calls a listed handover \"other\" only when one was loaded, and counts it singular", () => {

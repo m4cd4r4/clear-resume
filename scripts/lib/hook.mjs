@@ -5,15 +5,18 @@ import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { age, chooseHandover, inFuture } from "./select.mjs";
-import { ownerAlive, ownerId } from "./owner.mjs";
+import { ownerAlive, ownerId, parseOwner, sameOwner } from "./owner.mjs";
+import { shellPath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
 
 // One list row, over two lines: what it is, then the exact command that resumes it.
 // The reader chooses on the first line, so the title and branch lead and the record
-// filename never appears there - it is 48 characters of machine name, pid and
-// timestamp, which is unreadable and needlessly names the machine.
+// filename never appears anywhere in it - it is 48 characters of machine name,
+// pid and timestamp, which is unreadable and needlessly names the machine. The
+// command names the handover by its short id and the script from "$HOME", so it
+// carries no machine or user name either.
 //
 // A handover another open window owns is offered with --peek, which reads it
 // without taking it. On 2026-09-27 a session ran the plain command from this list
@@ -69,7 +72,7 @@ function describe(h, now, { othersOpen = () => false } = {}) {
   const max = untrusted ? GIT_TEXT_MAX : undefined;
   const branch = h.meta.branch ? `, branch ${clean(h.meta.branch, max)}` : "";
   const busy = othersOpen(h);
-  const how = h.file ? `node "${LOAD_SCRIPT}" ${busy ? "--peek " : ""}${h.file}` : (h.show ?? `read the file ${h.path}`);
+  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
   const whose = busy ? " (belongs to another open window)" : "";
   const when = inFuture(h.meta.created, now) ? `dated ${isoDate(h.meta.created)}, which is in the future` : `saved ${age(h.meta.created, now)}`;
   const where = (WHERE[h.source]?.(h) ?? "") + (h.fromTop ? " (run the command below from the repo's top folder)" : "");
@@ -206,10 +209,22 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   let me;
   const whoAmI = () => (me ??= ownerId(env));
   const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
+  // Choosing needs this window's start time only to tell its own handover from a
+  // closed window's that held the same pid. When no waiting handover carries
+  // CLAUDE_PID with a start time, the bare pid matches exactly the same ones, and
+  // the process read (0.5-0.9s on Windows) is skipped.
+  const chooser = () => {
+    const pid = cheapMe();
+    const needStart = !pid || waiting.some((h) => {
+      const o = parseOwner(h.meta.owner);
+      return o.pid === pid && o.start != null;
+    });
+    return needStart ? whoAmI() : pid;
+  };
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive, ownOnly: compact }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive: ownerAlive, ownOnly: compact }));
   if (!load && !waiting.length && !inGit.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
@@ -242,7 +257,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // "another window's" would then be a guess that could be this window's own.
     const othersOpen = (h) => {
       const mine = cheapMe();
-      return Boolean(mine) && Boolean(h.meta.owner) && h.meta.owner !== mine && ownerAlive(h.meta.owner);
+      return Boolean(mine) && Boolean(h.meta.owner) && !sameOwner(h.meta.owner, mine) && ownerAlive(h.meta.owner);
     };
     parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others

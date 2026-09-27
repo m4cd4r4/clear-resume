@@ -19,6 +19,8 @@
 //   - Dated more than FUTURE_SKEW_MS ahead of now -> list only, and it never wins.
 //     A future date read as fresh, sorted newest and printed "just now", which let
 //     a handover committed to a cloned repo beat the user's own (2026-09-27).
+import { sameOwner } from "./owner.mjs";
+
 export const FUTURE_SKEW_MS = 5 * 60_000;
 
 export function inFuture(created, now = new Date()) {
@@ -29,7 +31,7 @@ export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays =
   const ageDays = (h) => (now - new Date(h.meta.created ?? 0)) / 86_400_000;
   const fresh = waiting.filter((h) => ageDays(h) <= maxAgeDays && !inFuture(h.meta.created, now));
 
-  const mine = owner ? fresh.filter((h) => h.meta.owner === owner) : [];
+  const mine = owner ? fresh.filter((h) => sameOwner(h.meta.owner, owner)) : [];
   if (mine.length) {
     const load = mine.at(-1);
     return { load, list: waiting.filter((h) => h !== load) };

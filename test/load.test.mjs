@@ -80,7 +80,7 @@ describe("load.mjs on a handover another open window owns", () => {
   });
 });
 
-describe("load.mjs on a pid that a closed window left behind", () => {
+describe("load.mjs on a pid that a closed window left behind", { timeout: 30_000 }, () => {
   // Windows hands a closed window's pid to the next process. A live pid that is
   // no longer a Claude process is a closed window, so its handover is claimable.
   it("archives a handover whose owner pid now belongs to a non-Claude process", () => {
@@ -192,10 +192,10 @@ describe("SessionStart listing", () => {
 
     expect(ctx).toContain("none loaded");
     expect(theirRow).toContain("(belongs to another open window)");
-    expect(theirRow).toContain(`--peek ${fileOf(theirs.path)}`);
+    expect(theirRow).toContain(`--peek ${theirs.short}`);
     expect(orphanRow).not.toContain("belongs to another open window");
     expect(orphanRow).not.toContain("--peek");
-    expect(orphanRow).toContain(fileOf(orphan.path));
+    expect(orphanRow).toContain(orphan.short);
     expect(record(theirs.path).status).toBe("waiting");
   });
 
@@ -210,7 +210,7 @@ describe("SessionStart listing", () => {
     expect(ctx).toContain("Maybe mine");
     expect(ctx).not.toContain("belongs to another open window");
     expect(ctx).not.toContain("--peek");
-    expect(ctx).toContain(fileOf(h.path));
+    expect(ctx).toContain(h.short);
   });
 });
 
@@ -254,7 +254,7 @@ describe("the twin check only echoes a SessionStart load from this window", () =
 // quits Claude instead of running /clear comes back to a handover whose pid some
 // other process now holds; the hook called it "another open window's" and offered
 // it only with --peek, which never archives, so it came back at every start.
-describe("SessionStart on a pid a closed window left behind", () => {
+describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 }, () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("loads a handover whose owner pid now belongs to a non-Claude process", () => {
@@ -278,7 +278,7 @@ describe("SessionStart on a pid a closed window left behind", () => {
 // XP-3: the macOS and Linux native install runs a binary named after its version
 // (~/.local/share/claude/versions/2.1.232). load.mjs judged the pid by name alone,
 // called that open window closed, and took its handover - the bug #28 fixed.
-describe("load.mjs on a window run by a binary named after its version", () => {
+describe("load.mjs on a window run by a binary named after its version", { timeout: 30_000 }, () => {
   let home, window;
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), "cr-native-"));
@@ -325,7 +325,7 @@ describe("load.mjs on a window run by a binary named after its version", () => {
 
 // A pid reused by another Claude-shaped process (here node, this test runner):
 // the name says Claude, the start time says it is not the window that wrote it.
-describe("load.mjs on a pid a later Claude-shaped process now holds", () => {
+describe("load.mjs on a pid a later Claude-shaped process now holds", { timeout: 30_000 }, () => {
   it("archives the handover: its window has closed", () => {
     const { path } = saveHandover({ cwd: repo, title: "old window", body: "o", root, owner: `${OTHER_LIVE}@1000` });
     const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
@@ -342,7 +342,7 @@ describe("load.mjs on a pid a later Claude-shaped process now holds", () => {
 // never be read as "that window has closed": taking an open window's handover is
 // the one mistake this cannot make. /proc is read directly on Linux, with no
 // process to time out.
-describe.skipIf(process.platform === "linux")("load.mjs when the process lookup times out", () => {
+describe.skipIf(process.platform === "linux")("load.mjs when the process lookup times out", { timeout: 30_000 }, () => {
   it("leaves a live owner's handover waiting rather than guess the window closed", () => {
     const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
     try {

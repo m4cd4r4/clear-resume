@@ -109,6 +109,14 @@ describe("saveHandover", () => {
     expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", "111"]]);
   });
 
+  it("supersedes its own handover from before the upgrade (a bare pid), and no other window's", () => {
+    const old = saveHandover({ cwd: repo, title: "v1 stale", body: "x", now: at("10:00:00"), root, owner: "111" });
+    saveHandover({ cwd: repo, title: "other window", body: "x", now: at("10:30:00"), root, owner: "222@1790000500000" });
+    const next = saveHandover({ cwd: repo, title: "v2 current", body: "y", now: at("11:00:00"), root, owner: "111@1790000000000" });
+    expect(next.superseded).toEqual([old.path]);
+    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["other window", "v2 current"]);
+  });
+
   it("keeps another branch's handover waiting", () => {
     saveHandover({ cwd: repo, title: "main work", body: "x", now: at("10:00:00"), root });
     execFileSync("git", ["checkout", "-q", "-b", "feat"], { cwd: repo });

@@ -46,10 +46,15 @@ export function tildePath(p, home = homedir()) {
   return String(p);
 }
 
-/** A path for a command line: "~/..." where a shell expands it, quoted otherwise. */
+/**
+ * A path for a command line: "$HOME/..." under the home folder, the full path
+ * quoted otherwise. "$HOME" inside double quotes expands in Git Bash, PowerShell
+ * and sh alike; "~" does not expand in a PowerShell 5.1 native-command argument.
+ * A path holding anything a shell would read inside double quotes stays full.
+ */
 export function shellPath(p, home = homedir()) {
   const t = tildePath(p, home);
   if (!t.startsWith("~/")) return `"${p}"`;
   const rest = t.slice(2);
-  return /^[\w./@+-]+$/.test(rest) ? t : `~/"${rest}"`;
+  return /^[\w./@+ -]+$/.test(rest) ? `"$HOME/${rest}"` : `"${p}"`;
 }

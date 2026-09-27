@@ -22,7 +22,7 @@ import {
 import { normalisePath } from "../../packages/store/schema.mjs";
 import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
 import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
-import { ownerId } from "./owner.mjs";
+import { ownerId, sameOwner } from "./owner.mjs";
 import { shortId } from "./display.mjs";
 
 export function storeRoot(env = process.env) {
@@ -193,7 +193,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   const main = mainWorktree(top);
 
   const older = listWaiting(root, top).filter((h) =>
-    owner ? h.meta.owner === owner : !h.meta.owner && (h.meta.branch ?? "") === branch,
+    owner ? sameOwner(h.meta.owner, owner) : !h.meta.owner && (h.meta.branch ?? "") === branch,
   );
   const superseded = older.map((h) => archive(root, null, h.path, { via: "supersede", owner }));
 
