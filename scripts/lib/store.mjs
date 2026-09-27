@@ -113,6 +113,9 @@ function asHandover(record) {
     id: record.id,
     meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "" },
     body: record.body,
+    // What archived it, if anything. The twin check needs it to tell its own
+    // load from one made by load.mjs or by another window.
+    archivedBy: record.archivedBy ?? null,
   };
 }
 
@@ -147,11 +150,17 @@ export function listWaiting(root = storeRoot(), repoOrKey = "") {
  * Mark a handover loaded. The record stays where it is and flips to archived, so
  * nothing is renamed across directories and the extension keeps its history.
  * `key` is ignored; it is still accepted because the hooks pass it.
+ *
+ * `by` says who archived it: `via` is "hook", "load" or "supersede", and `owner`
+ * is the archiving window. It is stamped on the record as `archivedBy`, because a
+ * handover that vanished with no trace of what took it cost a long diagnosis
+ * (2026-09-27).
  */
-export function archive(root, key, path) {
+export function archive(root, key, path, by) {
   const record = listAll(root).find((r) => r.path === path || r.id === path);
   if (!record) return path;
-  archiveRecord(record.id, { root });
+  const archivedBy = by?.via ? { owner: String(by.owner ?? ""), pid: String(process.pid), via: by.via } : undefined;
+  archiveRecord(record.id, { root, by: archivedBy });
   return record.path;
 }
 
@@ -181,7 +190,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
 
   const superseded = listWaiting(root, top)
     .filter((h) => (owner ? h.meta.owner === owner : !h.meta.owner && (h.meta.branch ?? "") === branch))
-    .map((h) => archive(root, null, h.path));
+    .map((h) => archive(root, null, h.path, { via: "supersede", owner }));
 
   const record = save(
     {

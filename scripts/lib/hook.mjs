@@ -14,14 +14,20 @@ const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mj
 // The reader chooses on the first line, so the title and branch lead and the record
 // filename never appears there - it is 48 characters of machine name, pid and
 // timestamp, which is unreadable and needlessly names the machine.
-function describe(h, now) {
+//
+// A handover another open window owns is offered with --peek, which reads it
+// without taking it. On 2026-09-27 a session ran the plain command from this list
+// just to read such a handover for the user, and that took it from its own window.
+function describe(h, now, { othersOpen = () => false } = {}) {
   const branch = h.meta.branch ? `, branch ${h.meta.branch}` : "";
+  const busy = othersOpen(h);
   const how = h.file
-    ? `node "${LOAD_SCRIPT}" ${h.file}`
+    ? `node "${LOAD_SCRIPT}" ${busy ? "--peek " : ""}${h.file}`
     : h.ref
       ? `git show ${h.ref}:${REPO_FILE}`
       : `read ${REPO_FILE}`;
-  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}\n    ${how}`;
+  const whose = busy ? " (belongs to another open window)" : "";
+  return `- "${h.meta.title ?? h.file}"${branch}, saved ${age(h.meta.created, now)}${whose}\n    ${how}`;
 }
 
 // The user sees systemMessage and nothing else, so a list they are asked to choose
@@ -87,11 +93,19 @@ const TWIN_WINDOW_MS = 15_000;
  * Returns null unless the consume log was written inside the window AND the
  * record it names is still in the store, so a pruned or hand-deleted record
  * degrades to the old listing behaviour rather than to a crash.
+ *
+ * Only a load by this hook in this window counts. load.mjs and other windows
+ * write the same consume log, and echoing their load made this window skip its
+ * own handover (review of #28). The owners are compared only when both are
+ * known: `me` is whatever is known without walking the process table.
  */
-function recentlyLoaded(root, key, now, env) {
+function recentlyLoaded(root, key, now, env, me) {
   const withinMs = Number(env.CLEAR_RESUME_TWIN_WINDOW_MS) || TWIN_WINDOW_MS;
   const recent = lastConsumed(root, key, { now, withinMs });
-  return recent ? findById(root, recent.id) : null;
+  const h = recent ? findById(root, recent.id) : null;
+  if (h?.archivedBy?.via !== "hook") return null;
+  if (h.archivedBy.owner && me && h.archivedBy.owner !== me) return null;
+  return h;
 }
 
 export function run(input, { env = process.env, now = new Date() } = {}) {
@@ -122,17 +136,27 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   // is not, chooseHandover would hand the twin a DIFFERENT handover - the
   // lone-handover rule fires as soon as the first one is taken - quietly burning
   // a second piece of work on a session that already has one.
-  const echo = recentlyLoaded(root, key, now, env);
+  //
+  // This window's owner id, looked up at most once and only when choosing needs
+  // it: without CLAUDE_PID it means walking the process table, a couple of
+  // seconds against a 10s hook budget. Everything else settles for `cheapMe()`,
+  // which never walks.
+  let me;
+  const whoAmI = () => (me ??= ownerId(env));
+  const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
+  const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? ownerId(env) : "", alive: ownerAlive }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive }));
   if (!load && !waiting.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
 
   if (load) {
-    if (!echo && load.path) archive(root, key, load.path);
+    // The owner is already known whenever any waiting handover has one. For an
+    // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
+    if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: cheapMe() });
     if (!echo) markConsumed(root, key, load.meta);
     if (!echo && repoHandovers(top).some((h) => handoverId(h.meta) === handoverId(load.meta))) removeWorktreeCopy(top);
     if (!echo) for (const h of inGit) if (handoverId(h.meta) === handoverId(load.meta)) retireHandoverRef(top, h.ref);
@@ -151,7 +175,14 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     const lead = load
       ? `clear-resume: ${plural(list.length, "other handover")} also waiting for this repo, not loaded:`
       : `clear-resume: ${plural(list.length, "handover")} waiting for this repo, none loaded. Give the user the titles and ask which one:`;
-    parts.push(`${lead}\n${list.map((h) => describe(h, now)).join("\n")}`);
+    // Never walks: on the echo path nothing has looked the owner up, and a walk
+    // here would land on top of the pull. An unknown owner labels nothing, since
+    // "another window's" would then be a guess that could be this window's own.
+    const othersOpen = (h) => {
+      const mine = cheapMe();
+      return Boolean(mine) && Boolean(h.meta.owner) && h.meta.owner !== mine && ownerAlive(h.meta.owner);
+    };
+    parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others
     // exist, or they cannot ask for one. This only appears when there are some.
     shown = load

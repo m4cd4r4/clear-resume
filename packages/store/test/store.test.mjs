@@ -40,6 +40,17 @@ describe("mutations", () => {
     expect(listAll(root)[0].status).toBe("archived");
   });
 
+  // A handover that left the waiting list with no trace of what took it cost a
+  // long diagnosis (2026-09-27). The stamp has to outlive the next rewrite.
+  it("archiving records who archived it, and a later write keeps that", () => {
+    const { id } = save(BASE, { root });
+    const by = { owner: "30180", pid: "4242", via: "load" };
+    expect(archiveRecord(id, { root, by }).archivedBy).toEqual(by);
+    setPinned(id, true, { root });
+    expect(read(id, root).archivedBy).toEqual(by);
+    expect(listAll(root)[0].archivedBy).toEqual(by);
+  });
+
   it("pinning survives a reread and is reversible", () => {
     const { id } = save(BASE, { root });
     expect(setPinned(id, true, { root }).pinned).toBe(true);

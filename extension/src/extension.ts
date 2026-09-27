@@ -120,7 +120,8 @@ async function resume(record: StoredHandover, root: string): Promise<void> {
     // Nothing was resumed, so the record stays waiting.
     return;
   }
-  pushed(root, () => archiveRecord(record.id, { root }));
+  // The extension host is not a Claude window, so there is no owner to record.
+  pushed(root, () => archiveRecord(record.id, { root, by: { owner: "", pid: String(process.pid), via: "extension" } }));
 }
 
 /**
