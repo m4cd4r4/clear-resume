@@ -269,6 +269,41 @@ npx vitest run
 Web mode was tested live on Claude Code on the web on 2026-09-19: saved in one cloud session,
 loaded in the next.
 
+### Developing this plugin
+
+Claude Code does not run this repo directly. Installing the plugin copies it into
+`~/.claude/plugins/cache/clear-resume/clear-resume/<version>/`, and that copy - not this
+checkout - is what a session actually loads. Merging a fix here changes nothing about it until
+someone updates the install:
+
+```bash
+git pull --ff-only                                 # 1. bring the repo up to date
+claude plugin marketplace update clear-resume       # 2. re-read this repo's plugin.json
+claude plugin update clear-resume@clear-resume      # 3. copy the new version into the cache
+```
+
+Skipping steps 2-3 is exactly how a merged fix sits unused: it happened three times between
+2026-09-20 and 2026-09-27.
+
+**In the primary checkout, a `git pull` on `main` now does steps 2-3 for you.**
+`.githooks/post-merge` and `.githooks/post-rewrite` (covering both a fast-forward/merge pull
+and a `--rebase` one) run the two `claude plugin` commands automatically, but only when the
+branch is `main`, the checkout is the primary one (never a linked worktree), and the pull
+actually touched a plugin path (`scripts/`, `packages/`, `hooks/`, `skills/`,
+`.claude-plugin/`). It never fails the pull: on skip or on error it prints one line saying
+what happened and exits 0 regardless. The decision logic lives in
+`scripts/lib/auto-update-hook.mjs` and is covered by `test/auto-update.test.mjs` and
+`test/auto-update-hook.test.mjs`.
+
+The hook is opt-in per checkout, since `core.hooksPath` is local git config, not something a
+clone inherits. Enable it once per clone you intend to pull into:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+A clone with the hook off just means you fall back to running steps 2-3 by hand.
+
 ## Licence
 
 MIT

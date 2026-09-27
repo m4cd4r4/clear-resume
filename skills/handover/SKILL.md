@@ -72,9 +72,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/save.mjs" --title "<short title>" <<'EOF'
 EOF
 ```
 
-It saves one JSON record under `~/.clear-resume/handovers/`. Saving again on the
-same branch archives the earlier handover, so there is only ever one waiting per
-branch.
+It saves one JSON record under `~/.clear-resume/handovers/`. Saving again archives only this
+window's own earlier handover, never another window's - since #27 the record is kept per
+window (owner), not per branch. Two windows on the same branch each keep their own waiting
+handover.
 
 With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also commits
 `.clear-resume/HANDOVER.md` on the current branch and pushes it, so the next cloud
