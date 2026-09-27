@@ -188,10 +188,18 @@ describe("SessionStart after compaction", () => {
     expect(out.hookSpecificOutput.additionalContext).toMatch(/just compacted.*re-check git status/);
   });
 
-  it("injects a waiting handover after the note", () => {
-    saveHandover({ cwd: repo, title: "t", body: "handover body", root });
-    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root } }).hookSpecificOutput.additionalContext;
+  it("injects this window's own waiting handover after the note", () => {
+    saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner: "4242" });
+    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
     expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
+  });
+
+  it("lists, never loads, a handover this window did not write", () => {
+    saveHandover({ cwd: repo, title: "someone else's", body: "not this window's body", root, owner: "" });
+    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
+    expect(ctx).toMatch(/just compacted/);
+    expect(ctx).toContain("someone else's");
+    expect(ctx).not.toContain("not this window's body");
   });
 
   it("adds no note on a normal startup", () => {
