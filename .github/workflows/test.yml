@@ -1,0 +1,26 @@
+name: test
+
+# The plugin has only ever been run by hand on Windows. This runs the suite on the three
+# systems its users are on, so a macOS or Linux break shows up before a stranger hits it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # The sync tests commit with the global identity.
+      - run: git config --global user.name "ci" && git config --global user.email "ci@example.invalid"
+      - run: npm ci
+      - run: npx vitest run
