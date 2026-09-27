@@ -19,7 +19,7 @@
 //   - Dated more than FUTURE_SKEW_MS ahead of now -> list only, and it never wins.
 //     A future date read as fresh, sorted newest and printed "just now", which let
 //     a handover committed to a cloned repo beat the user's own (2026-09-27).
-import { sameOwner } from "./owner.mjs";
+import { isOwnHandover } from "./owner.mjs";
 
 export const FUTURE_SKEW_MS = 5 * 60_000;
 
@@ -27,11 +27,15 @@ export function inFuture(created, now = new Date()) {
   return new Date(created) - now > FUTURE_SKEW_MS;
 }
 
-export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false } = {}) {
-  const ageDays = (h) => (now - new Date(h.meta.created ?? 0)) / 86_400_000;
-  const fresh = waiting.filter((h) => ageDays(h) <= maxAgeDays && !inFuture(h.meta.created, now));
+/** Whether a handover is in play: no older than maxAgeDays, and not dated in the future. */
+export function isFresh(h, now = new Date(), maxAgeDays = 7) {
+  return (now - new Date(h.meta.created ?? 0)) / 86_400_000 <= maxAgeDays && !inFuture(h.meta.created, now);
+}
 
-  const mine = owner ? fresh.filter((h) => sameOwner(h.meta.owner, owner)) : [];
+export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
+  const fresh = waiting.filter((h) => isFresh(h, now, maxAgeDays));
+
+  const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, h.meta.created, { toEpoch })) : [];
   if (mine.length) {
     const load = mine.at(-1);
     return { load, list: waiting.filter((h) => h !== load) };

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
-import { age, chooseHandover, inFuture } from "./select.mjs";
+import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
 import { ownerAlive, ownerId, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
@@ -210,15 +210,12 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const whoAmI = () => (me ??= ownerId(env));
   const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
   // Choosing needs this window's start time only to tell its own handover from a
-  // closed window's that held the same pid. When no waiting handover carries
-  // CLAUDE_PID with a start time, the bare pid matches exactly the same ones, and
-  // the process read (0.5-0.9s on Windows) is skipped.
+  // closed window's that held the same pid. When no handover in play carries
+  // CLAUDE_PID, the bare pid is this window's owner of none of them, the answer the
+  // lookup would give, and the process read (0.5-0.9s on Windows) is skipped.
   const chooser = () => {
     const pid = cheapMe();
-    const needStart = !pid || waiting.some((h) => {
-      const o = parseOwner(h.meta.owner);
-      return o.pid === pid && o.start != null;
-    });
+    const needStart = !pid || waiting.some((h) => isFresh(h, now, maxAgeDays) && parseOwner(h.meta.owner).pid === pid);
     return needStart ? whoAmI() : pid;
   };
   const echo = recentlyLoaded(root, key, now, env, cheapMe());

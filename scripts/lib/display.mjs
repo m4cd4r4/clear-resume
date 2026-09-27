@@ -46,15 +46,38 @@ export function tildePath(p, home = homedir()) {
   return String(p);
 }
 
+// After "$HOME/": letters and digits in any script, and punctuation no shell reads
+// inside double quotes. Out: $ ` " ' ; [ ] \ and the curly quotes PowerShell
+// treats as quotes.
+const PLAIN_REST = /^[\p{L}\p{M}\p{N}._@+ ,=/-]+$/u;
+// Git Bash (MSYS) turns a /c/... argument back into a Windows path only when it
+// holds none of these; a home folder named "Pat O'Brien" reached node as
+// /c/Users/Pat O'Brien/... and failed (review 4, 2026-09-27).
+const MSYS_STOPS = /['`;[\]]/;
+
+const sameFolder = (a, b) => {
+  const fold = process.platform === "win32" || process.platform === "darwin" ? (s) => s.toLowerCase() : (s) => s;
+  return fold(slashes(longForm(a))) === fold(slashes(longForm(b)));
+};
+
+// Whether "$HOME" in a printed command names `home` in every shell Claude may run
+// it in. PowerShell's $HOME is the profile folder; Git Bash's and sh's is the HOME
+// variable, which can point somewhere else.
+function homeExpands(home, env, platform) {
+  if (platform === "win32") return !MSYS_STOPS.test(longForm(home)) && (!env.HOME || sameFolder(env.HOME, home));
+  return Boolean(env.HOME) && sameFolder(env.HOME, home);
+}
+
 /**
- * A path for a command line: "$HOME/..." under the home folder, the full path
- * quoted otherwise. "$HOME" inside double quotes expands in Git Bash, PowerShell
- * and sh alike; "~" does not expand in a PowerShell 5.1 native-command argument.
- * A path holding anything a shell would read inside double quotes stays full.
+ * A path for a command line: "$HOME/..." under the home folder, so the command
+ * carries no user name, or the full path otherwise. "$HOME" in double quotes
+ * expands in Git Bash, PowerShell and sh alike; "~" does not expand in a
+ * PowerShell 5.1 native-command argument. A full path holding $, ` or " is
+ * single-quoted, which is literal in all three.
  */
-export function shellPath(p, home = homedir()) {
+export function shellPath(p, home = homedir(), { env = process.env, platform = process.platform } = {}) {
   const t = tildePath(p, home);
-  if (!t.startsWith("~/")) return `"${p}"`;
-  const rest = t.slice(2);
-  return /^[\w./@+ -]+$/.test(rest) ? `"$HOME/${rest}"` : `"${p}"`;
+  if (t.startsWith("~/") && PLAIN_REST.test(t.slice(2)) && homeExpands(home, env, platform)) return `"$HOME/${t.slice(2)}"`;
+  const full = String(p);
+  return /[$`"]/.test(full) && !full.includes("'") ? `'${full}'` : `"${full}"`;
 }

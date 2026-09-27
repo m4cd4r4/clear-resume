@@ -6,7 +6,7 @@
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, ownerId, ownerOpen, sameOwner, startHookClock } from "../scripts/lib/owner.mjs";
+import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
@@ -27,6 +27,36 @@ describe("sameOwner", () => {
     expect(sameOwner("111", "1111")).toBe(false);
     expect(sameOwner("", "")).toBe(false);
     expect(sameOwner(undefined, "111")).toBe(false);
+  });
+});
+
+describe("isOwnHandover", () => {
+  const START = Date.parse("2026-09-27T10:00:00Z");
+  const me = `111@${START}`;
+  const plain = { toEpoch: (s) => s };
+  it("matches this window in either form, and nothing it cannot prove is its own", () => {
+    expect(isOwnHandover(me, `111@${START + 500}`, "2026-09-27T10:05:00Z", plain)).toBe(true);
+    expect(isOwnHandover(me, `111@${START + 60_000}`, "2026-09-27T10:05:00Z", plain)).toBe(false); // another window, same pid
+    expect(isOwnHandover(me, "111", "2026-09-27T10:05:00Z", plain)).toBe(true); // saved before the upgrade, after this window started
+    expect(isOwnHandover("111", "111", "2026-09-27T10:05:00Z", plain)).toBe(true); // both bare: the old rule
+    expect(isOwnHandover(me, "222", "2026-09-27T10:05:00Z", plain)).toBe(false);
+    expect(isOwnHandover("", "", "2026-09-27T10:05:00Z", plain)).toBe(false);
+  });
+
+  it("never claims a bare handover saved before this window started: a closed window's, whose pid it was given", () => {
+    expect(isOwnHandover(me, "111", "2026-09-25T10:00:00Z", plain)).toBe(false);
+    expect(isOwnHandover(me, "111", undefined, plain)).toBe(false);
+  });
+
+  it("claims no handover with a start time while its own start could not be read", () => {
+    expect(isOwnHandover("111", `111@${START}`, "2026-09-27T10:05:00Z", plain)).toBe(false);
+  });
+
+  it("reads this platform's start times as dates, and back", () => {
+    const at = Date.now() - 5000;
+    expect(Math.abs(startEpochMs(startFromEpochMs(at)) - at)).toBeLessThan(100);
+    expect(startEpochMs(START, "win32")).toBe(START);
+    expect(startEpochMs(null)).toBeNull();
   });
 });
 

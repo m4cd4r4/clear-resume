@@ -67,20 +67,28 @@ describe("chooseHandover", () => {
       expect(load.meta.title).toBe("orphan");
     });
 
-    describe("one window, both owner forms (review 3, 2026-09-27)", () => {
-      it("loads this window's own handover written before the upgrade (a bare pid) on another branch", () => {
-        const { load } = chooseHandover([owned("pre-upgrade", "feat", "111")], "main", { now: NOW, owner: "111@1790000000000", alive, ownOnly: true });
+    describe("one window, both owner forms (reviews 3 and 4, 2026-09-27)", () => {
+      const START = Date.parse("2026-09-19T10:00:00Z"); // handovers default to 11:00 the same day
+      const opts = (owner) => ({ now: NOW, owner, alive, ownOnly: true, toEpoch: (s) => s });
+
+      it("loads this window's own handover saved before the upgrade (a bare pid), on another branch", () => {
+        const { load } = chooseHandover([owned("pre-upgrade", "feat", "111")], "main", opts(`111@${START}`));
         expect(load.meta.title).toBe("pre-upgrade");
       });
 
-      it("still finds this window's handover when its own start time could not be read", () => {
-        const { load } = chooseHandover([owned("mine", "feat", "111@1790000000000")], "main", { now: NOW, owner: "111", alive, ownOnly: true });
-        expect(load.meta.title).toBe("mine");
+      it("does not take a bare handover saved before this window started, whose pid it was given", () => {
+        const closed = owned("closed window's", "feat", "111", "2026-09-19T09:00:00Z");
+        expect(chooseHandover([closed], "main", opts(`111@${START}`))).toEqual({ load: null, list: [closed] });
       });
 
       it("does not take a handover whose pid matches but whose window started at another time", () => {
-        const dead = owned("closed window's", "feat", "111@1790000000000");
-        expect(chooseHandover([dead], "main", { now: NOW, owner: "111@1790000500000", alive, ownOnly: true })).toEqual({ load: null, list: [dead] });
+        const dead = owned("closed window's", "feat", `111@${START - 3_600_000}`);
+        expect(chooseHandover([dead], "main", opts(`111@${START}`))).toEqual({ load: null, list: [dead] });
+      });
+
+      it("claims no handover with a start time while this window's own could not be read", () => {
+        const withStart = owned("which window?", "feat", `111@${START}`);
+        expect(chooseHandover([withStart], "main", opts("111"))).toEqual({ load: null, list: [withStart] });
       });
     });
 
@@ -179,11 +187,19 @@ describe("SessionStart hook", () => {
     expect(ctx).not.toContain(hostname());
     // The printed command, run as printed, loads that handover.
     const line = ctx.split("\n").find((l) => l.includes(waiting[0].short) && l.includes("load.mjs")).trim();
+    // In each shell Claude may run it in, with --peek so it stays waiting; then as printed.
     const shellEnv = { ...process.env, ...env, HOME: homedir() };
-    const out = process.platform === "win32"
-      ? execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(line, "utf16le").toString("base64")], { cwd: repo, env: shellEnv, encoding: "utf8" })
-      : execFileSync("/bin/sh", ["-c", line], { cwd: repo, env: shellEnv, encoding: "utf8" });
-    expect(out).toContain(`body of ${waiting[0].meta.title[0]}`);
+    const runs = [];
+    if (process.platform === "win32") {
+      const bash = join(execFileSync("git", ["--exec-path"], { encoding: "utf8" }).trim(), "..", "..", "..", "bin", "bash.exe");
+      runs.push((cmd) => execFileSync(bash, ["-c", cmd], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+      runs.push((cmd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(cmd, "utf16le").toString("base64")], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+    } else {
+      runs.push((cmd) => execFileSync("/bin/sh", ["-c", cmd], { cwd: repo, env: shellEnv, encoding: "utf8" }));
+    }
+    const body = `body of ${waiting[0].meta.title[0]}`;
+    for (const runIt of runs) expect(runIt(line.replace(` ${waiting[0].short}`, ` --peek ${waiting[0].short}`))).toContain(body);
+    expect(runs[0](line)).toContain(body);
   });
 
   it("calls a listed handover \"other\" only when one was loaded, and counts it singular", () => {

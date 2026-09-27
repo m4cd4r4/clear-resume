@@ -221,19 +221,64 @@ export function parseOwner(owner) {
 }
 
 /**
- * Whether two owners name the same window: the same pid and, when both carry a
- * start time, starts within a second. A bare pid matches its pid at any start.
- * Both forms of one window meet on disk: a handover written before the upgrade,
- * or while the lookup failed, is a bare pid, and the next save from that window
- * is `<pid>@<start>`. Compared as strings, they never matched: the newer save left
- * the older one waiting, and a later /clear loaded the stale one (review 3,
- * 2026-09-27).
+ * Whether two owners could name the same window: the same pid and, when both
+ * carry a start time, starts within a second. A bare pid matches its pid at any
+ * start. Used where erring towards "same" only withholds the "another open
+ * window" label; deciding a handover is this window's own is `isOwnHandover`.
  */
 export function sameOwner(a, b) {
   const x = parseOwner(a);
   const y = parseOwner(b);
   if (!x.pid || x.pid !== y.pid) return false;
   return x.start == null || y.start == null || Math.abs(x.start - y.start) <= START_SLACK_MS;
+}
+
+function uptimeMs() {
+  try {
+    return Number(readFileSync("/proc/uptime", "utf8").split(" ")[0]) * 1000;
+  } catch {
+    return null;
+  }
+}
+
+/** A recorded start time as ms since 1970. Linux records ms since boot, so the boot time (as of now) is added. */
+export function startEpochMs(start, platform = process.platform) {
+  if (start == null) return null;
+  if (platform !== "linux") return start;
+  const up = uptimeMs();
+  return up == null ? null : Date.now() - up + start;
+}
+
+/** The inverse of `startEpochMs`: a date as a start time in this platform's form. */
+export function startFromEpochMs(ms, platform = process.platform) {
+  if (platform !== "linux") return ms;
+  const up = uptimeMs();
+  return up == null ? null : Math.round(ms - (Date.now() - up));
+}
+
+/**
+ * Whether a waiting handover (`owner`, saved at `created`) is this window's own,
+ * `me` being this window's owner id.
+ *
+ * - Both carry a start time: the same pid, starts within a second.
+ * - Both are bare pids: the same pid, the rule before start times were recorded.
+ * - The handover is bare and this window's start is known: the same pid, and saved
+ *   no earlier than this window started. A window cannot save before it exists; a
+ *   handover saved earlier is a closed window's whose pid this one was given
+ *   (review 4, 2026-09-27). A bare handover saved later is this window's own from
+ *   before the upgrade, or from a save whose lookup failed.
+ * - This window's start could not be read and the handover has one: not provably
+ *   its own, so no. It is then judged like any other window's.
+ */
+export function isOwnHandover(me, owner, created, { toEpoch = startEpochMs } = {}) {
+  const m = parseOwner(me);
+  const o = parseOwner(owner);
+  if (!m.pid || m.pid !== o.pid) return false;
+  if (m.start != null && o.start != null) return Math.abs(m.start - o.start) <= START_SLACK_MS;
+  if (m.start == null) return o.start == null;
+  const began = toEpoch(m.start);
+  const at = Date.parse(created ?? "");
+  return began != null && Number.isFinite(at) && at >= began - START_SLACK_MS;
 }
 
 const withStart = (pid, row) => (startOf(row) ? `${pid}@${startOf(row)}` : String(pid));

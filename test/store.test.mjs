@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listAll } from "../packages/store/store.mjs";
 import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../scripts/lib/store.mjs";
+import { startFromEpochMs } from "../scripts/lib/owner.mjs";
 
 let root, repo;
 
@@ -109,12 +110,22 @@ describe("saveHandover", () => {
     expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", "111"]]);
   });
 
-  it("supersedes its own handover from before the upgrade (a bare pid), and no other window's", () => {
-    const old = saveHandover({ cwd: repo, title: "v1 stale", body: "x", now: at("10:00:00"), root, owner: "111" });
-    saveHandover({ cwd: repo, title: "other window", body: "x", now: at("10:30:00"), root, owner: "222@1790000500000" });
-    const next = saveHandover({ cwd: repo, title: "v2 current", body: "y", now: at("11:00:00"), root, owner: "111@1790000000000" });
+  // The start is written in this platform's form (ms since boot on Linux), so the
+  // times are real ones a few seconds ago, not fixed dates.
+  it("supersedes its own handover saved before the upgrade (a bare pid)", () => {
+    const began = Date.now() - 4000;
+    const old = saveHandover({ cwd: repo, title: "v1 stale", body: "x", now: new Date(began + 1000), root, owner: "111" });
+    const next = saveHandover({ cwd: repo, title: "v2 current", body: "y", now: new Date(began + 2000), root, owner: `111@${startFromEpochMs(began)}` });
     expect(next.superseded).toEqual([old.path]);
-    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["other window", "v2 current"]);
+    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["v2 current"]);
+  });
+
+  it("keeps a bare handover saved before this window started: a closed window's, whose pid it was given", () => {
+    const began = Date.now() - 4000;
+    saveHandover({ cwd: repo, title: "closed window's", body: "x", now: new Date(began - 60_000), root, owner: "111" });
+    const next = saveHandover({ cwd: repo, title: "this window's", body: "y", now: new Date(began + 2000), root, owner: `111@${startFromEpochMs(began)}` });
+    expect(next.superseded).toEqual([]);
+    expect(listWaiting(root, next.key).map((h) => h.meta.title)).toEqual(["closed window's", "this window's"]);
   });
 
   it("keeps another branch's handover waiting", () => {

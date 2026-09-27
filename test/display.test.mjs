@@ -15,38 +15,65 @@ describe("tildePath and shellPath", () => {
       expect(tildePath(home, home)).toBe("~");
       expect(tildePath("/elsewhere/repo", home)).toBe("/elsewhere/repo");
       expect(tildePath(`${home}-other/repo`, home)).toBe(`${home}-other/repo`);
-      expect(shellPath(join(home, "plugins", "load.mjs"), home)).toBe('"$HOME/plugins/load.mjs"');
-      expect(shellPath(join(home, "My Plugins", "load.mjs"), home)).toBe('"$HOME/My Plugins/load.mjs"');
-      expect(shellPath("/opt/x/load.mjs", home)).toBe('"/opt/x/load.mjs"');
-      // A "$" or a backtick would be read inside the double quotes: keep the full path.
-      expect(shellPath(join(home, "a$b", "load.mjs"), home)).toBe(`"${join(home, "a$b", "load.mjs")}"`);
+      const E = { env: { HOME: home } };
+      expect(shellPath(join(home, "plugins", "load.mjs"), home, E)).toBe('"$HOME/plugins/load.mjs"');
+      expect(shellPath(join(home, "My Plugins", "load.mjs"), home, E)).toBe('"$HOME/My Plugins/load.mjs"');
+      expect(shellPath(join(home, "Configuración", "load.mjs"), home, E)).toBe('"$HOME/Configuración/load.mjs"');
+      expect(shellPath("/opt/x/load.mjs", home, E)).toBe('"/opt/x/load.mjs"');
+      // "$" or "`" would be read inside double quotes: the full path, single-quoted.
+      expect(shellPath(join(home, "a$b", "load.mjs"), home, E)).toBe(`'${join(home, "a$b", "load.mjs")}'`);
       expect(shortId("work-harder-4242-2026-09-27T00-00-00-000Z")).toMatch(/^[0-9a-f]{7}$/);
     } finally {
       rmSync(home, { recursive: true, force: true });
     }
   });
 
+  it("prints the full path wherever \"$HOME\" would not reach the file (review 4, 2026-09-27)", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "cr-home-"));
+    try {
+      const file = (home) => join(home, "x", "load.mjs");
+      // Git Bash leaves /c/Users/Pat O'Brien/... unconverted, and node cannot find it.
+      const obrien = join(tmp, "Pat O'Brien");
+      expect(shellPath(file(obrien), obrien, { env: { HOME: obrien }, platform: "win32" })).toBe(`"${file(obrien)}"`);
+      expect(shellPath(file(obrien), obrien, { env: { HOME: obrien }, platform: "linux" })).toBe('"$HOME/x/load.mjs"');
+      // Git Bash's $HOME is the HOME variable; PowerShell's is the profile folder.
+      expect(shellPath(file(tmp), tmp, { env: { HOME: join(tmp, "elsewhere") }, platform: "win32" })).toBe(`"${file(tmp)}"`);
+      expect(shellPath(file(tmp), tmp, { env: {}, platform: "win32" })).toBe('"$HOME/x/load.mjs"');
+      // sh with HOME unset expands "$HOME/..." to "/...".
+      expect(shellPath(file(tmp), tmp, { env: {}, platform: "linux" })).toBe(`"${file(tmp)}"`);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   // "~" is not expanded in a PowerShell 5.1 native-command argument, so a printed
   // `node ~/...` failed there (review 3, 2026-09-27). Claude's Bash tool sets HOME.
   it("prints a command path that reaches node intact in Git Bash, PowerShell and bash", () => {
-    const target = join(homedir(), ".cr-shellpath-probe", "My Plugins", "load.mjs");
-    const cmd = `node -p "process.argv[1]" ${shellPath(target)}`;
     const env = { ...process.env, HOME: homedir() };
     const shells = [];
     if (process.platform === "win32") {
       const bash = join(execFileSync("git", ["--exec-path"], { encoding: "utf8" }).trim(), "..", "..", "..", "bin", "bash.exe");
-      if (existsSync(bash)) shells.push(["git bash", () => execFileSync(bash, ["-c", cmd], { env, encoding: "utf8" })]);
-      const encoded = Buffer.from(cmd, "utf16le").toString("base64");
-      shells.push(["powershell", () => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], { env, encoding: "utf8" })]);
+      if (existsSync(bash)) shells.push(["git bash", (cmd) => execFileSync(bash, ["-c", cmd], { env, encoding: "utf8" })]);
+      const encoded = (cmd) => Buffer.from(cmd, "utf16le").toString("base64");
+      shells.push(["powershell", (cmd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded(cmd)], { env, encoding: "utf8" })]);
     } else {
-      shells.push(["bash", () => execFileSync("bash", ["-c", cmd], { env, encoding: "utf8" })]);
-      shells.push(["sh", () => execFileSync("sh", ["-c", cmd], { env, encoding: "utf8" })]);
+      shells.push(["bash", (cmd) => execFileSync("bash", ["-c", cmd], { env, encoding: "utf8" })]);
+      shells.push(["sh", (cmd) => execFileSync("sh", ["-c", cmd], { env, encoding: "utf8" })]);
     }
     const norm = (s) => {
       const t = s.trim().replace(/\\/g, "/");
       return process.platform === "win32" ? t.toLowerCase() : t;
     };
-    expect(shellPath(target)).toMatch(/^"\$HOME\//);
-    for (const [name, runIt] of shells) expect([name, norm(runIt())]).toEqual([name, norm(target)]);
+    const probe = join(homedir(), ".cr-shellpath-probe");
+    const targets = [
+      [join(probe, "My Plugins", "load.mjs"), /^"\$HOME\//],
+      [join(probe, "Configuración", "load.mjs"), /^"\$HOME\//],
+      [join(probe, "a$b", "load.mjs"), /^'/],
+    ];
+    for (const [target, form] of targets) {
+      const printed = shellPath(target, homedir(), { env });
+      expect(printed).toMatch(form);
+      for (const [name, runIt] of shells) expect([name, target, norm(runIt(`node -p "process.argv[1]" ${printed}`))]).toEqual([name, target, norm(target)]);
+    }
   }, 30_000);
 });
