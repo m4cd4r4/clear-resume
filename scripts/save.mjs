@@ -45,7 +45,7 @@ try {
   if (webEnabled() || process.argv.includes("--commit")) {
     const { top, branch } = repoInfo(startedIn);
     const r = commitHandover(top, path, branch);
-    if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can load it.`);
+    if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can list it.`);
     else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
   if (found) {

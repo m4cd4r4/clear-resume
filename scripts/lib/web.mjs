@@ -1,9 +1,11 @@
 // Web fallback (opt-in, CLEAR_RESUME_WEB=1): a cloud session's home folder does not
 // survive between sessions, so the handover also travels in git. Save pushes it
-// to its own ref (clear-resume/<branch>). The next session fetches, finds it on
-// any remote branch, loads it once and empties the ref.
+// to its own ref (clear-resume/<branch>). The next session fetches and lists what it
+// finds there with the command that reads it, but never loads it on its own: anything
+// carried in git may have been written by someone else. The SessionStart hook never
+// writes to the repo or its remote; the only git write it makes is that fetch.
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { handoverMarkdown, parseHandover } from "./store.mjs";
 
@@ -56,22 +58,6 @@ export function commitHandover(top, savedPath, branch) {
     result.error = String(err.stderr || err.message).trim().split("\n").at(-1);
   }
   return result;
-}
-
-// Once loaded, empty the handover ref so the next session, whose home folder is
-// gone, does not load it again. It is overwritten with an empty commit, not
-// deleted: a cloud session's credentials get HTTP 403 on a ref delete but may
-// force-push (seen live 2026-09-19). Failure only means it may load again.
-export function retireHandoverRef(top, remoteRef) {
-  if (!remoteRef?.startsWith("origin/" + REF_PREFIX)) return false;
-  try {
-    const empty = gitIn(top, ["mktree"], "");
-    const commit = gitIn(top, ["commit-tree", empty, "-m", "chore: clear-resume handover loaded"]);
-    execFileSync("git", ["push", "-q", "--force", "origin", `${commit}:refs/heads/${remoteRef.slice("origin/".length)}`], { cwd: top, stdio: "ignore", timeout: 5000 });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function consumedFile(root, key) {
@@ -130,40 +116,151 @@ export function remoteBranches(top) {
 // One bounded fetch refreshes them; offline or slow, the hook carries on unfetched.
 export function refreshRemotes(top) {
   try {
-    execFileSync("git", ["fetch", "--quiet", "--prune", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
+    // No auto gc or maintenance: a session start is not the time to repack a repo.
+    execFileSync("git", ["-c", "gc.auto=0", "-c", "maintenance.auto=false", "fetch", "--quiet", "--prune", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
     return true;
   } catch {
     return false;
   }
 }
 
-// Handovers carried in git: the working tree copy, plus (in web mode) the copy on
-// each remote-tracking branch, after one refresh of those branches.
-export function repoHandovers(top, { scanRemotes = false } = {}) {
-  const found = [];
-  const local = join(top, REPO_FILE);
-  if (existsSync(local)) found.push({ source: "worktree", ref: null, ...parseHandover(readFileSync(local, "utf8")) });
+const SAFE_REF = /^[A-Za-z0-9._\/-]+$/;
 
-  if (scanRemotes) {
-    refreshRemotes(top);
-    for (const ref of remoteBranches(top)) {
-      const text = tryGit(top, ["show", `${ref}:${REPO_FILE}`]);
-      if (text) found.push({ source: "remote", ref, ...parseHandover(text) });
+const REPO_DIR = REPO_FILE.split("/")[0];
+
+// A folder path that is safe inside double quotes in bash, PowerShell and cmd: no
+// $, backtick, quote, %, ! or ^, which one of those shells would act on. A repo can
+// be cloned into a folder named `$(anything)`, and the user runs the listed line.
+const SAFE_TOP = /^[\p{L}\p{M}\p{N} ._\/\\:~+,@()=-]+$/u;
+const gitAt = (top) => (SAFE_TOP.test(top) ? `git -C "${top}"` : "git");
+
+/**
+ * The blob a revision names, and the text in it, or null.
+ *
+ * A listed handover is printed with `git cat-file -p <blob>`, never `git show
+ * <ref>:<path>`. Git Bash, the shell Claude Code runs commands in on Windows,
+ * rewrites any `a/b:c/d` argument as a path list, so that form failed there as
+ * printed. A blob id is hex, which every shell passes through untouched. It also
+ * pins the content: the command prints the handover that was listed, even if the
+ * ref is pushed again after the user read the title (security review 2, 2026-09-27).
+ */
+function blobAt(top, rev) {
+  const blob = tryGit(top, ["rev-parse", "--verify", "--quiet", rev]);
+  if (!blob || !/^[0-9a-f]{40,64}$/.test(blob)) return null;
+  // `cat-file blob` refuses anything that is not a blob, such as a tree at that path.
+  const text = tryGit(top, ["cat-file", "blob", blob]);
+  return text ? { blob, text } : null;
+}
+const showBlob = (top, blob) => `${gitAt(top)} cat-file -p ${blob}`;
+
+/**
+ * What the index holds at or under .clear-resume, ignoring letter case (on a
+ * case-insensitive disk a committed `.Clear-Resume/handover.md` is REPO_FILE).
+ * `null` when git cannot say, which callers read as tracked. Otherwise `any` says
+ * whether there is an entry at all (a file, a symlink, a submodule), and `file` is
+ * the index spelling of a regular file that is REPO_FILE up to letter case, or null.
+ *
+ * `file` is the only path from git that is ever printed in a command, and only
+ * because it is REPO_FILE up to case: a committed `.clear-resume/HANDOVER.md/$(x)`
+ * is an entry too, and printed it would run `x` (security review, 2026-09-27).
+ */
+function indexEntries(top) {
+  const out = tryGit(top, ["ls-files", "-s", "-z", "--", `:(icase)${REPO_DIR}`]);
+  if (out === null) return null;
+  const entries = out
+    .split("\0")
+    .filter(Boolean)
+    .map((line) => ({ mode: line.split(" ")[0], path: line.slice(line.indexOf("\t") + 1) }));
+  const file = entries.find((e) => (e.mode === "100644" || e.mode === "100755") && e.path.toLowerCase() === REPO_FILE.toLowerCase());
+  return { any: entries.length > 0, file: file?.path ?? null };
+}
+
+/**
+ * The working-tree copy's path when it is positively the user's own untracked
+ * file, else null. An empty `ls-files` is not proof: git also says nothing for a
+ * path inside a submodule or behind a symlinked folder, and both let a cloned repo
+ * put a file there that was loaded and then deleted (security review, 2026-09-27).
+ * So every one of these must hold, and anything unexpected fails closed:
+ *   - .clear-resume is a real folder and HANDOVER.md a regular file, neither a link;
+ *   - the file's real path is REPO_FILE under the repo's real path;
+ *   - the index has nothing at or under .clear-resume;
+ *   - git lists exactly REPO_FILE as untracked there;
+ *   - .clear-resume belongs to this repo, not to a nested one.
+ */
+function untrackedCopy(top) {
+  try {
+    const dir = join(top, REPO_DIR);
+    const local = join(top, REPO_FILE);
+    const d = lstatSync(dir);
+    const f = lstatSync(local);
+    if (!d.isDirectory() || d.isSymbolicLink() || !f.isFile() || f.isSymbolicLink()) return null;
+    if (realpathSync.native(local) !== join(realpathSync.native(top), REPO_FILE)) return null;
+    const index = indexEntries(top);
+    if (!index || index.any) return null;
+    const others = tryGit(top, ["ls-files", "--others", "-z", "--", REPO_FILE]);
+    if (others === null || others.split("\0").filter(Boolean).join("\n") !== REPO_FILE) return null;
+    const outer = tryGit(top, ["rev-parse", "--show-toplevel"]);
+    if (!outer || tryGit(dir, ["rev-parse", "--show-toplevel"]) !== outer) return null;
+    return local;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Handovers carried in git, in web mode only; outside it this returns nothing and
+ * reads nothing.
+ *
+ *   source "worktree"  - an UNTRACKED working-tree copy. Only this one may be loaded.
+ *   source "committed" - a copy in the index. Read from the index, never from the
+ *                        working tree, and only ever listed: a repo cloned from
+ *                        anyone can carry one (2026-09-27).
+ *   source "remote"    - a copy on a remote-tracking branch, after one fetch. Listed.
+ *
+ * Each listed one carries `show`, the command that prints it when the user asks.
+ */
+export function repoHandovers(top, { web = false } = {}) {
+  if (!web) return [];
+  const found = [];
+  // An unsafe folder name is left out of every command, which then has to be run
+  // from the repo's top folder; `fromTop` has the listing say so.
+  const fromTop = !SAFE_TOP.test(top);
+  if (existsSync(join(top, REPO_DIR))) {
+    const local = untrackedCopy(top);
+    const index = local ? null : indexEntries(top);
+    if (local) {
+      found.push({ source: "worktree", ref: null, show: null, path: local, ...parseHandover(readFileSync(local, "utf8")) });
+    } else if (index?.file) {
+      const got = blobAt(top, `:${index.file}`);
+      if (got) found.push({ source: "committed", ref: null, show: showBlob(top, got.blob), fromTop, ...parseHandover(got.text) });
     }
+  }
+
+  // Only the refs save pushes to, and only names that are safe to print inside a
+  // command: a remote can name a branch `$(anything)`, and the user runs this line.
+  refreshRemotes(top);
+  for (const ref of remoteBranches(top).filter((r) => r.split("/")[1] === REF_PREFIX.slice(0, -1) && SAFE_REF.test(r))) {
+    const got = blobAt(top, `${ref}:${REPO_FILE}`);
+    if (got) found.push({ source: "remote", ref, show: showBlob(top, got.blob), fromTop, ...parseHandover(got.text) });
   }
 
   const seen = new Set();
   return found.filter((h) => h.meta.created && !seen.has(handoverId(h.meta)) && seen.add(handoverId(h.meta)));
 }
 
-// Remove the working-tree copy once loaded. A committed copy is deleted in its own
-// commit (not pushed: it rides along with the next push); an uncommitted one is unlinked.
-export function removeWorktreeCopy(top) {
-  const local = join(top, REPO_FILE);
-  if (!existsSync(local)) return;
-  if (tryGit(top, ["ls-files", "--error-unmatch", REPO_FILE]) !== null) {
-    tryGit(top, ["rm", "-q", "--", REPO_FILE]);
-    tryGit(top, ["commit", "-q", "-m", "chore: clear-resume handover loaded", "--", REPO_FILE]);
+/**
+ * Delete the working-tree copy once its load has been written out, and only if it
+ * is still the same handover and still positively untracked (untrackedCopy). A tracked copy is left alone:
+ * removing it would change the user's repo. Never touches the index or a branch.
+ */
+export function removeUntrackedCopy(top, id) {
+  try {
+    const local = untrackedCopy(top);
+    if (!local) return false;
+    if (handoverId(parseHandover(readFileSync(local, "utf8")).meta) !== id) return false;
+    unlinkSync(local);
+    return true;
+  } catch {
+    return false;
   }
-  if (existsSync(local)) unlinkSync(local);
 }
