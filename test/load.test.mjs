@@ -266,6 +266,18 @@ describe("the twin check only echoes a SessionStart load from this window", () =
   });
 });
 
+// The hook judged "another open window" against the test process's env instead of
+// the env it was run with, so on macOS, where a low pid such as 333 is often a real
+// process, window A's own handover was listed instead of loaded (CI, #34).
+describe("SessionStart judges owners against the env it runs with", () => {
+  it("loads this window's own bare handover on the branch, its CLAUDE_PID being a live process", () => {
+    const pid = String(process.pid); // alive on every platform, unlike a made-up pid
+    saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: pid });
+    const out = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pid } });
+    expect(out.systemMessage).toMatch(/loaded handover "A's own"/);
+  });
+});
+
 // XP-2: the SessionStart hook judged an owner by `kill(pid, 0)` alone. A user who
 // quits Claude instead of running /clear comes back to a handover whose pid some
 // other process now holds; the hook called it "another open window's" and offered

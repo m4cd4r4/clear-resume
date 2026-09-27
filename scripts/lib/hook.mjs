@@ -5,7 +5,7 @@ import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
-import { ownerAlive, ownerId, parseOwner, sameOwner } from "./owner.mjs";
+import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
 
@@ -209,6 +209,9 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   let me;
   const whoAmI = () => (me ??= ownerId(env));
   const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
+  // Whether another open window owns a handover, judged against this run's env
+  // (its CLAUDE_PID is "this window"), on the hook's time budget.
+  const alive = (owner) => ownerOpen(owner, { env });
   // Choosing needs this window's start time only to tell its own handover from a
   // closed window's that held the same pid. When no handover in play carries
   // CLAUDE_PID, the bare pid is this window's owner of none of them, the answer the
@@ -221,7 +224,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive: ownerAlive, ownOnly: compact }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive, ownOnly: compact }));
   if (!load && !waiting.length && !inGit.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
@@ -254,7 +257,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // "another window's" would then be a guess that could be this window's own.
     const othersOpen = (h) => {
       const mine = cheapMe();
-      return Boolean(mine) && Boolean(h.meta.owner) && !sameOwner(h.meta.owner, mine) && ownerAlive(h.meta.owner);
+      return Boolean(mine) && Boolean(h.meta.owner) && !sameOwner(h.meta.owner, mine) && alive(h.meta.owner);
     };
     parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others

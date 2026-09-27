@@ -356,15 +356,6 @@ export function ownerOpen(owner, { table, readTable, env = process.env, timeout 
   return isClaudeHost(row[2]);
 }
 
-/**
- * The SessionStart hook's check: `ownerOpen` on the hook's time budget, so a
- * reused pid is told apart there too, not only in load.mjs. It reads the process
- * table (once per run, shared with `ownerId`) only while the budget lasts.
- */
-export function ownerAlive(owner) {
-  return ownerOpen(owner);
-}
-
 /** Whether a process with this pid exists. */
 export function pidAlive(pid) {
   const n = Number(pid);
