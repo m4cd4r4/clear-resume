@@ -69,7 +69,8 @@ minutes in the future.
 The handover that loads is marked archived, so it loads once. Any others still waiting are
 listed under it. A handover that is not fresh is only ever listed.
 
-After compaction, the session loads only its own window's handover. <!-- XP-4 -->
+After compaction, the session loads only its own window's handover. Anything else waiting is
+listed.
 
 A window is its Claude Code process: the process id plus the time that process started, so a
 new process that reuses a closed window's pid is not mistaken for it. If the pid is in use but
@@ -271,7 +272,7 @@ The plugin runs locally. What it reads:
   the session started in. In auto mode, also the end of it, to measure the context size.
 
 What it writes: each handover record holds its title and body, the repo path, branch, machine
-name, and the owning window's process id and start time. The save and load scripts name a
+name, and the owning window's process id and start time. What the plugin prints names a
 handover by its title and a short id, with paths relative to `~`.
 
 A loaded handover becomes part of the session's context, like any text Claude reads.
