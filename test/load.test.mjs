@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
+import { ownerId, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 
@@ -170,11 +170,13 @@ describe("archivedBy records what archived a handover", () => {
   });
 
   it("a re-save stamps the handover it supersedes via supersede", () => {
-    const first = saveHandover({ cwd: repo, title: "one", body: "x", root, owner: ME, now: new Date("2026-09-27T00:00:00Z") });
-    saveHandover({ cwd: repo, title: "two", body: "y", root, owner: ME, now: new Date("2026-09-27T00:01:00Z") });
+    const began = Date.now() - 4000;
+    const owner = `${ME}@${startFromEpochMs(began)}`;
+    const first = saveHandover({ cwd: repo, title: "one", body: "x", root, owner, now: new Date(began + 1000) });
+    saveHandover({ cwd: repo, title: "two", body: "y", root, owner, now: new Date(began + 2000) });
 
     expect(record(first.path).status).toBe("archived");
-    expect(record(first.path).archivedBy).toEqual({ owner: ME, pid: String(process.pid), via: "supersede" });
+    expect(record(first.path).archivedBy).toEqual({ owner, pid: String(process.pid), via: "supersede" });
   });
 });
 
@@ -234,19 +236,33 @@ describe("the twin check only echoes a SessionStart load from this window", () =
     expect(out.hookSpecificOutput.additionalContext).not.toContain("B body");
   });
 
-  it("a SessionStart load in window B is not echoed into window A's /clear", () => {
-    const B = "444";
-    git("checkout", "-q", "-b", "side");
-    saveHandover({ cwd: repo, title: "B's own", body: "B body", root, owner: B });
-    git("checkout", "-q", "main");
-    saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: A });
+  // B's handover is on another branch, so it loads only as B's own, which takes
+  // B's real start time: two live processes stand in for the windows.
+  it("a SessionStart load in window B is not echoed into window A's /clear", { timeout: 30_000 }, () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const windowB = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
+    try {
+      const [pidA, pidB] = [String(process.pid), String(windowB.pid)];
+      startHookClock();
+      const [ownerA, ownerB] = [ownerId({ CLAUDE_PID: pidA }), ownerId({ CLAUDE_PID: pidB })];
+      expect(ownerB).toMatch(/@/);
+      git("checkout", "-q", "-b", "side");
+      saveHandover({ cwd: repo, title: "B's own", body: "B body", root, owner: ownerB });
+      git("checkout", "-q", "main");
+      saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: ownerA });
 
-    const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: B } });
-    expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
-    const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: A } });
+      startHookClock();
+      const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidB } });
+      expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
+      startHookClock();
+      const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidA } });
 
-    expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
-    expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
+      expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
+      expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
+    } finally {
+      windowB.kill();
+      vi.unstubAllEnvs();
+    }
   });
 });
 

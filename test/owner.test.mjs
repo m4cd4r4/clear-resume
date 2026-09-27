@@ -38,8 +38,8 @@ describe("isOwnHandover", () => {
     expect(isOwnHandover(me, `111@${START + 500}`, "2026-09-27T10:05:00Z", plain)).toBe(true);
     expect(isOwnHandover(me, `111@${START + 60_000}`, "2026-09-27T10:05:00Z", plain)).toBe(false); // another window, same pid
     expect(isOwnHandover(me, "111", "2026-09-27T10:05:00Z", plain)).toBe(true); // saved before the upgrade, after this window started
-    expect(isOwnHandover("111", "111", "2026-09-27T10:05:00Z", plain)).toBe(true); // both bare: the old rule
     expect(isOwnHandover(me, "222", "2026-09-27T10:05:00Z", plain)).toBe(false);
+    expect(isOwnHandover(me, `111@${START}`, "2026-09-27T10:05:00Z", { ...plain, machine: "SOME-OTHER-LAPTOP" })).toBe(false); // synced from another machine
     expect(isOwnHandover("", "", "2026-09-27T10:05:00Z", plain)).toBe(false);
   });
 
@@ -48,8 +48,13 @@ describe("isOwnHandover", () => {
     expect(isOwnHandover(me, "111", undefined, plain)).toBe(false);
   });
 
-  it("claims no handover with a start time while its own start could not be read", () => {
+  it("claims nothing while its own start could not be read: a bare pid matches a closed window's too", () => {
     expect(isOwnHandover("111", `111@${START}`, "2026-09-27T10:05:00Z", plain)).toBe(false);
+    expect(isOwnHandover("111", "111", "2026-09-27T10:05:00Z", plain)).toBe(false);
+  });
+
+  it("never claims a handover saved before this window started, even with a matching start (Linux, an earlier boot)", () => {
+    expect(isOwnHandover(me, `111@${START + 300}`, "2026-09-26T10:00:00Z", plain)).toBe(false);
   });
 
   it("reads this platform's start times as dates, and back", () => {

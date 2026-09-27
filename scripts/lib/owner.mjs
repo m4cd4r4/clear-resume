@@ -28,6 +28,7 @@
 // live window's handover.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { hostname } from "node:os";
 
 // A hook waits at most this long for the process table and then carries on not
 // knowing...
@@ -257,28 +258,34 @@ export function startFromEpochMs(ms, platform = process.platform) {
 }
 
 /**
- * Whether a waiting handover (`owner`, saved at `created`) is this window's own,
- * `me` being this window's owner id.
+ * Whether a waiting handover (`owner`, saved at `created` on `machine`) is provably
+ * this window's own, `me` being this window's owner id. Every condition must hold:
  *
- * - Both carry a start time: the same pid, starts within a second.
- * - Both are bare pids: the same pid, the rule before start times were recorded.
- * - The handover is bare and this window's start is known: the same pid, and saved
- *   no earlier than this window started. A window cannot save before it exists; a
- *   handover saved earlier is a closed window's whose pid this one was given
- *   (review 4, 2026-09-27). A bare handover saved later is this window's own from
- *   before the upgrade, or from a save whose lookup failed.
- * - This window's start could not be read and the handover has one: not provably
- *   its own, so no. It is then judged like any other window's.
+ * - This window's start time is known. Without it a bare pid matches a closed
+ *   window's handover as well as its own (reviews 4 and 5, 2026-09-27).
+ * - The same pid.
+ * - Saved no earlier than this window started: a window cannot save before it
+ *   exists. That rules out a closed window whose pid this one was given, and on
+ *   Linux a handover from an earlier boot, whose since-boot start can repeat.
+ * - When the handover has a start time too, the starts are within a second. A bare
+ *   one saved since this window started is its own, from before the upgrade or
+ *   from a save whose lookup failed.
+ * - Written on this machine, when the record says. A synced store holds other
+ *   machines' handovers, and pids repeat across machines.
+ *
+ * Anything unproven is not this window's; it is then judged like any other
+ * window's handover, and a handover of this window's own on the current branch
+ * still loads by the branch rule.
  */
-export function isOwnHandover(me, owner, created, { toEpoch = startEpochMs } = {}) {
+export function isOwnHandover(me, owner, created, { toEpoch = startEpochMs, machine } = {}) {
   const m = parseOwner(me);
   const o = parseOwner(owner);
-  if (!m.pid || m.pid !== o.pid) return false;
-  if (m.start != null && o.start != null) return Math.abs(m.start - o.start) <= START_SLACK_MS;
-  if (m.start == null) return o.start == null;
+  if (!m.pid || m.start == null || m.pid !== o.pid) return false;
+  if (machine && machine !== hostname()) return false;
   const began = toEpoch(m.start);
   const at = Date.parse(created ?? "");
-  return began != null && Number.isFinite(at) && at >= began - START_SLACK_MS;
+  if (began == null || !Number.isFinite(at) || at < began - START_SLACK_MS) return false;
+  return o.start == null || Math.abs(m.start - o.start) <= START_SLACK_MS;
 }
 
 const withStart = (pid, row) => (startOf(row) ? `${pid}@${startOf(row)}` : String(pid));

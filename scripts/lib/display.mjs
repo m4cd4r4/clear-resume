@@ -61,11 +61,14 @@ const sameFolder = (a, b) => {
 };
 
 // Whether "$HOME" in a printed command names `home` in every shell Claude may run
-// it in. PowerShell's $HOME is the profile folder; Git Bash's and sh's is the HOME
-// variable, which can point somewhere else.
+// it in. PowerShell's $HOME is the profile folder. Git Bash's is the HOME variable,
+// or with HOME unset HOMEDRIVE+HOMEPATH, which on a domain account can be a
+// network drive (review 5, 2026-09-27). sh's is HOME.
 function homeExpands(home, env, platform) {
-  if (platform === "win32") return !MSYS_STOPS.test(longForm(home)) && (!env.HOME || sameFolder(env.HOME, home));
-  return Boolean(env.HOME) && sameFolder(env.HOME, home);
+  if (platform !== "win32") return Boolean(env.HOME) && sameFolder(env.HOME, home);
+  if (MSYS_STOPS.test(longForm(home))) return false;
+  const gitBashHome = env.HOME || (env.HOMEDRIVE && env.HOMEPATH ? `${env.HOMEDRIVE}${env.HOMEPATH}` : "");
+  return !gitBashHome || sameFolder(gitBashHome, home);
 }
 
 /**
@@ -73,7 +76,9 @@ function homeExpands(home, env, platform) {
  * carries no user name, or the full path otherwise. "$HOME" in double quotes
  * expands in Git Bash, PowerShell and sh alike; "~" does not expand in a
  * PowerShell 5.1 native-command argument. A full path holding $, ` or " is
- * single-quoted, which is literal in all three.
+ * single-quoted, which is literal in all three. Known gap: a full path holding an
+ * apostrophe as well as $ or `, or a curly quote, has no quoting all three shells
+ * read the same way; it needs a home folder named like that.
  */
 export function shellPath(p, home = homedir(), { env = process.env, platform = process.platform } = {}) {
   const t = tildePath(p, home);

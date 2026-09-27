@@ -42,18 +42,22 @@ describe("chooseHandover", () => {
 
   describe("window ownership (2026-09-25: one window's /clear took another's handover)", () => {
     const owned = (title, branch, owner, created) => ({ ...h(title, branch, created), meta: { ...h(title, branch, created).meta, owner } });
-    const alive = (pid) => pid === "111" || pid === "222";
+    const alive = (owner) => ["111", "222"].includes(String(owner).split("@")[0]);
+    // This window: pid 111, started at 10:00; handovers default to 11:00 that day.
+    const ME_START = Date.parse("2026-09-19T10:00:00Z");
+    const ME = `111@${ME_START}`;
+    const toEpoch = (s) => s;
 
     it("loads this window's own handover even when another window's is newer on the branch", () => {
-      const mine = owned("mine", "main", "111", "2026-09-19T10:00:00Z");
+      const mine = owned("mine", "main", ME, "2026-09-19T10:30:00Z");
       const theirs = owned("theirs", "main", "222", "2026-09-19T11:00:00Z");
-      const { load, list } = chooseHandover([mine, theirs], "main", { now: NOW, owner: "111", alive });
+      const { load, list } = chooseHandover([mine, theirs], "main", { now: NOW, owner: ME, alive, toEpoch });
       expect(load.meta.title).toBe("mine");
       expect(list.map((x) => x.meta.title)).toEqual(["theirs"]);
     });
 
     it("loads this window's own handover on another branch", () => {
-      const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive });
+      const { load } = chooseHandover([owned("mine", "feat", ME)], "main", { now: NOW, owner: ME, alive, toEpoch });
       expect(load.meta.title).toBe("mine");
     });
 
@@ -86,15 +90,16 @@ describe("chooseHandover", () => {
         expect(chooseHandover([dead], "main", opts(`111@${START}`))).toEqual({ load: null, list: [dead] });
       });
 
-      it("claims no handover with a start time while this window's own could not be read", () => {
+      it("claims nothing while this window's own start could not be read", () => {
         const withStart = owned("which window?", "feat", `111@${START}`);
-        expect(chooseHandover([withStart], "main", opts("111"))).toEqual({ load: null, list: [withStart] });
+        const bare = owned("a bare one", "feat", "111");
+        expect(chooseHandover([withStart, bare], "main", opts("111"))).toEqual({ load: null, list: [withStart, bare] });
       });
     });
 
     describe("after a compaction (ownOnly)", () => {
       it("still loads this window's own handover, on any branch", () => {
-        const { load } = chooseHandover([owned("mine", "feat", "111")], "main", { now: NOW, owner: "111", alive, ownOnly: true });
+        const { load } = chooseHandover([owned("mine", "feat", ME)], "main", { now: NOW, owner: ME, alive, ownOnly: true, toEpoch });
         expect(load.meta.title).toBe("mine");
       });
 

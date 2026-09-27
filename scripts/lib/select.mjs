@@ -35,7 +35,7 @@ export function isFresh(h, now = new Date(), maxAgeDays = 7) {
 export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
   const fresh = waiting.filter((h) => isFresh(h, now, maxAgeDays));
 
-  const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, h.meta.created, { toEpoch })) : [];
+  const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, h.meta.created, { toEpoch, machine: h.meta.machine })) : [];
   if (mine.length) {
     const load = mine.at(-1);
     return { load, list: waiting.filter((h) => h !== load) };

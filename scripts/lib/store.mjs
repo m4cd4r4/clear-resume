@@ -115,7 +115,7 @@ function asHandover(record) {
     // What the plugin prints and load.mjs accepts: the file name carries the
     // machine name, which is often the owner's own name.
     short: shortId(record.id),
-    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "" },
+    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "", machine: record.machine || "" },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
     // load from one made by load.mjs or by another window.
@@ -193,7 +193,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   const main = mainWorktree(top);
 
   const older = listWaiting(root, top).filter((h) =>
-    owner ? isOwnHandover(owner, h.meta.owner, h.meta.created) : !h.meta.owner && (h.meta.branch ?? "") === branch,
+    owner ? isOwnHandover(owner, h.meta.owner, h.meta.created, { machine: h.meta.machine }) : !h.meta.owner && (h.meta.branch ?? "") === branch,
   );
   const superseded = older.map((h) => archive(root, null, h.path, { via: "supersede", owner }));
 

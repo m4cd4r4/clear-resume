@@ -104,10 +104,20 @@ describe("saveHandover", () => {
   });
 
   it("supersedes its own window's handover, and records the owner", () => {
+    const began = Date.now() - 4000;
+    const owner = `111@${startFromEpochMs(began)}`;
+    const first = saveHandover({ cwd: repo, title: "one", body: "x", now: new Date(began + 1000), root, owner });
+    const second = saveHandover({ cwd: repo, title: "two", body: "y", now: new Date(began + 2000), root, owner });
+    expect(second.superseded).toEqual([first.path]);
+    expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", owner]]);
+  });
+
+  it("supersedes nothing while the saving window's start is unknown", () => {
     const first = saveHandover({ cwd: repo, title: "one", body: "x", now: at("10:00:00"), root, owner: "111" });
     const second = saveHandover({ cwd: repo, title: "two", body: "y", now: at("11:00:00"), root, owner: "111" });
-    expect(second.superseded).toEqual([first.path]);
-    expect(listWaiting(root, second.key).map((h) => [h.meta.title, h.meta.owner])).toEqual([["two", "111"]]);
+    expect(second.superseded).toEqual([]);
+    expect(listWaiting(root, second.key).map((h) => h.meta.title)).toEqual(["one", "two"]);
+    expect(first.path).toBeTruthy();
   });
 
   // The start is written in this platform's form (ms since boot on Linux), so the

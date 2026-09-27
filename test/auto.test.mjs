@@ -3,10 +3,11 @@ import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { lastContextTokens, runMidTurn, runStop, threshold } from "../scripts/lib/nudge.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
+import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
 
 const call = (ctx, extra = {}) =>
   JSON.stringify({
@@ -188,10 +189,21 @@ describe("SessionStart after compaction", () => {
     expect(out.hookSpecificOutput.additionalContext).toMatch(/just compacted.*re-check git status/);
   });
 
-  it("injects this window's own waiting handover after the note", () => {
-    saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner: "4242" });
-    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
-    expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
+  // Proving a handover is this window's own takes the window's start time, so this
+  // one looks up the real process: this test process stands in for the window.
+  it("injects this window's own waiting handover after the note", { timeout: 30_000 }, () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    try {
+      startHookClock();
+      const owner = ownerId({ CLAUDE_PID: String(process.pid) });
+      expect(owner).toMatch(/@/);
+      saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner });
+      startHookClock();
+      const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: String(process.pid) } }).hookSpecificOutput.additionalContext;
+      expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("lists, never loads, a handover this window did not write", () => {
