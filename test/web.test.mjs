@@ -129,9 +129,14 @@ describe("load in a new cloud session", () => {
     saveInSessionOne("Earlier");
     freshSessionTwo("claude/one");
     run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    const stale = git(two, "rev-parse", "origin/clear-resume/claude/one");
     saveInSessionOne("Later", "## Next action\nShip the fetch.");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain('"Later"');
+    // The title alone passed without a fetch too; the ref has to have moved.
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Later", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
+    const pushed = git(two, "ls-remote", "origin", "refs/heads/clear-resume/claude/one").split("\t")[0];
+    expect(pushed).not.toBe(stale);
+    expect(git(two, "rev-parse", "origin/clear-resume/claude/one")).toBe(pushed);
   });
 
   it("does not scan other branches unless web mode is on", () => {
