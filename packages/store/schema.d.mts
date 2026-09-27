@@ -1,3 +1,10 @@
+/** What archived a record: the window that took it, the process, and the path it went through. */
+export interface ArchivedBy {
+  owner: string;
+  pid: string;
+  via: "hook" | "load" | "supersede" | "extension";
+}
+
 export interface Handover {
   schema: number;
   id: string;
@@ -11,6 +18,7 @@ export interface Handover {
   pid: string;
   createdAt: string;
   archivedAt?: string;
+  archivedBy?: ArchivedBy;
   deletedAt?: string;
   updatedAt: string;
   status: "waiting" | "archived" | "deleted";

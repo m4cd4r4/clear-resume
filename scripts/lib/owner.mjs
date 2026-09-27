@@ -53,6 +53,28 @@ export function ownerId(env = process.env) {
   return findClaudeAncestor();
 }
 
+// A process that can be a Claude window: the native binary, or node for an npm
+// install. Anything else holding the pid is a reuse of a closed window's pid.
+const CLAUDE_HOST = /^(claude|node)(\.exe)?$/i;
+
+/**
+ * Whether the window that owns a handover is still open, checked harder than
+ * `ownerAlive`: Windows reuses pids quickly, so the pid must still name a
+ * Claude-shaped process. Costs a process-table read, so it is for load.mjs,
+ * which has no time budget, not for the SessionStart hook.
+ *
+ * Every doubt answers "open": the cost of that mistake is a --take, the cost of
+ * the other is taking a live window's handover. A missing table (the walk failed,
+ * or CLEAR_RESUME_NO_PROCESS_WALK is set) or a pid absent from it trusts
+ * `ownerAlive`.
+ */
+export function ownerOpen(pid, { table, env = process.env } = {}) {
+  if (!ownerAlive(pid)) return false;
+  if (!table && (env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK)) return true;
+  const row = (table ?? processTable()).find(([p]) => String(p) === String(pid));
+  return row ? CLAUDE_HOST.test(row[2]) : true;
+}
+
 /** Whether the window that owns a handover is still running. */
 export function ownerAlive(pid) {
   const n = Number(pid);

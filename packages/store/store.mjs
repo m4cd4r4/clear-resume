@@ -83,9 +83,16 @@ export function update(id, patch, { root = storeRoot(), now = new Date() } = {})
   return { ...next, path: current.path };
 }
 
-/** Resume archives immediately - the first of the four clutter-control rules. */
-export function archiveRecord(id, { root = storeRoot(), now = new Date() } = {}) {
-  return update(id, { status: "archived", archivedAt: new Date(now).toISOString() }, { root, now });
+/**
+ * Resume archives immediately - the first of the four clutter-control rules.
+ *
+ * `by` ({ owner, pid, via }) is stamped as `archivedBy`, so a handover that left
+ * the waiting list says what took it.
+ */
+export function archiveRecord(id, { root = storeRoot(), now = new Date(), by } = {}) {
+  const patch = { status: "archived", archivedAt: new Date(now).toISOString() };
+  if (by) patch.archivedBy = by;
+  return update(id, patch, { root, now });
 }
 
 /** Pinned records are exempt from the stale, archive and purge timers. */

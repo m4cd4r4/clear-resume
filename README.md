@@ -63,6 +63,9 @@ Two windows on one repo write two handovers. The plugin never guesses between th
 - If none matches your branch but exactly one is waiting, that one loads. A cloud session
   starts on a fresh branch, so a mismatch there is normal.
 - Otherwise it lists them by title and branch and waits for you to say which.
+- A handover that belongs to another open window is listed with `load.mjs --peek`, which
+  reads it without taking it. Plain `load.mjs` also leaves it waiting for that window;
+  `--take` moves it to this session.
 - A handover older than 7 days is listed, never loaded, so a forgotten one cannot land in
   unrelated work.
 
