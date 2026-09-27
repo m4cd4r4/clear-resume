@@ -4,16 +4,19 @@ import { fileURLToPath } from "node:url";
 import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
-import { age, chooseHandover, inFuture } from "./select.mjs";
-import { ownerAlive, ownerId } from "./owner.mjs";
+import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
+import { ownerAlive, ownerId, parseOwner, sameOwner } from "./owner.mjs";
+import { shellPath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
 
 // One list row, over two lines: what it is, then the exact command that resumes it.
 // The reader chooses on the first line, so the title and branch lead and the record
-// filename never appears there - it is 48 characters of machine name, pid and
-// timestamp, which is unreadable and needlessly names the machine.
+// filename never appears anywhere in it - it is 48 characters of machine name,
+// pid and timestamp, which is unreadable and needlessly names the machine. The
+// command names the handover by its short id and the script from "$HOME", so it
+// carries no machine or user name either.
 //
 // A handover another open window owns is offered with --peek, which reads it
 // without taking it. On 2026-09-27 a session ran the plain command from this list
@@ -69,7 +72,7 @@ function describe(h, now, { othersOpen = () => false } = {}) {
   const max = untrusted ? GIT_TEXT_MAX : undefined;
   const branch = h.meta.branch ? `, branch ${clean(h.meta.branch, max)}` : "";
   const busy = othersOpen(h);
-  const how = h.file ? `node "${LOAD_SCRIPT}" ${busy ? "--peek " : ""}${h.file}` : (h.show ?? `read the file ${h.path}`);
+  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
   const whose = busy ? " (belongs to another open window)" : "";
   const when = inFuture(h.meta.created, now) ? `dated ${isoDate(h.meta.created)}, which is in the future` : `saved ${age(h.meta.created, now)}`;
   const where = (WHERE[h.source]?.(h) ?? "") + (h.fromTop ? " (run the command below from the repo's top folder)" : "");
@@ -145,13 +148,19 @@ const TWIN_WINDOW_MS = 15_000;
  * write the same consume log, and echoing their load made this window skip its
  * own handover (review of #28). The owners are compared only when both are
  * known: `me` is whatever is known without walking the process table.
+ *
+ * They are compared by pid alone. The first run stamps `pid@start` once it has
+ * looked its owner up, and the twin knows only the bare CLAUDE_PID, so comparing
+ * the strings refused every echo in a real window (review, 2026-09-27). Both runs
+ * sit inside the same 15 seconds, too soon for the pid to have been reused.
  */
 function recentlyLoaded(root, key, now, env, me) {
   const withinMs = Number(env.CLEAR_RESUME_TWIN_WINDOW_MS) || TWIN_WINDOW_MS;
   const recent = lastConsumed(root, key, { now, withinMs });
   const h = recent ? findById(root, recent.id) : null;
   if (h?.archivedBy?.via !== "hook") return null;
-  if (h.archivedBy.owner && me && h.archivedBy.owner !== me) return null;
+  const pidOf = (owner) => String(owner).split("@")[0];
+  if (h.archivedBy.owner && me && pidOf(h.archivedBy.owner) !== pidOf(me)) return null;
   return h;
 }
 
@@ -200,10 +209,19 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   let me;
   const whoAmI = () => (me ??= ownerId(env));
   const cheapMe = () => me ?? String(env.CLAUDE_PID ?? "").trim();
+  // Choosing needs this window's start time only to tell its own handover from a
+  // closed window's that held the same pid. When no handover in play carries
+  // CLAUDE_PID, the bare pid is this window's owner of none of them, the answer the
+  // lookup would give, and the process read (0.5-0.9s on Windows) is skipped.
+  const chooser = () => {
+    const pid = cheapMe();
+    const needStart = !pid || waiting.some((h) => isFresh(h, now, maxAgeDays) && parseOwner(h.meta.owner).pid === pid);
+    return needStart ? whoAmI() : pid;
+  };
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive, ownOnly: compact }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive: ownerAlive, ownOnly: compact }));
   if (!load && !waiting.length && !inGit.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
@@ -236,7 +254,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // "another window's" would then be a guess that could be this window's own.
     const othersOpen = (h) => {
       const mine = cheapMe();
-      return Boolean(mine) && Boolean(h.meta.owner) && h.meta.owner !== mine && ownerAlive(h.meta.owner);
+      return Boolean(mine) && Boolean(h.meta.owner) && !sameOwner(h.meta.owner, mine) && ownerAlive(h.meta.owner);
     };
     parts.push(`${lead}\n${list.map((h) => describe(h, now, { othersOpen })).join("\n")}`);
     // With a handover already loaded the user still needs telling that others

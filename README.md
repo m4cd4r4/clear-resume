@@ -96,8 +96,9 @@ claude --plugin-dir ./clear-resume
 - **Files on disk.** One small JSON file per handover under `~/.clear-resume/handovers/`,
   plain text, holding whatever the handover said. Resumed handovers are kept for 30 days and
   then removed; nothing grows without limit, but nothing is encrypted either.
-- **Two hooks per session.** SessionStart on every start, clear and compaction. In auto mode,
-  also a PostToolUse and a Stop hook, each reading the tail of the transcript file.
+- **Three hooks.** SessionStart on every start, clear and compaction. PostToolUse after every
+  tool call and Stop after every turn, auto mode or not: each starts node and exits at once
+  unless `CLEAR_RESUME_AUTO=1`, and in auto mode reads the tail of the transcript file.
 
 ## Settings
 
