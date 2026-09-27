@@ -203,7 +203,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive }));
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? whoAmI() : "", alive: ownerAlive, ownOnly: compact }));
   if (!load && !waiting.length && !inGit.length && !compact) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
