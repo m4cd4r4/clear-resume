@@ -1,316 +1,78 @@
 # clear-resume
 
-A Claude Code plugin for one habit: write a handover, clear the session, carry on in a fresh
-context. Nothing to paste and nothing to type after `/clear`.
+A Claude Code plugin: write a handover, type `/clear`, and carry on in a fresh context.
+Nothing to paste and nothing else to type.
+
+<!-- VIDEO: github user-attachments URL goes here -->
 
 ## Why
 
-A Claude Code session sends every earlier message with every new one, so a long session gets
-more expensive and less accurate as it goes. Clearing resets that, but clearing loses your
-place, so in practice nobody clears until the session is already struggling.
+A long session sends every earlier message with every new one. `/clear` resets that, but it
+also loses your place.
 
-This plugin removes the reason not to clear. You ask for a handover, Claude writes a short
-brief about the work, and the next session picks it up on its own.
+With clear-resume, Claude writes one short handover on purpose, you type `/clear`, and that
+window's fresh session picks it up. It never goes to another open window, and it can sync
+across machines over your own git remote. `/compact` and `--resume` keep the old conversation,
+whole or summarised. clear-resume drops it: the fresh session starts with the handover and
+nothing else.
 
 ## The loop
 
-1. Run `/clear-resume:handover`. Claude checks git, writes a short brief (goal, state, next
-   action, decisions, traps) and saves it to
-   `~/.clear-resume/handovers/<machine>-<pid>-<timestamp>.json`.
+1. Run `/clear-resume:handover`. Claude checks git, writes a short brief (goal, next action,
+   state, decisions, traps) and saves it. The save prints:
+
+   ```text
+   Saved handover "Cart totals rounding" (id ec04553).
+   After /clear, the next session in ~/code/shop loads it automatically.
+   ```
+
 2. Type `/clear`.
-3. The plugin's SessionStart hook puts that handover into the fresh session's context and
-   marks it archived, so it loads exactly once.
+3. The fresh session starts with the handover in its context, and you see:
 
-That is the whole thing. Step 3 needs no input from you: the hook runs on every session
-start, clear and compaction, and stays silent when there is nothing waiting.
+   ```text
+   clear-resume: loaded handover "Cart totals rounding" (saved just now).
+   ```
 
-[Watch it run](demo/renders/clear-resume-loop.mp4) - 36 seconds, no sound. How it was built
-is in [`demo/`](demo).
-
-### What a handover looks like
-
-Claude writes something like this, under 40 lines, with empty sections left out:
-
-```markdown
-# Cart totals rounding
-
-## Goal
-Make the basket total match the line items when a discount is applied.
-
-## Next action
-Run `npm test -- totals` and fix the failing case for a 3-for-2 offer.
-
-## State
-- Branch `feat/cart-totals`, last commit `a1b2c3d`, no PR yet.
-- Rounding helper written in `src/money.js`, unit tests pass.
-- The checkout summary component is not wired up yet.
-
-## Decisions already made
-Round at the line, not at the total.
-
-## Key files
-- src/money.js - the rounding helper
-```
-
-The next session is told to treat those claims as a snapshot and re-check them, because a
-branch or a file can move between sessions.
-
-### When more than one is waiting
-
-Two windows on one repo write two handovers. The plugin never guesses between them:
-
-- A handover for the branch you are on loads.
-- If none matches your branch but exactly one is waiting, that one loads. A handover found in
-  git (web mode, below) is never loaded this way, only listed.
-- Otherwise it lists them by title and branch and waits for you to say which.
-- A handover that belongs to another open window is listed with `load.mjs --peek`, which
-  reads it without taking it. Plain `load.mjs` also leaves it waiting for that window;
-  `--take` moves it to this session.
-- A handover older than 7 days is listed, never loaded, so a forgotten one cannot land in
-  unrelated work.
-- A handover dated more than 5 minutes in the future, or one that came through git (a file
-  committed to the repo, or a `clear-resume/*` branch on the remote), is listed with where it
-  came from, never loaded.
+The hook runs at every session start, clear and compaction, and stays silent when nothing is
+waiting.
 
 ## Install
 
-Node 18 or later, and git.
-
 ```bash
-claude plugin marketplace add m4cd4r4/clear-resume
+claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
 claude plugin install clear-resume@clear-resume
 ```
 
-The repo is its own marketplace, so that is the whole install. To try it for one session
-without installing anything:
+Needs Node 18 or later and git. Built and used daily on Windows 11. The test suite runs on
+Windows, macOS and Linux in CI; macOS and Linux have not been tested by hand yet.
+
+**Update.** Plugins from a third-party marketplace do not update on their own by default. Run
+both lines, then restart Claude Code:
 
 ```bash
-git clone https://github.com/m4cd4r4/clear-resume
-claude --plugin-dir ./clear-resume
+claude plugin marketplace update clear-resume
+claude plugin update clear-resume@clear-resume
 ```
 
-## What it costs you
-
-- **A turn.** Writing a handover is Claude doing work: it runs a few git commands and writes
-  30-odd lines.
-- **Files on disk.** One small JSON file per handover under `~/.clear-resume/handovers/`,
-  plain text, holding whatever the handover said. Resumed handovers are kept for 30 days and
-  then removed; nothing grows without limit, but nothing is encrypted either.
-- **Three hooks.** SessionStart on every start, clear and compaction. PostToolUse after every
-  tool call and Stop after every turn, auto mode or not: each starts node and exits at once
-  unless `CLEAR_RESUME_AUTO=1`, and in auto mode reads the tail of the transcript file.
-
-## Settings
-
-All optional, set as environment variables, for example in the `env` block of
-`~/.claude/settings.json`:
-
-| Variable | Default | What it does |
-|---|---|---|
-| `CLEAR_RESUME_AUTO` | off | `1` turns on the context-size nudge (below). |
-| `CLEAR_RESUME_NUDGE_AT` | `180000` | Context size, in tokens, that triggers the nudge. |
-| `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
-| `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
-| `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
-| `CLEAR_RESUME_SYNC` | on | `off` stops syncing entirely, both directions. |
-| `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
-
-## Auto mode (opt-in)
-
-Claude Code cannot run `/clear` from a hook, so the plugin can only get close to automatic.
-
-- **Nudge at a threshold.** Once the session's context passes `CLEAR_RESUME_NUDGE_AT`, Claude
-  is asked, once per session, to write a handover and tell you to type `/clear`. The size is
-  read from the session transcript on disk. Set the threshold well above your session-start
-  size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
-
-  It is checked in two places, because one long turn can cross the threshold and be compacted
-  without ever ending: after each tool call, where it warns and lets the turn continue, and
-  when a turn ends, where it blocks so the handover gets written first. The two share one
-  mark, so you are interrupted once per session either way.
-- **After compaction.** When Claude Code compacts the context, the plugin tells the new
-  context to re-check git and file state, and loads a waiting handover if there is one. This
-  part is always on.
-
-As a backstop, set auto-compaction to fire well before the window is full, with
-`/autocompact` or the `CLAUDE_CODE_AUTO_COMPACT_WINDOW` environment variable, for example at
-250k tokens.
-
-## Claude Code on the web (opt-in)
-
-A cloud session's home folder is not kept between sessions, and a new cloud session can start
-from a cached clone that is behind your last push. With `CLEAR_RESUME_WEB=1` the handover
-skill also pushes the handover to its own branch, `clear-resume/<your-branch>`, as a single
-commit holding only `.clear-resume/HANDOVER.md`. Your branch, index and files are never
-touched. The next session fetches and lists the handover with the command that prints it, but
-does not load it on its own: anything that arrives through git could have been written by
-someone else who can push. The session-start hook never commits or pushes, so one such branch
-per branch you work on stays on the remote until the next save overwrites it; delete them
-yourself whenever you like.
-
-Set it in the repo's `.claude/settings.json`, since a cloud session does not read your local
-settings:
-
-```json
-{ "env": { "CLEAR_RESUME_WEB": "1" } }
-```
-
-## The VS Code sidebar (optional)
-
-A separate extension in [`extension/`](extension) gives you a **Handovers** sidebar: browse
-every handover grouped into current repo, other repos and stale, pin one to keep it out of the
-timers, and resume one into a Claude Code tab with the prompt pre-filled and unsent. It reads
-and writes the same store as the plugin.
-
-The plugin covers the common path. The sidebar is for the rest: an older handover, one from
-another repo, or one you want to read before you resume it.
-
-Install it from a packaged build rather than from source:
+**Uninstall.** Your handovers stay in `~/.clear-resume` until you delete that folder.
 
 ```bash
-cd extension && npm install && node esbuild.mjs
-npx @vscode/vsce package --no-dependencies --allow-missing-repository
-code --install-extension clear-resume-*.vsix --force
+claude plugin uninstall clear-resume@clear-resume
+claude plugin marketplace remove clear-resume
 ```
 
-Do **not** launch an Extension Development Host to try it. On Windows
-`code --extensionDevelopmentPath` attaches to the running VS Code and restarts it, closing
-every window you have open.
+## Good to know
 
-## Syncing two machines (optional)
+- Each handover belongs to the window that wrote it. Another open window never loads it on its
+  own.
+- A handover older than 7 days is listed, not loaded.
+- Handovers are plain text files on your disk. The plugin sends nothing anywhere unless you
+  turn on sync or web mode. Keep secrets out of them.
 
-The store is a folder of small JSON files whose names carry the machine that wrote them, so
-two machines can never write the same path. That makes it a git repo that cannot conflict on
-creates.
-
-```bash
-node scripts/sync.mjs init git@github.com:you/your-store.git   # once per machine
-node scripts/sync.mjs                                          # a sync by hand
-```
-
-Use a **private** repo. The store holds every handover you have written: repo paths, branch
-names, whatever was in context at the time.
-
-Once it is set up, a session start pulls before deciding what to offer you, and writing a
-handover pushes in the background. Both fail soft: offline, a remote that has gone away, or a
-store that was never set up all leave the session working exactly as it did before.
-
-Deleting a handover writes a tombstone rather than removing the file, because an absent file
-is not a delete and the machine that still has the original would put it back. Tombstones are
-unlinked for real after 90 days, by whichever machine sees them expire first.
-
-### Setting up the second machine
-
-The first machine runs `init` against an empty private repo, as above. The second one already
-has a store to join, so it clones instead:
-
-```bash
-git clone git@github.com:you/your-store.git ~/.clear-resume
-claude plugin marketplace add m4cd4r4/clear-resume
-claude plugin install clear-resume@clear-resume
-```
-
-That is the whole setup. `init` is for creating a store; running it against a store that
-already exists elsewhere is how you end up with two of them.
-
-If the second machine already has handovers of its own, do not clone over them. Move them
-aside, clone, then copy the JSON files back into `handovers/`. Their filenames carry the
-machine that wrote them, so they cannot collide with anything already there.
-
-### What each machine does on its own
-
-| When | What happens | If the network is down |
-|---|---|---|
-| Session start | Pull, then prune expired records | Session starts normally, 8s cap |
-| Handover saved | Push, detached, in the background | The change waits for the next push |
-| Sidebar pin, delete, archive | Push, detached | Same |
-| Two machines rewrote one record | Later `updatedAt` wins | Settled at the next pull |
-
-Set `CLEAR_RESUME_SYNC=off` on a machine that should keep a private store.
-
-### Proving it before you trust it
-
-```bash
-node scripts/drill.mjs                    # synthetic store, no network
-node scripts/drill.mjs <your-store-url>   # your real store, at its real size
-```
-
-Two machines, four fights: the same record rewritten on both in each push order, a delete
-racing an edit, and simultaneous creates. Then it checks the two stores agree record for
-record.
-
-Given a URL it **clones** your store into a throwaway bare repo and pushes only there. Your
-remote is read, never written, and `~/.clear-resume` is never opened.
-
-## Privacy
-
-Everything runs locally and the plugin sends nothing anywhere by itself. It reads your repo's
-git state and, in auto mode, the tail of the current session's transcript file to measure
-context size.
-
-Two things leave your machine only if you turn them on:
-
-- **Sync** pushes the whole store to the git remote you give it. Use a private repo.
-- **Web mode** commits and pushes the handover to your repo's remote, so anyone who can read
-  that repo can read it.
-
-Handovers are plain text. Do not put secrets in them.
-
-## Limitations
-
-- It cannot trigger `/clear` or `/compact`. You type `/clear`.
-- The hook stays silent on failure by design, so a broken plugin never blocks a session. The
-  cost is that a genuine fault is quiet too.
-- In web mode the hook runs one `git fetch origin` with a 5-second limit before searching,
-  because a cloud session can start from a cached clone. Offline, it searches what is already
-  fetched.
-
-## Development
-
-```bash
-npm install
-npx vitest run
-```
-
-Web mode's save and push were tested live on Claude Code on the web on 2026-09-19. Since
-0.1.5 the next cloud session lists that handover with the command that prints it, rather than
-loading it.
-
-### Developing this plugin
-
-Claude Code does not run this repo directly. Installing the plugin copies it into
-`~/.claude/plugins/cache/clear-resume/clear-resume/<version>/`, and that copy - not this
-checkout - is what a session actually loads. Merging a fix here changes nothing about it until
-someone updates the install:
-
-```bash
-git pull --ff-only                                 # 1. bring the repo up to date
-claude plugin marketplace update clear-resume       # 2. re-read this repo's plugin.json
-claude plugin update clear-resume@clear-resume      # 3. copy the new version into the cache
-```
-
-Skipping steps 2-3 is exactly how a merged fix sits unused: it happened three times between
-2026-09-20 and 2026-09-27.
-
-**In the primary checkout, a `git pull` on `main` now does steps 2-3 for you.**
-`.githooks/post-merge` and `.githooks/post-rewrite` (covering both a fast-forward/merge pull
-and a `--rebase` one) run the two `claude plugin` commands automatically, but only when the
-branch is `main`, the checkout is the primary one (never a linked worktree), and the pull
-actually touched a plugin path (`scripts/`, `packages/`, `hooks/`, `skills/`,
-`.claude-plugin/`). It never fails the pull: on skip or on error it prints one line saying
-what happened and exits 0 regardless. The decision logic lives in
-`scripts/lib/auto-update-hook.mjs` and is covered by `test/auto-update.test.mjs` and
-`test/auto-update-hook.test.mjs`.
-
-The hook is opt-in per checkout, since `core.hooksPath` is local git config, not something a
-clone inherits. Enable it once per clone you intend to pull into:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-A clone with the hook off just means you fall back to running steps 2-3 by hand.
+**[More details](docs/HOW-IT-WORKS.md):** which handover loads, settings, auto mode, Claude Code
+on the web, syncing two machines, the VS Code sidebar, cost, privacy, limitations and
+troubleshooting.
 
 ## Licence
 
-MIT
+[MIT](LICENSE)

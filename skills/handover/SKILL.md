@@ -73,9 +73,8 @@ EOF
 ```
 
 It saves one JSON record under `~/.clear-resume/handovers/`. Saving again archives only this
-window's own earlier handover, never another window's - since #27 the record is kept per
-window (owner), not per branch. Two windows on the same branch each keep their own waiting
-handover.
+window's own earlier handover, never another window's, so two windows on the same branch each
+keep their own waiting handover.
 
 With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also pushes
 `.clear-resume/HANDOVER.md` to its own branch, `clear-resume/<branch>`, leaving the

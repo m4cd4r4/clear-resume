@@ -27,7 +27,12 @@ handover, one from another repo, or one you want to read before resuming.
 | `clearResume.storePath` | `~/.clear-resume` | Folder holding the handover store. |
 | `clearResume.showArchived` | `false` | Show already-resumed handovers in the tree. |
 
+The extension does not read Claude Code's settings. If you moved the store with
+`CLEAR_RESUME_HOME` there, set `clearResume.storePath` to the same folder.
+
 ## Privacy
 
-Everything is local. The store is plain JSON files on disk, one per handover.
-Nothing is uploaded and nothing syncs.
+The store is plain JSON files on disk, one per handover. Nothing leaves your
+machine unless you set up [syncing](https://github.com/m4cd4r4/clear-resume/blob/main/docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
+Once the store is synced, a resume, pin, unpin or delete in the sidebar pushes it
+to your git remote in the background.
