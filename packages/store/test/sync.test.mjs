@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAll, read, remove, save, setPinned, update } from "../store.mjs";
 import { run } from "../../../scripts/lib/hook.mjs";
-import { saveHandover } from "../../../scripts/lib/store.mjs";
+import { reopen, saveHandover } from "../../../scripts/lib/store.mjs";
 import { initSync, isSynced, pushIfSynced, pushInBackground, sync } from "../sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
@@ -236,6 +236,36 @@ describe("wiring", () => {
 
     sync(b);
     expect(listAll(b).map((r) => r.title)).toEqual(["pushed in the background"]);
+  });
+
+  // A --take near the 30-day mark: the other machine still holds the archived copy,
+  // and its prune would tombstone it with a later updatedAt than the take, which
+  // then wins the merge on both machines. The take has to reach it first.
+  it("sends a --take (reopen) to the other machine, so its prune leaves the handover waiting", async () => {
+    initSync(a, remote);
+    const archivedAt = new Date(Date.now() - 29.9 * 86_400_000).toISOString();
+    const { id } = save(
+      base({ title: "taken back", status: "archived", archivedAt, archivedBy: { owner: "999", pid: "1", via: "hook" } }),
+      { root: a },
+    );
+    sync(a);
+    initSync(b, remote);
+
+    reopen(a, id, { owner: "" });
+    const onRemote = () => {
+      try {
+        return JSON.parse(git(tmp, "--git-dir", remote, "show", `main:handovers/${id}.json`)).status;
+      } catch {
+        return "";
+      }
+    };
+    const until = Date.now() + 20_000;
+    while (onRemote() !== "waiting" && Date.now() < until) await new Promise((r) => setTimeout(r, 200));
+    expect(onRemote()).toBe("waiting");
+
+    // The other machine's SessionStart, three hours later: pull, then prune.
+    run({ cwd: tmp }, { env: { CLEAR_RESUME_HOME: b }, now: new Date(Date.now() + 3 * 3_600_000) });
+    expect(read(id, b).status).toBe("waiting");
   });
 });
 

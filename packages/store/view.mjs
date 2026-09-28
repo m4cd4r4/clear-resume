@@ -74,12 +74,21 @@ export const LOADED_WINDOW_MS = 24 * 3_600_000;
 const LOADED_VIA = new Set(["hook", "load"]);
 const loadedAt = (record) => Date.parse(record.archivedAt ?? "");
 
+// How far ahead of this machine's clock a load may be dated and still count: a
+// few minutes of skew between synced machines. A load stamped hours ahead read
+// "loaded just now", sorted above real ones and outstayed the day (2026-09-28).
+const LOADED_SKEW_MS = 5 * 60_000;
+
 /** Handovers a session loaded within `withinMs` (a day), newest first. */
 export function recentlyLoaded(records, { now = new Date(), withinMs = LOADED_WINDOW_MS } = {}) {
   const t = new Date(now).getTime();
+  const inWindow = (r) => {
+    const age = t - loadedAt(r);
+    return Number.isFinite(age) && age >= -LOADED_SKEW_MS && age <= withinMs;
+  };
   return records
     .filter((r) => r.status === "archived" && LOADED_VIA.has(r.archivedBy?.via))
-    .filter((r) => Number.isFinite(loadedAt(r)) && t - loadedAt(r) <= withinMs)
+    .filter(inWindow)
     .sort((a, b) => loadedAt(b) - loadedAt(a));
 }
 
@@ -116,13 +125,37 @@ function shorten(s, max) {
 
 /**
  * The handover the status bar names: the newest one loaded within the window in
- * the open repo, counting its worktrees as the tree does. Null with no folder open
- * or nothing loaded there.
+ * the open folder, or failing that in one of the repo's other worktrees. Null with
+ * no folder open or nothing loaded there.
+ *
+ * The open folder comes first. Two windows on two worktrees of one repo each load
+ * their own handover, and counting the worktrees alike named whichever loaded
+ * last in both status bars (2026-09-28).
  */
 export function loadedHere(records, { repoPath = "", roots = [], now = new Date(), withinMs } = {}) {
-  const mine = [...new Set([normalisePath(repoPath), ...roots.map(normalisePath)].filter(Boolean))];
+  const here = normalisePath(repoPath);
+  const mine = [...new Set([here, ...roots.map(normalisePath)].filter(Boolean))];
   if (!repoPath || !mine.length) return null;
-  return recentlyLoaded(records, { now, withinMs }).find((r) => isUnder(normalisePath(r.repoPath), mine)) ?? null;
+  const recent = recentlyLoaded(records, { now, withinMs });
+  return (
+    recent.find((r) => isUnder(normalisePath(r.repoPath), [here])) ??
+    recent.find((r) => isUnder(normalisePath(r.repoPath), mine)) ??
+    null
+  );
+}
+
+/**
+ * `loadedHere` across every folder of a workspace (`{ repoPath, roots }` each):
+ * the newest load any of them names. A multi-root workspace whose handover was
+ * loaded in its second folder otherwise showed no status item at all.
+ */
+export function loadedInFolders(records, folders = [], { now = new Date(), withinMs } = {}) {
+  let best = null;
+  for (const { repoPath, roots = [] } of folders) {
+    const r = loadedHere(records, { repoPath, roots, now, withinMs });
+    if (r && (!best || loadedAt(r) > loadedAt(best))) best = r;
+  }
+  return best;
 }
 
 /** The status-bar text: `Handover: <title> (loaded 3h ago)`. */

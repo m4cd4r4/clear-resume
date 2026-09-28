@@ -9,12 +9,13 @@
 // pieces that let a person see, copy and reopen it later, from this window or
 // from another one after this window has closed.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
+import { archive, saveHandover } from "../scripts/lib/store.mjs";
+import { startHookClock } from "../scripts/lib/owner.mjs";
 import { shortId as displayShortId } from "../scripts/lib/display.mjs";
 import { archiveRecord, listAll, prune, remove, update } from "../packages/store/store.mjs";
 import { loadedCopyName, loadedCopyPath, loadedCopyText, loadedDir, shortId, writeLoadedCopy } from "../packages/store/loaded.mjs";
@@ -31,10 +32,10 @@ const lower = (s) => String(s).toLowerCase().replace(/\\/g, "/");
 const copies = () => (existsSync(loadedDir(root)) ? readdirSync(loadedDir(root)).filter((f) => f.endsWith(".md")) : []);
 const hook = (owner = ME) => run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
 
-function load(args, { owner = ME } = {}) {
+function load(args, { owner = ME, walk = false } = {}) {
   return spawnSync(process.execPath, [LOAD, ...args], {
     cwd: repo,
-    env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: owner },
+    env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: owner, ...(walk ? { CLEAR_RESUME_NO_PROCESS_WALK: "" } : {}) },
     encoding: "utf8",
   });
 }
@@ -75,6 +76,45 @@ describe("the copy's name and text", () => {
     expect(loadedCopyText({ ...rec, repoPath: "C:/Users/john" }, { home: "C:/Users/john" })).not.toContain("john");
   });
 
+  // Outside git a session's repo path is its cwd as given, and on POSIX that is the
+  // physical path while homedir() is $HOME unresolved. Compared as plain strings,
+  // a home folder reached through a link put the user name in the copy's name.
+  it("calls the home folder 'home' when it is reached through a link or junction", () => {
+    const base = realpathSync.native(mkdtempSync(join(tmpdir(), "cr-home-link-")));
+    const link = join(base, "homes");
+    try {
+      mkdirSync(join(base, "export", "alice"), { recursive: true });
+      symlinkSync(join(base, "export"), link, process.platform === "win32" ? "junction" : "dir");
+      const physical = { ...rec, repoPath: join(base, "export", "alice") };
+
+      expect(loadedCopyName(physical, { home: join(link, "alice") })).toMatch(/^home-cart-totals-rounding-[0-9a-f]{7}\.md$/);
+      expect(loadedCopyText(physical, { home: join(link, "alice") })).toContain("- Repo: home folder");
+      expect(loadedCopyName({ ...rec, repoPath: join(link, "alice") }, { home: physical.repoPath })).toMatch(/^home-/);
+    } finally {
+      // The link first, so nothing recursive ever walks through it.
+      try {
+        unlinkSync(link);
+      } catch {}
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  it.runIf(process.platform === "win32")("calls the home folder 'home' when it is spelled in its 8.3 short form", (ctx) => {
+    const base = realpathSync.native(mkdtempSync(join(tmpdir(), "cr-short-")));
+    try {
+      const long = join(base, "a-long-home-folder-alice");
+      mkdirSync(long);
+      const short = execFileSync("cmd.exe", ["/d", "/c", `for %I in ("${long}") do @echo %~sI`], { encoding: "utf8", windowsVerbatimArguments: true }).trim();
+      // 8.3 names can be turned off per volume; then there is nothing to test.
+      if (!short || short.toLowerCase() === long.toLowerCase()) return ctx.skip();
+
+      expect(loadedCopyName({ ...rec, repoPath: short }, { home: long })).toMatch(/^home-/);
+      expect(loadedCopyName({ ...rec, repoPath: long }, { home: short })).toMatch(/^home-/);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
   it("holds the title, repo, branch, when it was saved and loaded, then the body, with the title once", () => {
     const text = loadedCopyText(rec, { loadedAt: new Date("2026-09-28T04:00:00Z"), home: "C:/Users/john" });
     expect(text.startsWith("# Cart totals: rounding!\n")).toBe(true);
@@ -84,6 +124,10 @@ describe("the copy's name and text", () => {
     expect(text).toMatch(/- Loaded: 2026-09-2\d \d{2}:\d{2} \(UTC[+-]\d{2}:\d{2}\)/);
     expect(text).toContain("## Next action\nRun the totals test.");
     expect(text.match(/Cart totals: rounding!/g)).toHaveLength(1);
+    // In that order: the facts, a rule, then the body.
+    const order = ["# Cart totals", "- Repo:", "- Branch:", "- Saved:", "- Loaded:", "\n---\n", "## Next action"].map((s) => text.indexOf(s));
+    expect(order).not.toContain(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it("keeps itself out of a synced store's commits", () => {
@@ -105,7 +149,13 @@ describe("the SessionStart hook writes a copy and names it", () => {
     expect(second).toContain(saved.short);
     expect(lower(second)).not.toContain(lower(homedir()));
     expect(lower(second)).not.toContain(lower(hostname()));
-    if (lower(root).startsWith(lower(homedir()))) expect(second).toContain("A copy to read or share: ~/");
+    // Canonical paths: a Windows temp folder is spelled 8.3 (C:\Users\JOHNSM~1\...),
+    // which the long homedir() never prefixes, so a plain compare skipped this and
+    // the check above let an absolute 8.3 path through.
+    if (lower(realpathSync.native(root)).startsWith(`${lower(realpathSync.native(homedir()))}/`)) {
+      expect(second).toContain("A copy to read or share: ~/");
+      expect(second).not.toMatch(/share: ([A-Za-z]:|\/)/);
+    }
 
     const [file] = copies();
     expect(file).toBe(second.split(/[\\/]/).at(-1));
@@ -202,29 +252,77 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
     expect(record(saved.path).archivedBy.via).toBe("hook");
   });
 
-  it("--take makes a closed window's loaded handover waiting again and this window's", () => {
-    const saved = saveHandover({ cwd: repo, title: "Closed window's", body: "c body", root, owner: "999" });
-    hook("999");
-    expect(record(saved.path).status).toBe("archived");
+  // The taking window started after the handover was saved: that is the whole case
+  // (the window that loaded it has closed, a new one takes it). So the handover is
+  // saved `agoMs` before this test process started, and the taker's owner id is
+  // looked up for real (pid@start), as it is in a real window.
+  function takenHere({ title = "Closed window's", agoMs = 2 * 3_600_000 } = {}) {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    const saved = saveHandover({ cwd: repo, title, body: "c body", root, owner: "999", now: new Date(Date.now() - agoMs) });
+    archive(root, null, saved.path, { via: "hook", owner: "999" });
     // Written on another machine and synced here: owned here means this machine too.
     update(saved.id, { machine: "other-laptop" }, { root });
+    const out = load(["--take", saved.short], { owner: OTHER_LIVE, walk: true });
+    startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
+    return { saved, out };
+  }
+  const hookAs = (owner, source = "clear") =>
+    run({ cwd: repo, source }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
 
-    const out = load(["--take", saved.short], { owner: OTHER_LIVE });
+  it("--take makes a closed window's loaded handover waiting again and this window's", () => {
+    try {
+      const { saved, out } = takenHere();
 
-    expect(out.status).toBe(0);
-    expect(out.stdout).toContain("c body");
-    expect(out.stdout).toMatch(/waiting again/i);
-    const after = record(saved.path);
-    expect(after.status).toBe("waiting");
-    expect(after.owner).toBe(OTHER_LIVE);
-    expect(after.machine).toBe(hostname());
-    expect(after.archivedBy).toBeUndefined();
-    expect(after.archivedAt).toBeUndefined();
+      expect(out.status).toBe(0);
+      expect(out.stdout).toContain("c body");
+      expect(out.stdout).toMatch(/waiting again/i);
+      const after = record(saved.path);
+      expect(after.status).toBe("waiting");
+      expect(after.owner).toMatch(new RegExp(`^${OTHER_LIVE}(@|$)`));
+      expect(after.machine).toBe(hostname());
+      expect(after.archivedBy).toBeUndefined();
+      expect(after.archivedAt).toBeUndefined();
 
-    // Another window's /clear now leaves it alone; this window's loads it.
-    expect(hook("222").systemMessage ?? "").not.toMatch(/loaded handover/);
-    expect(record(saved.path).status).toBe("waiting");
-    expect(hook(OTHER_LIVE).systemMessage).toMatch(/loaded handover "Closed window's"/);
+      // Another window's /clear now leaves it alone.
+      expect(hookAs("222").systemMessage ?? "").not.toMatch(/loaded handover/);
+      expect(record(saved.path).status).toBe("waiting");
+
+      // This window's loads it even on another branch with another handover waiting,
+      // where neither the branch rule nor the only-one rule applies.
+      git("checkout", "-q", "-b", "feature2");
+      saveHandover({ cwd: repo, title: "Other thing", body: "o", root, owner: "" });
+      git("checkout", "-q", "-b", "feature3");
+      expect(hookAs(OTHER_LIVE).systemMessage).toMatch(/loaded handover "Closed window's"/);
+      expect(record(saved.path).status).toBe("archived");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("a taken handover is this window's after /compact, even one saved more than a week ago", () => {
+    try {
+      const { saved } = takenHere({ agoMs: 10 * 86_400_000 });
+
+      expect(hookAs(OTHER_LIVE, "compact").systemMessage).toMatch(/loaded handover "Closed window's"/);
+      expect(record(saved.path).status).toBe("archived");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("a later /handover in the taking window supersedes the taken one", () => {
+    try {
+      const { saved } = takenHere();
+      const me = record(saved.path).owner;
+      expect(me).toContain("@");
+
+      const next = saveHandover({ cwd: repo, title: "Newer work", body: "n", root, owner: me });
+
+      expect(next.replaced.map((r) => r.title)).toEqual(["Closed window's"]);
+      expect(record(saved.path).archivedBy.via).toBe("supersede");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("still picks a waiting handover over a loaded one of the same title", () => {

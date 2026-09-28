@@ -24,6 +24,7 @@ import { normalisePath } from "../../packages/store/schema.mjs";
 import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
 import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
 import { isOwnHandover, ownerId } from "./owner.mjs";
+import { claimedAt } from "./select.mjs";
 import { shortId } from "./display.mjs";
 
 export function storeRoot(env = process.env) {
@@ -116,7 +117,17 @@ function asHandover(record) {
     // What the plugin prints and load.mjs accepts: the file name carries the
     // machine name, which is often the owner's own name.
     short: shortId(record.id),
-    meta: { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch, owner: record.owner || "", machine: record.machine || "" },
+    meta: {
+      title: record.title,
+      created: record.createdAt,
+      repo: record.repoPath,
+      branch: record.branch,
+      owner: record.owner || "",
+      machine: record.machine || "",
+      // When load.mjs --take made it its owner's (reopen). The owner checks read
+      // this, not `created`: the taking window started after the save.
+      ...(record.takenAt ? { takenAt: record.takenAt } : {}),
+    },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
     // load from one made by load.mjs or by another window.
@@ -194,15 +205,33 @@ export function archive(root, key, path, by) {
  * `load.mjs --take` does to one whose window has closed. The archive stamps go,
  * so nothing reads it as loaded any more (the twin check, the extension's Loaded
  * group). Returns the record, or null when it is not in the store.
+ *
+ * `takenAt` records the claim. The taking window started after the save, so an
+ * owner check against `createdAt` would never call it this window's own; the
+ * checks use `claimedAt` instead. `createdAt` stays: the cross-copy id
+ * (`created|title`) and the consume marks are built from it.
+ *
+ * Sent to the other machine at once, as a save is. That machine still holds the
+ * archived copy, and near the 30-day mark its prune tombstones it with a later
+ * `updatedAt` than this reopen, which then wins the merge on both machines.
  */
 export function reopen(root, path, { owner = "", now = new Date() } = {}) {
   const record = listAll(root).find((r) => r.path === path || r.id === path);
   if (!record) return null;
-  return update(
+  const reopened = update(
     record.id,
-    { status: "waiting", owner: String(owner ?? ""), machine: hostname(), archivedAt: undefined, archivedBy: undefined },
+    {
+      status: "waiting",
+      owner: String(owner ?? ""),
+      machine: hostname(),
+      takenAt: new Date(now).toISOString(),
+      archivedAt: undefined,
+      archivedBy: undefined,
+    },
     { root, now },
   );
+  if (isSynced(root)) pushInBackground(root);
+  return reopened;
 }
 
 /**
@@ -230,7 +259,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
   const main = mainWorktree(top);
 
   const older = listWaiting(root, top).filter((h) =>
-    owner ? isOwnHandover(owner, h.meta.owner, h.meta.created, { machine: h.meta.machine }) : !h.meta.owner && (h.meta.branch ?? "") === branch,
+    owner ? isOwnHandover(owner, h.meta.owner, claimedAt(h), { machine: h.meta.machine }) : !h.meta.owner && (h.meta.branch ?? "") === branch,
   );
   const superseded = older.map((h) => archive(root, null, h.path, { via: "supersede", owner }));
 

@@ -15,9 +15,9 @@
 // commits these copies: they repeat what the records already hold, and the path
 // printed for one is a path on this machine.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { DELETE_ARCHIVED_AFTER_DAYS, normalisePath } from "./schema.mjs";
 
 /** Seven hex characters that stand for a record id; load.mjs accepts them. */
@@ -39,11 +39,39 @@ const slug = (s, max) =>
 
 const fold = (s) => (process.platform === "win32" || process.platform === "darwin" ? s.toLowerCase() : s);
 
+/**
+ * The long form of a path: links and junctions followed, and a Windows 8.3 name
+ * (C:\Users\JOHNSM~1\...) expanded. The nearest part that exists is resolved, so a
+ * path not yet written resolves too. Never throws.
+ */
+export function longForm(p) {
+  const tail = [];
+  let head = String(p);
+  for (let i = 0; i < 64; i++) {
+    try {
+      return [realpathSync.native(head), ...tail.reverse()].join("/");
+    } catch {
+      const up = dirname(head);
+      if (up === head) return String(p);
+      tail.push(basename(head));
+      head = up;
+    }
+  }
+  return String(p);
+}
+
+// Whether two spellings name the same folder: as written, or once resolved. A
+// session outside git records its cwd as given, which on POSIX is the physical
+// path, while homedir() is $HOME unresolved; through a link or an 8.3 name the
+// strings differ and the user name reached the copy's name (2026-09-28).
+const sameFolder = (a, b) =>
+  fold(normalisePath(a)) === fold(normalisePath(b)) || fold(normalisePath(longForm(a))) === fold(normalisePath(longForm(b)));
+
 // The repo's folder name, or "home" for a session started in the home folder.
 function repoName(repoPath, home) {
   const p = normalisePath(repoPath || "");
   if (!p) return "";
-  if (home && fold(p) === fold(normalisePath(home))) return "home";
+  if (home && sameFolder(p, home)) return "home";
   return p.split("/").filter(Boolean).at(-1) ?? "";
 }
 

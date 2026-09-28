@@ -15,3 +15,4 @@ export function loadedCopyPath(root: string, record: Pick<CopySource, "id" | "ti
 export function loadedCopyText(record: CopySource, opts?: { loadedAt?: Date | string; home?: string }): string;
 export function writeLoadedCopy(root: string, record: CopySource, opts?: { loadedAt?: Date | string; home?: string }): string | null;
 export function pruneLoaded(opts?: { root?: string; now?: Date }): string[];
+export function longForm(p: string): string;

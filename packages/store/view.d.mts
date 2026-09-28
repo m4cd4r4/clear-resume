@@ -35,4 +35,10 @@ export function loadedHere(
   records: StoredHandover[],
   opts?: { repoPath?: string; roots?: string[]; now?: Date; withinMs?: number },
 ): StoredHandover | null;
+/** `loadedHere` across every workspace folder: the newest load any of them names. */
+export function loadedInFolders(
+  records: StoredHandover[],
+  folders: { repoPath: string; roots?: string[] }[],
+  opts?: { now?: Date; withinMs?: number },
+): StoredHandover | null;
 export function statusText(record: StoredHandover, now?: Date, max?: number): string;

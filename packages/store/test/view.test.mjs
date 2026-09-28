@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalise } from "../schema.mjs";
-import { group, loadedAge, loadedHere, recentlyLoaded, statusText, treeGroups } from "../view.mjs";
+import { group, loadedAge, loadedHere, loadedInFolders, recentlyLoaded, statusText, treeGroups } from "../view.mjs";
 
 const NOW = new Date("2026-09-20T00:00:00.000Z");
 const rec = (over) =>
@@ -102,6 +102,17 @@ describe("recently loaded", () => {
 
     expect(recentlyLoaded(records, { now: NOW }).map((r) => r.title)).toEqual(["by load.mjs", "3h ago"]);
   });
+
+  it("leaves out a load dated hours ahead (a synced machine's fast clock), but allows a few minutes of skew", () => {
+    const records = [
+      loaded({ pid: 1, title: "6h ahead", archivedAt: "2026-09-20T06:00:00.000Z" }),
+      loaded({ pid: 2, title: "genuine", archivedAt: "2026-09-19T23:00:00.000Z" }),
+      loaded({ pid: 3, title: "2m ahead", archivedAt: "2026-09-20T00:02:00.000Z" }),
+    ];
+
+    expect(recentlyLoaded(records, { now: NOW }).map((r) => r.title)).toEqual(["2m ahead", "genuine"]);
+    expect(loadedHere(records.slice(0, 2), { repoPath: "I:/code/acme", now: NOW })?.title).toBe("genuine");
+  });
 });
 
 describe("loaded labels", () => {
@@ -150,9 +161,18 @@ describe("the status bar's handover", () => {
       loaded({ pid: 4, title: "lookalike, just now", repoPath: "I:/code/acme-unrelated", archivedAt: "2026-09-19T23:59:00.000Z" }),
     ];
 
-    expect(loadedHere(records, { repoPath: "i:\\code\\acme", roots, now: NOW })?.title).toBe("worktree, 1h ago");
+    // This window's own folder first; a worktree's load only when it has none.
+    expect(loadedHere(records, { repoPath: "i:\\code\\acme", roots, now: NOW })?.title).toBe("acme, 3h ago");
+    expect(loadedHere(records.slice(1), { repoPath: "i:\\code\\acme", roots, now: NOW })?.title).toBe("worktree, 1h ago");
     expect(loadedHere(records.slice(0, 1), { repoPath: "I:/code/acme", now: NOW })?.title).toBe("acme, 3h ago");
     expect(loadedHere(records, { repoPath: "I:/code/nothing-loaded", now: NOW })).toBeNull();
+    // A multi-root workspace: every folder counts, not just the first, and the
+    // newest load across them wins.
+    const folders = (...paths) => paths.map((repoPath) => ({ repoPath, roots: [] }));
+    expect(loadedInFolders(records.slice(0, 1), folders("D:/Scratch", "I:/code/acme"), { now: NOW })?.title).toBe("acme, 3h ago");
+    expect(loadedInFolders(records, folders("I:/code/acme", "I:/code/other"), { now: NOW })?.title).toBe("other repo, just now");
+    expect(loadedInFolders(records, folders("D:/Scratch"), { now: NOW })).toBeNull();
+    expect(loadedInFolders(records, [], { now: NOW })).toBeNull();
     expect(loadedHere(records, { repoPath: "", now: NOW })).toBeNull();
     expect(loadedHere(records.slice(0, 1), { repoPath: "I:/code/acme", now: new Date("2026-09-20T22:00:00.000Z") })).toBeNull();
   });

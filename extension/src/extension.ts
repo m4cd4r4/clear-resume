@@ -6,9 +6,9 @@ import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type Store
 import { migrate } from "../../packages/store/migrate.mjs";
 import { pushIfSynced } from "../../packages/store/sync.mjs";
 import { loadedCopyPath } from "../../packages/store/loaded.mjs";
-import { loadedHere, statusText } from "../../packages/store/view.mjs";
+import { loadedInFolders, statusText } from "../../packages/store/view.mjs";
 import { worktreePaths } from "../../packages/store/worktree.mjs";
-import { currentRepoPath, HistoryProvider, type HandoverNode } from "./tree";
+import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";
 const CLAUDE_OPEN = "claude-vscode.editor.open";
@@ -140,7 +140,7 @@ async function openLoaded(record: StoredHandover | undefined, root: string): Pro
 
 /**
  * The status-bar item: `Handover: <title> (loaded 3h ago)` for the newest handover
- * loaded in the last day in the open repo, hidden when there is none. Clicking it
+ * loaded in the last day in any open workspace folder, hidden when there is none. Clicking it
  * opens the same readable copy as the Loaded group.
  */
 function loadedStatus(context: vscode.ExtensionContext, root: () => string): { update: () => void } {
@@ -150,9 +150,13 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
 
   const update = () => {
     try {
-      const here = currentRepoPath();
+      // Every workspace folder, not only the first: in a multi-root workspace the
+      // handover may have been loaded in any of them.
+      const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
       const now = new Date();
-      const record = here ? loadedHere(listAll(root()), { repoPath: here, roots: worktreePaths(here), now }) : null;
+      const record = folders.length
+        ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now })
+        : null;
       if (!record) {
         item.hide();
         return;
