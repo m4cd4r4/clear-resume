@@ -4,10 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { lastContextTokens, runMidTurn, runStop, threshold } from "../scripts/lib/nudge.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { lastContextTokens, runMidTurn, runStop, threshold } from "../plugin/scripts/lib/nudge.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
 const call = (ctx, extra = {}) =>
   JSON.stringify({
@@ -58,29 +58,45 @@ describe("Stop nudge", () => {
     expect(runStop(input(), { env: env() })).toBeNull();
   });
 
-  it("blocks once past the threshold, then never again that session", () => {
+  it("nudges once past the threshold, then never again that session", () => {
     write(call(185_000));
     const out = runStop(input(), { env: env() });
-    expect(out.decision).toBe("block");
-    expect(out.reason).toMatch(/185k.*threshold 180k/);
-    expect(out.reason).toContain("/handover");
+    expect(out.hookSpecificOutput.hookEventName).toBe("Stop");
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
+    expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
     expect(runStop(input(), { env: env() })).toBeNull();
-    expect(runStop(input({ session_id: "s2" }), { env: env() }).decision).toBe("block");
+    expect(runStop(input({ session_id: "s2" }), { env: env() }).hookSpecificOutput.hookEventName).toBe("Stop");
   });
 
-  it("never blocks while already continuing from a Stop block", () => {
+  // Claude Code 2.1.283 shows `decision: "block"` as "Stop hook error: ...",
+  // which reads as a crash. additionalContext still makes Claude continue, but
+  // is labelled "Stop hook feedback", and systemMessage gives the user a line
+  // written for them.
+  it("does not block, so the user never sees it as a hook error", () => {
+    write(call(185_000));
+    const out = runStop(input(), { env: env() });
+    expect(out.decision).toBeUndefined();
+    expect(out.reason).toBeUndefined();
+    expect(out.continue).toBeUndefined();
+    expect(out.systemMessage).toMatch(/^clear-resume: /);
+    expect(out.systemMessage).toMatch(/185k/);
+    expect(out.systemMessage).toContain("/clear");
+    expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
+  });
+
+  it("never nudges while already continuing from a Stop hook", () => {
     write(call(300_000));
     expect(runStop(input({ stop_hook_active: true }), { env: env() })).toBeNull();
   });
 
   it("honours a custom threshold and ignores a bad one", () => {
     write(call(160_000));
-    expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } }).decision).toBe("block");
+    expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
     expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
   });
 
   it("the script exits 0 silently on garbage input", () => {
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/stop.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: "not json",
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -88,14 +104,17 @@ describe("Stop nudge", () => {
     expect(stdout).toBe("");
   });
 
-  it("the script emits a block decision as JSON", () => {
+  it("the script emits the nudge as JSON", () => {
     write(call(250_000));
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/stop.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: JSON.stringify(input()),
       env: { ...process.env, ...env() },
       encoding: "utf8",
     });
-    expect(JSON.parse(stdout).decision).toBe("block");
+    const out = JSON.parse(stdout);
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/250k/);
+    expect(out.systemMessage).toMatch(/250k/);
+    expect(out.decision).toBeUndefined();
   });
 });
 
@@ -139,7 +158,10 @@ describe("mid-turn nudge", () => {
     expect(out.decision).toBeUndefined();
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
     expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
-    expect(out.hookSpecificOutput.additionalContext).toContain("/handover");
+    expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
+    expect(out.continue).toBeUndefined();
+    expect(out.systemMessage).toMatch(/^clear-resume: .*185k/);
+    expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
   });
 
   it("fires once per session, and shares the mark with the Stop nudge", () => {
@@ -151,12 +173,12 @@ describe("mid-turn nudge", () => {
 
   it("a Stop nudge first also silences the mid-turn one", () => {
     write(call(185_000));
-    expect(runStop(input(), { env: env() }).decision).toBe("block");
+    expect(runStop(input(), { env: env() })).not.toBeNull();
     expect(runMidTurn(input(), { env: env() })).toBeNull();
   });
 
   it("the script exits 0 silently on garbage input", () => {
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/post-tool.mjs")], {
       input: "not json",
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -166,7 +188,7 @@ describe("mid-turn nudge", () => {
 
   it("the script emits the warning as JSON", () => {
     write(call(250_000));
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/post-tool.mjs")], {
       input: JSON.stringify(input()),
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -225,7 +247,7 @@ describe("SessionStart after compaction", () => {
 // script that reads it (or anything else) before checking hangs until killed.
 describe("hook scripts with auto mode off", () => {
   it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
-    const child = spawn(process.execPath, [join(import.meta.dirname, "../scripts", script)], {
+    const child = spawn(process.execPath, [join(import.meta.dirname, "../plugin/scripts", script)], {
       env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });

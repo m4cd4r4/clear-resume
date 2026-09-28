@@ -1,0 +1,8 @@
+{
+  "name": "clear-resume",
+  "version": "0.1.6",
+  "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
+  "author": { "name": "Macdara Ó Murchú" },
+  "license": "MIT",
+  "repository": "https://github.com/m4cd4r4/clear-resume"
+}

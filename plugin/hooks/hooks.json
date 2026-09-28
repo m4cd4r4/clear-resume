@@ -1,0 +1,39 @@
+{
+  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in opt-in auto mode, nudge once to hand over and clear when context grows large - mid-turn as well as at a turn end, because compaction does not wait for a turn to end. Claude Code runs each command with /bin/sh, or Git Bash on Windows, so they are POSIX sh. Each checks for node first: without it, SessionStart prints one line saying so and the other two exit quietly.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-entry.cjs\" post-tool",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-entry.cjs\" stop",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v node >/dev/null 2>&1 || { echo '{\"systemMessage\":\"clear-resume needs Node.js 18 or later on your PATH. Install it and restart Claude Code.\"}'; exit 0; }; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-entry.cjs\" session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

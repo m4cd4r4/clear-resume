@@ -54,6 +54,16 @@ at every session start and when the sidebar starts.
 Beside the handovers folder, each repo gets a folder with a `consumed.txt` log (one line per loaded handover)
 and auto mode keeps one marker file per nudged session in `.nudged/`. Nothing prunes either.
 
+### The readable copy
+
+Each time a handover loads, the plugin also writes it as plain markdown to
+`~/.clear-resume/loaded/<repo>-<title>-<id>.md` (title, repo, branch, when it was saved and
+loaded, then the body) and prints the path on the line under the load message. Open it to reread
+what the session started from, or @-mention it in another session. The name holds no user or
+machine name. A copy is deleted 30 days after its handover loaded, with the record's body. The
+folder has a `.gitignore`, so sync never pushes the copies. If the copy cannot be written, the
+handover still loads and no path is printed.
+
 ## Which handover loads
 
 At session start, `/clear` or compaction, the hook looks at the handovers waiting for this repo
@@ -99,6 +109,11 @@ repo, the script is
 
 A handover can be named by its short id, its file name or its exact title.
 
+`--peek` and `--take` also find a handover that has already loaded, so one from a window that has
+since closed can still be read. `--take` on a loaded handover puts it back to waiting as this
+window's, and it loads at this window's next `/clear`. A load by this script writes the readable
+copy too.
+
 ## Settings
 
 All optional. Set them as environment variables, for example in the `env` block of
@@ -127,9 +142,13 @@ from the tail of the session transcript on disk. Set the threshold well above yo
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
 
 It is checked after each tool call, where it warns and lets the turn continue, and when a turn
-ends, where it blocks so the handover gets written first. The first matters because one long
-turn can cross the threshold and be compacted without ever ending. The two share one mark, so
-you are interrupted once per session.
+ends, where it keeps the turn going so the handover gets written first. The first matters
+because one long turn can cross the threshold and be compacted without ever ending. The two
+share one mark, so you are interrupted once per session.
+
+You see one status line, such as `clear-resume: context is about 182k tokens (nudge at 180k).
+Claude is asked to save a handover, then you can type /clear.` It is a note, not an error. At a
+turn end, the instruction to Claude also shows, labelled `Stop hook feedback`.
 
 After any compaction the plugin tells the new context to re-check git and file state. That part
 is always on.
@@ -179,12 +198,12 @@ Run these from a clone of this repo, on each machine, against the same **private
 ```bash
 git clone https://github.com/m4cd4r4/clear-resume
 cd clear-resume
-node scripts/sync.mjs init git@github.com:you/your-store.git
+node plugin/scripts/sync.mjs init git@github.com:you/your-store.git
 ```
 
 On the second machine, `init` merges the handovers it already has with the store on the
 remote. A machine with none yet can clone the store into `~/.clear-resume` (or your
-`CLEAR_RESUME_HOME`) instead. `node scripts/sync.mjs` runs a sync by hand. The store holds
+`CLEAR_RESUME_HOME`) instead. `node plugin/scripts/sync.mjs` runs a sync by hand. The store holds
 every handover you have written, with repo paths, branch names and whatever was in context, so
 keep the repo private.
 
@@ -231,12 +250,22 @@ your remote is read, never written, and `~/.clear-resume` is never opened.
 A separate extension in [`extension/`](../extension/README.md) gives you a **Handovers**
 sidebar: browse every handover grouped into current repo, other repos and stale, pin one to
 keep it out of the timers, and resume one into a Claude Code tab with the prompt pre-filled and
-unsent. It reads and writes the same store as the plugin.
+unsent. A **Loaded** group at the top lists the handovers loaded in the last 24 hours, and a
+status-bar item names the one this workspace loaded, such as
+`Handover: Cart totals rounding (loaded 3h ago)`. Either opens the readable copy. It reads and
+writes the same store as the plugin.
 
 The plugin covers the common path. The sidebar is for the rest: an older handover, one from
 another repo, or one you want to read before you resume it.
 
-Build and install a packaged copy from a clone of this repo:
+Install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume)
+or [Open VSX](https://open-vsx.org/extension/macdara/clear-resume):
+
+```bash
+code --install-extension macdara.clear-resume
+```
+
+To build and install your own copy from a clone of this repo instead:
 
 ```bash
 cd extension
@@ -254,8 +283,13 @@ window you have open.
 
 - **A turn.** Writing a handover is Claude doing work: it runs a few git commands and writes
   under 40 lines.
-- **Files on disk.** One small JSON file per handover, plain text and not encrypted, removed on
-  the timers in [Where handovers live](#where-handovers-live).
+- **No permission prompt for the save.** The handover skill pre-approves the plugin's own
+  `save.mjs` and `load.mjs`, and nothing else, for the turn the skill runs in. The git commands
+  it runs are read-only. If Claude starts the skill without you typing `/clear-resume:handover`,
+  Claude Code asks once whether to use the skill.
+- **Files on disk.** One small JSON file per handover, plain text and not encrypted, and a
+  markdown copy of each loaded one, removed on the timers in
+  [Where handovers live](#where-handovers-live).
 - **The session-start hook.** It runs at every start, `/clear` and compaction, with a 10-second
   limit. It reads git and the store. When handovers are waiting, it also reads the process list,
   within a time budget that keeps the hook inside its limit. With sync set up it first pulls,
@@ -278,7 +312,9 @@ The plugin runs locally. What it reads:
 What it writes: each handover record holds its title and body, the repo path, branch, machine
 name, and the owning window's process id and start time. What the plugin prints names a
 handover by its title and a short id, not its file name, which holds the machine name. The one
-exception is the warning printed when a save cannot find its own record again.
+exception is the warning printed when a save cannot find its own record again. The readable copy
+of a loaded handover is named after the repo folder and the title, and its path is printed
+relative to `~`.
 
 A loaded handover becomes part of the session's context, like any text Claude reads.
 
@@ -303,7 +339,9 @@ Handovers are plain text. Do not put secrets in them.
   listed, not loaded. `load.mjs --take` moves it.
 - The hooks stay silent on failure by design, so a broken plugin never blocks a session. The
   cost is that a genuine fault is quiet too.
-- The hooks run `node` from your PATH. If Claude Code cannot find it, nothing loads.
+- The hooks run `node` from your PATH. Without Node 18 or later there, a session start shows
+  one line saying so and nothing loads.
+- On Windows, Claude Code runs plugin hooks through Git Bash, which comes with Git for Windows.
 - Web mode was run live on Claude Code on the web once, on 2026-09-19, before it changed to
   listing handovers instead of loading them. It has not been tested there since.
 - macOS and Linux have not been tested by hand. The test suite runs on both in CI.
@@ -320,7 +358,9 @@ Handovers are plain text. Do not put secrets in them.
 5. **Did you start with `--resume` or `/resume`?** The hook does not run then.
 6. **Is the new session in the same folder?** A handover loads only in the checkout it was
    written in, the folder the save names. A save made in a worktree says so.
-7. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
+7. **Did the session start with `clear-resume needs Node.js 18 or later on your PATH`?** Install
+   Node 18 or later where Claude Code can find it, and restart Claude Code.
+8. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
    to run `node --version`: the hooks need `node` on the PATH Claude Code sees.
 
 ## Updating and contributing
@@ -336,12 +376,12 @@ Restart Claude Code afterwards.
 
 ### Trying it without installing
 
-The repo is its own marketplace (`.claude-plugin/marketplace.json`). To load it for one session
-only:
+The repo is its own marketplace (`.claude-plugin/marketplace.json`), and the plugin itself is the
+`plugin/` folder. To load it for one session only:
 
 ```bash
 git clone https://github.com/m4cd4r4/clear-resume
-claude --plugin-dir ./clear-resume
+claude --plugin-dir ./clear-resume/plugin
 ```
 
 ### Running the tests
@@ -354,9 +394,13 @@ npx vitest run
 The plugin itself runs on Node 18 or later. The test tooling (Vite 7) needs Node 20.19+ or
 22.12+. CI runs the suite on Node 22 on Windows, macOS and Linux.
 
+An install copies `plugin/` and nothing else. Tests, the extension, the demo and the dev scripts
+in `scripts/` stay in the repo. `plugin/` has no `package.json`, so an install runs no `npm`,
+and `test/plugin-footprint.test.mjs` fails if that changes.
+
 ### Developing this plugin
 
-Installing the plugin copies it into
+Installing the plugin copies `plugin/` into
 `~/.claude/plugins/cache/clear-resume/clear-resume/<version>/`, and a session loads that copy,
 not your checkout. A change you merge reaches your install only after an update:
 
@@ -374,8 +418,8 @@ merged fix unused three times between 2026-09-20 and 2026-09-27.
 **In the primary checkout, a `git pull` on `main` can run steps 2 and 3 for you.**
 `.githooks/post-merge` and `.githooks/post-rewrite` (a merge or fast-forward pull, and a
 `--rebase` one) run the two `claude plugin` commands when the branch is `main`, the checkout is
-the primary one (not a linked worktree), and the pull touched `scripts/`, `packages/`,
-`hooks/`, `skills/` or `.claude-plugin/`. It never fails the pull: it prints one line saying
+the primary one (not a linked worktree), and the pull touched `plugin/` or
+`.claude-plugin/`. It never fails the pull: it prints one line saying
 what it did and exits 0. The logic is in `scripts/lib/auto-update-hook.mjs`, tested by
 `test/auto-update.test.mjs` and `test/auto-update-hook.test.mjs`. It is opt-in per clone,
 because `core.hooksPath` is local git config and a clone does not inherit it:

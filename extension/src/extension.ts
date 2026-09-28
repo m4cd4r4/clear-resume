@@ -1,9 +1,13 @@
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { archiveRecord, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../packages/store/store.mjs";
-import { migrate } from "../../packages/store/migrate.mjs";
-import { pushIfSynced } from "../../packages/store/sync.mjs";
+import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { migrate } from "../../plugin/packages/store/migrate.mjs";
+import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
+import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
+import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
+import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";
@@ -32,6 +36,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const root = () => config().get<string>("storePath")?.trim() || storeRoot();
   const showArchived = () => config().get<boolean>("showArchived") === true;
 
+  // Only the owner's original setup has anything to import. Everyone else gets no
+  // welcome link and no command-palette entry for a migration that would find
+  // nothing - the context key drives both `when` clauses in package.json.
+  void vscode.commands.executeCommand("setContext", "clearResume.hasLegacy", hasLegacyNotes());
+
   const provider = new HistoryProvider(root, showArchived);
   const tree = vscode.window.createTreeView(VIEW, { treeDataProvider: provider, showCollapseAll: true });
   context.subscriptions.push(tree, provider.onDidChangeTreeData(() => undefined));
@@ -44,10 +53,22 @@ export function activate(context: vscode.ExtensionContext): void {
     // A prune failure must never stop the view from opening.
   }
 
-  watchStore(context, root, () => provider.refresh());
+  const status = loadedStatus(context, root);
+  watchStore(context, root, () => {
+    provider.refresh();
+    status.update();
+  });
+  // "loaded 3h ago" has to stay true with nothing written to the store.
+  const minute = setInterval(() => {
+    status.update();
+    if (tree.visible) provider.refresh();
+  }, 60_000);
+  context.subscriptions.push({ dispose: () => clearInterval(minute) });
 
   context.subscriptions.push(
     vscode.commands.registerCommand("clearResume.refresh", () => provider.refresh()),
+
+    vscode.commands.registerCommand("clearResume.openLoaded", (record?: StoredHandover) => openLoaded(record, root())),
 
     vscode.commands.registerCommand("clearResume.toggleArchived", async () => {
       await config().update("showArchived", !showArchived(), vscode.ConfigurationTarget.Global);
@@ -55,10 +76,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand("clearResume.open", async (node?: HandoverNode) => {
-      const record = node?.record;
-      if (!record) return;
-      const doc = await vscode.workspace.openTextDocument({ content: record.body, language: "markdown" });
-      await vscode.window.showTextDocument(doc, { preview: true });
+      if (node?.record) await openBody(node.record);
     }),
 
     vscode.commands.registerCommand("clearResume.resume", async (node?: HandoverNode) => {
@@ -97,6 +115,66 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {}
+
+/** A handover's body in an untitled markdown editor. */
+async function openBody(record: StoredHandover): Promise<void> {
+  const doc = await vscode.workspace.openTextDocument({ content: record.body, language: "markdown" });
+  await vscode.window.showTextDocument(doc, { preview: true });
+}
+
+/**
+ * Open the readable copy the plugin wrote when it loaded this handover, a real
+ * file the user can copy the path of or @-mention. The copy lives only on the
+ * machine that loaded it and is pruned after 30 days, so without it the body
+ * opens as before.
+ */
+async function openLoaded(record: StoredHandover | undefined, root: string): Promise<void> {
+  if (!record) return;
+  const copy = loadedCopyPath(root, record);
+  if (existsSync(copy)) {
+    await vscode.window.showTextDocument(vscode.Uri.file(copy), { preview: true });
+    return;
+  }
+  await openBody(record);
+}
+
+/**
+ * The status-bar item: `Handover: <title> (loaded 3h ago)` for the newest handover
+ * loaded in the last day in any open workspace folder, hidden when there is none. Clicking it
+ * opens the same readable copy as the Loaded group.
+ */
+function loadedStatus(context: vscode.ExtensionContext, root: () => string): { update: () => void } {
+  const item = vscode.window.createStatusBarItem("clearResume.loaded", vscode.StatusBarAlignment.Left, 0);
+  item.name = "clear-resume: loaded handover";
+  context.subscriptions.push(item);
+
+  const update = () => {
+    try {
+      // Every workspace folder, not only the first: in a multi-root workspace the
+      // handover may have been loaded in any of them.
+      const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
+      const now = new Date();
+      const record = folders.length
+        ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now })
+        : null;
+      if (!record) {
+        item.hide();
+        return;
+      }
+      item.text = statusText(record, now);
+      item.tooltip = "Open the handover this repo loaded";
+      item.command = { command: "clearResume.openLoaded", title: "Open loaded handover", arguments: [record] };
+      item.show();
+    } catch {
+      // A status-bar item must never break the extension.
+      item.hide();
+    }
+  };
+
+  context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(update));
+  update();
+  return { update };
+}
 
 /**
  * Open a new Claude Code conversation with the handover's prompt pre-filled, then
@@ -153,8 +231,25 @@ function watchStore(context: vscode.ExtensionContext, root: () => string, onChan
   );
 }
 
+/** The old flow's prompt folder. Only ever populated on the machine that ran it. */
+function legacyNotesDir(): string {
+  return join(homedir(), "Notes", "resume");
+}
+
+/** True only for the one setup that has anything to import: a `.txt` prompt file
+ * sitting in the legacy folder. Everyone else gets neither the welcome link nor the
+ * command-palette entry for a migration that would find nothing to do. */
+function hasLegacyNotes(): boolean {
+  const dir = legacyNotesDir();
+  try {
+    return existsSync(dir) && readdirSync(dir).some((f) => f.endsWith(".txt"));
+  } catch {
+    return false;
+  }
+}
+
 async function runMigration(root: string, onDone: () => void): Promise<void> {
-  const notesDir = join(homedir(), "Notes", "resume");
+  const notesDir = legacyNotesDir();
   const report = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Importing handovers" },
     async () => pushed(root, () => migrate({ notesDir, root, machine: "legacy" })),

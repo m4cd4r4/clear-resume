@@ -1,0 +1,301 @@
+// Handover store for the plugin's hooks and CLI.
+//
+// Storage itself lives in packages/store - one JSON record per handover under
+// <root>/handovers - so the VS Code extension and these hooks read and write the
+// same thing. Anything written here shows up in the extension's tree, and a
+// handover the extension archives stops being offered here.
+//
+// The functions below keep the shapes the hooks already pass around
+// ({ meta, body, path, file }, and a repo key), because web.mjs works on
+// handovers carried in git that never reach the store at all.
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { hostname } from "node:os";
+import { basename, resolve } from "node:path";
+import {
+  archiveRecord,
+  listAll,
+  save,
+  storeRoot as sharedStoreRoot,
+  update,
+} from "../../packages/store/store.mjs";
+import { normalisePath } from "../../packages/store/schema.mjs";
+import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
+import { isSynced, pushInBackground } from "../../packages/store/sync.mjs";
+import { isOwnHandover, ownerId } from "./owner.mjs";
+import { claimedAt } from "./select.mjs";
+import { shortId } from "./display.mjs";
+
+export function storeRoot(env = process.env) {
+  return sharedStoreRoot(env);
+}
+
+function git(cwd, args) {
+  try {
+    return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return "";
+  }
+}
+
+// Repo top level (or cwd outside git) and current branch ("" outside git,
+// "detached@<sha>" on a detached HEAD).
+export function repoInfo(cwd) {
+  const top = git(cwd, ["rev-parse", "--show-toplevel"]) || resolve(cwd);
+  let branch = git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (branch === "HEAD") branch = `detached@${git(cwd, ["rev-parse", "--short", "HEAD"])}`;
+  return { top, branch };
+}
+
+// Readable and collision-free: folder name plus a hash of the full path, so two
+// checkouts called "app" in different places never share a key. Windows drive
+// letters and separators are normalised so i:\x and I:/x hash the same.
+//
+// Records are keyed by repoPath now, not by this. It survives because web.mjs
+// files its "already loaded" marks per repo key, and those marks are about
+// handovers carried in git, which have no record.
+export function repoKey(top) {
+  const norm = normalisePath(top);
+  const hash = createHash("sha1").update(norm).digest("hex").slice(0, 8);
+  return `${slugify(basename(norm)) || "root"}-${hash}`;
+}
+
+export function slugify(s) {
+  return String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+}
+
+// Minimal frontmatter parser, kept for handovers carried in git (web.mjs): those
+// are markdown files in a worktree, not records, so they still arrive as text.
+export function parseHandover(text) {
+  const m = /^---\n([\s\S]*?)\n---\n\n?/.exec(text.replace(/\r\n/g, "\n"));
+  if (!m) return { meta: {}, body: text };
+  const meta = {};
+  for (const line of m[1].split("\n")) {
+    const i = line.indexOf(": ");
+    if (i < 1) continue;
+    try {
+      meta[line.slice(0, i)] = JSON.parse(line.slice(i + 2));
+    } catch {
+      meta[line.slice(0, i)] = line.slice(i + 2);
+    }
+  }
+  return { meta, body: text.replace(/\r\n/g, "\n").slice(m[0].length) };
+}
+
+// Minimal frontmatter: one `key: "json string"` per line. Values are JSON-quoted
+// so a title with a colon or quote round-trips.
+function frontmatter(meta) {
+  const lines = Object.entries(meta).map(([k, v]) => `${k}: ${JSON.stringify(String(v))}`);
+  return `---\n${lines.join("\n")}\n---\n\n`;
+}
+
+/**
+ * Render a stored record as the markdown the web fallback carries in git.
+ *
+ * The store is JSON, but what travels in a repo stays markdown with frontmatter:
+ * it shows up readable in a diff, and a session on an older version can still
+ * parse it.
+ */
+export function handoverMarkdown(pathOrRecord) {
+  const record =
+    typeof pathOrRecord === "string" ? JSON.parse(readFileSync(pathOrRecord, "utf8")) : pathOrRecord;
+  const meta = { title: record.title, created: record.createdAt, repo: record.repoPath, branch: record.branch };
+  return frontmatter(meta) + String(record.body).trim() + "\n";
+}
+
+/** Present a record the way the hooks and web.mjs expect a handover to look. */
+function asHandover(record) {
+  return {
+    path: record.path,
+    file: basename(record.path),
+    id: record.id,
+    // What the plugin prints and load.mjs accepts: the file name carries the
+    // machine name, which is often the owner's own name.
+    short: shortId(record.id),
+    meta: {
+      title: record.title,
+      created: record.createdAt,
+      repo: record.repoPath,
+      branch: record.branch,
+      owner: record.owner || "",
+      machine: record.machine || "",
+      // When load.mjs --take made it its owner's (reopen). The owner checks read
+      // this, not `created`: the taking window started after the save.
+      ...(record.takenAt ? { takenAt: record.takenAt } : {}),
+    },
+    body: record.body,
+    // What archived it, if anything. The twin check needs it to tell its own
+    // load from one made by load.mjs or by another window.
+    archivedBy: record.archivedBy ?? null,
+    // When, so the twin's readable copy is dated by the first load, not its own.
+    archivedAt: record.archivedAt ?? null,
+  };
+}
+
+/**
+ * Waiting handovers for one repo, oldest first.
+ *
+ * `repoOrKey` accepts a repo path or a repo key: the hooks hold a path, and a
+ * caller that only has the key still gets the right rows.
+ */
+export function listWaiting(root = storeRoot(), repoOrKey = "") {
+  return listFor(root, repoOrKey, (r) => r.status === "waiting");
+}
+
+// What counts as loaded: archived by the SessionStart hook or by load.mjs. Not a
+// save that superseded it, nor a resume from the extension, and never a delete
+// (listAll leaves tombstones out).
+const LOADED_VIA = new Set(["hook", "load"]);
+
+/**
+ * Handovers a session has already loaded for one repo, oldest first. load.mjs
+ * reads (--peek) or moves (--take) one of these, so a handover whose window has
+ * closed is not lost with it.
+ */
+export function listLoaded(root = storeRoot(), repoOrKey = "") {
+  return listFor(root, repoOrKey, (r) => r.status === "archived" && LOADED_VIA.has(r.archivedBy?.via));
+}
+
+function listFor(root, repoOrKey, keep) {
+  const want = String(repoOrKey);
+  const byKey = /-[0-9a-f]{8}$/.test(want) && !want.includes("/") && !want.includes("\\");
+  // A path match covers every checkout of the same repo, not just the one the
+  // caller is standing in. A handover written in a worktree - which is where
+  // most of this repo's work happens - was otherwise invisible to a session
+  // that resumed in the parent checkout, and that is silent: the session starts
+  // with no handover and nothing says one exists. Both sides of the comparison
+  // are widened, so a record filed against a worktree that has since been
+  // removed is still found through its mainPath.
+  const here = byKey ? [] : new Set(worktreePaths(want).map(normalisePath));
+  const match = byKey
+    ? (r) => repoKey(r.repoPath) === want
+    : (r) => here.has(normalisePath(r.repoPath)) || here.has(normalisePath(r.mainPath || r.repoPath));
+
+  return listAll(root)
+    .filter((r) => keep(r) && (!want || match(r)))
+    .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+    .map(asHandover);
+}
+
+/**
+ * Mark a handover loaded. The record stays where it is and flips to archived, so
+ * nothing is renamed across directories and the extension keeps its history.
+ * `key` is ignored; it is still accepted because the hooks pass it.
+ *
+ * `by` says who archived it: `via` is "hook", "load" or "supersede", and `owner`
+ * is the archiving window. It is stamped on the record as `archivedBy`, because a
+ * handover that vanished with no trace of what took it cost a long diagnosis
+ * (2026-09-27).
+ */
+export function archive(root, key, path, by) {
+  const record = listAll(root).find((r) => r.path === path || r.id === path);
+  if (!record) return path;
+  const archivedBy = by?.via ? { owner: String(by.owner ?? ""), pid: String(process.pid), via: by.via } : undefined;
+  archiveRecord(record.id, { root, by: archivedBy });
+  return record.path;
+}
+
+/**
+ * Make a loaded handover waiting again, owned by `owner` on this machine: what
+ * `load.mjs --take` does to one whose window has closed. The archive stamps go,
+ * so nothing reads it as loaded any more (the twin check, the extension's Loaded
+ * group). Returns the record, or null when it is not in the store.
+ *
+ * `takenAt` records the claim. The taking window started after the save, so an
+ * owner check against `createdAt` would never call it this window's own; the
+ * checks use `claimedAt` instead. `createdAt` stays: the cross-copy id
+ * (`created|title`) and the consume marks are built from it.
+ *
+ * Sent to the other machine at once, as a save is. That machine still holds the
+ * archived copy, and near the 30-day mark its prune tombstones it with a later
+ * `updatedAt` than this reopen, which then wins the merge on both machines.
+ */
+export function reopen(root, path, { owner = "", now = new Date() } = {}) {
+  const record = listAll(root).find((r) => r.path === path || r.id === path);
+  if (!record) return null;
+  const reopened = update(
+    record.id,
+    {
+      status: "waiting",
+      owner: String(owner ?? ""),
+      machine: hostname(),
+      takenAt: new Date(now).toISOString(),
+      archivedAt: undefined,
+      archivedBy: undefined,
+    },
+    { root, now },
+  );
+  if (isSynced(root)) pushInBackground(root);
+  return reopened;
+}
+
+/**
+ * One handover by its cross-copy id (`created|title`), whatever its status.
+ *
+ * `listWaiting` deliberately hides an archived record, which is right for
+ * choosing what to offer and wrong for re-reporting the one a twin invocation
+ * has just loaded - by then it is already archived.
+ */
+export function findById(root = storeRoot(), id = "") {
+  const record = listAll(root).find((r) => `${r.createdAt ?? ""}|${r.title ?? ""}` === id);
+  return record ? asHandover(record) : null;
+}
+
+// Save a handover. A newer save from the same window supersedes that window's
+// waiting one, so re-running /handover never leaves two competing copies. Other
+// windows are left alone even on the same branch: every session opened in one
+// folder shares its branch, so the branch alone archived a different window's
+// handover (2026-09-25). With no owner known, the old same-branch rule applies,
+// but only to handovers that have no owner either.
+export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId() }) {
+  if (!title || !String(title).trim()) throw new Error("title is required");
+  if (!body || !String(body).trim()) throw new Error("handover body is empty");
+  const { top, branch } = repoInfo(cwd);
+  const main = mainWorktree(top);
+
+  const older = listWaiting(root, top).filter((h) =>
+    owner ? isOwnHandover(owner, h.meta.owner, claimedAt(h), { machine: h.meta.machine }) : !h.meta.owner && (h.meta.branch ?? "") === branch,
+  );
+  const superseded = older.map((h) => archive(root, null, h.path, { via: "supersede", owner }));
+
+  const record = save(
+    {
+      title: String(title).trim(),
+      body: String(body).trim(),
+      // What gets pre-filled when the handover is resumed from the extension.
+      resumePrompt: `Resume from handover "${String(title).trim()}":\n\n${String(body).trim()}`,
+      repo: basename(normalisePath(top)),
+      repoPath: top,
+      mainPath: main,
+      branch,
+      machine: hostname(),
+      pid: process.pid,
+      owner: owner || "",
+      createdAt: new Date(now).toISOString(),
+      status: "waiting",
+      source: "plugin",
+    },
+    { root },
+  );
+
+  // Send it to the other machine without waiting. Writing a handover is the end of
+  // a piece of work and must not sit on a slow push.
+  if (isSynced(root)) pushInBackground(root);
+
+  return {
+    path: record.path,
+    id: record.id,
+    short: shortId(record.id),
+    title: record.title,
+    key: repoKey(top),
+    top,
+    main,
+    superseded,
+    replaced: older.map((h) => ({ title: h.meta.title, short: h.short })),
+  };
+}
