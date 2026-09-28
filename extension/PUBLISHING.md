@@ -2,8 +2,7 @@
 
 Everything the packaging needs is already in place: `icon`, `galleryBanner`,
 `categories`, `keywords`, `repository.directory`, `homepage`, `bugs`, and a
-`CHANGELOG.md`. What is left is account setup, once per store, then two
-publish commands per release.
+`CHANGELOG.md`. Both store accounts are set up. Each release is two publish commands.
 
 ## One-time setup
 
@@ -12,7 +11,7 @@ publish commands per release.
 Already done. The publisher is `macdara`, the same one that publishes
 [Portpilot](https://marketplace.visualstudio.com/items?itemName=macdara.portpilot),
 and it matches the `publisher` field in `extension/package.json`. The access
-token is saved at `C:/Users/Hard-Worker/.claude/secrets/vsce-pat` (bare value,
+token is saved at `~/.claude/secrets/vsce-pat` (bare value,
 never committed). It passed `npx @vscode/vsce verify-pat macdara` on 2026-09-28.
 
 Microsoft retires classic Azure DevOps personal access tokens on 1 December
@@ -22,26 +21,14 @@ for the replacement sign-in.
 
 ### Open VSX
 
-1. **Create an Eclipse Foundation account** at
-   [accounts.eclipse.org/user/register](https://accounts.eclipse.org/user/register).
-   Use the same username as your GitHub account, or make sure it matches
-   exactly - Open VSX links the two.
-2. **Sign in to [open-vsx.org](https://open-vsx.org)** with "Log in with
-   GitHub".
-3. **Link the Eclipse account.** Avatar -> Settings -> "Log in with Eclipse"
-   and authorize.
-4. **Sign the publisher agreement.** Still under Settings, click "Show
-   Publisher Agreement", read it, then "Agree".
-5. **Create an access token.** Settings -> Access Tokens -> Generate New
-   Token. Give it a description and copy the token immediately.
-6. **Save the token locally**, not in the repo:
-   `C:/Users/Hard-Worker/.claude/secrets/ovsx-token`, the bare token value.
-7. **Create the namespace**, once, from `extension/`:
-   ```
-   npx ovsx create-namespace macdara -p "$(cat /c/Users/Hard-Worker/.claude/secrets/ovsx-token)"
-   ```
+Already done. The Eclipse Foundation account is linked to the GitHub account
+that signs in to [open-vsx.org](https://open-vsx.org), the publisher
+agreement is signed, and the `macdara` namespace exists. The access token is
+saved at `~/.claude/secrets/ovsx-token` (bare value, never committed). It
+passed `npx ovsx verify-pat macdara` on 2026-09-28.
 
-Rough time: 10 minutes.
+To replace a lost token: open-vsx.org, avatar, Settings, Access Tokens,
+Generate New Token. Save the new value to the same file.
 
 ## Publish commands (every release)
 
@@ -58,10 +45,10 @@ npx @vscode/vsce package --no-dependencies
 npx @vscode/vsce ls
 
 # VS Code Marketplace
-npx @vscode/vsce publish -p "$(cat /c/Users/Hard-Worker/.claude/secrets/vsce-pat)"
+npx @vscode/vsce publish -p "$(cat ~/.claude/secrets/vsce-pat)"
 
 # Open VSX
-npx ovsx publish -p "$(cat /c/Users/Hard-Worker/.claude/secrets/ovsx-token)"
+npx ovsx publish -p "$(cat ~/.claude/secrets/ovsx-token)"
 ```
 
 Both `publish` commands package the extension themselves, so the earlier
@@ -78,8 +65,8 @@ would rather not hand-edit the version number first.
 
 - Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume`
 - Open VSX listing: `https://open-vsx.org/extension/macdara/clear-resume`
-- Update the root README's "The VS Code sidebar" section with the install
-  lines drafted below, replacing the current build-it-yourself instructions.
+- The root README's "The VS Code sidebar" section installs from these
+  listings. Check both links resolve after the first publish.
 
 ## Regenerating the Marketplace icon
 
