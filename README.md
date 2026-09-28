@@ -86,6 +86,8 @@ claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
 claude plugin install clear-resume@clear-resume
 ```
 
+Claude Code then says, or asks about, two options that are not set yet. Both belong to the optional nudge described below, which is off by default.
+
 Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`.
 
 The author built it on Windows 11 and uses it there every day. CI runs the tests on Windows, macOS and Linux, but macOS and Linux have not been tested by hand yet.
@@ -171,13 +173,19 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** (auto mode) is off by default. To turn it on, add one line to the `env` block of `~/.claude/settings.json`:
+**The nudge** (auto mode) is off by default. To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**:
 
-```json
-{ "env": { "CLEAR_RESUME_AUTO": "1" } }
+```
+/plugin configure clear-resume@clear-resume
 ```
 
-Past 180k tokens of context (the default; `CLEAR_RESUME_NUDGE_AT` changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. You still type `/clear` yourself: a plugin cannot run it. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
+The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If you use the Claude Code panel in VS Code, set them from a terminal instead:
+
+```bash
+claude plugin install clear-resume@clear-resume --config auto_nudge=true
+```
+
+Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. You still type `/clear` yourself: a plugin cannot run it. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
 
 > [!TIP]
 > **[How it works](docs/HOW-IT-WORKS.md)** has the rest.

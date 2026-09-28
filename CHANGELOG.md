@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- **The nudge has settings in Claude Code.** Turn it on and set its size with
+  `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later.
+  Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens. In the Claude Code panel
+  in VS Code, set them from a terminal with `claude plugin install clear-resume@clear-resume --config`.
+  The environment variables still work: `CLEAR_RESUME_AUTO` wins whenever it is set, and
+  `CLEAR_RESUME_NUDGE_AT` wins when it is a positive number.
+
 ## 0.2.0
 
 Write one short handover on purpose, `/clear`, and that window's fresh session picks it up. Other

@@ -130,6 +130,14 @@ All optional. Set them as environment variables, for example in the `env` block 
 | `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
 | `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
 
+The nudge's two settings are also plugin options, `auto_nudge` and `nudge_at`, so you can set them
+without editing `settings.json`: with `/plugin configure clear-resume@clear-resume`, in `/config`
+(Claude Code 2.1.269 or later), or from a terminal with
+`claude plugin install clear-resume@clear-resume --config auto_nudge=true --config nudge_at=150000`.
+Sessions started after that use the new values. Claude Code keeps `nudge_at` between 50000 and
+1000000. `CLEAR_RESUME_AUTO` wins over `auto_nudge` whenever it is set. `CLEAR_RESUME_NUDGE_AT` wins
+over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 180000.
+
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
 sidebar's `clearResume.storePath` to the same folder.
 
@@ -137,7 +145,8 @@ sidebar's `clearResume.storePath` to the same folder.
 
 Claude Code cannot run `/clear` from a hook, so the plugin can only get close to automatic.
 
-With `CLEAR_RESUME_AUTO=1`, once the session's context passes `CLEAR_RESUME_NUDGE_AT`, Claude
+With the nudge on (`auto_nudge`, or `CLEAR_RESUME_AUTO=1`), once the session's context passes the
+threshold (`nudge_at`, or `CLEAR_RESUME_NUDGE_AT`), Claude
 is asked, once per session, to write a handover and tell you to type `/clear`. The size is read
 from the tail of the session transcript on disk. Set the threshold well above your
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.

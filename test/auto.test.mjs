@@ -95,6 +95,32 @@ describe("Stop nudge", () => {
     expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
   });
 
+  it("turns on and takes its threshold from the plugin options set in /config", () => {
+    write(call(160_000));
+    const opts = { CLEAR_RESUME_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    expect(runStop(input(), { env: opts }).systemMessage).toMatch(/nudge at 150k/);
+  });
+
+  it("CLEAR_RESUME_ env vars still win over the plugin options, for the switch and the size", () => {
+    write(call(160_000));
+    const off = { CLEAR_RESUME_HOME: root, CLEAR_RESUME_AUTO: "0", CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    expect(runStop(input(), { env: off })).toBeNull();
+    const higher = { CLEAR_RESUME_HOME: root, CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_NUDGE_AT: "170000", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    expect(runStop(input(), { env: higher })).toBeNull();
+  });
+
+  // The hook scripts check auto mode before importing anything, from their own
+  // process environment, which is where Claude Code puts the plugin options.
+  it("the script reads the plugin options from its environment", () => {
+    write(call(160_000));
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
+      input: JSON.stringify(input()),
+      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_NUDGE_AT: "", CLEAR_RESUME_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" },
+      encoding: "utf8",
+    });
+    expect(JSON.parse(stdout).systemMessage).toMatch(/nudge at 150k/);
+  });
+
   it("the script exits 0 silently on garbage input", () => {
     const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: "not json",
