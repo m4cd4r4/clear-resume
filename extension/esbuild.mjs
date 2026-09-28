@@ -10,6 +10,9 @@ const options = {
   target: "node18",
   format: "cjs",
   external: ["vscode"],
+  // CommonJS has no import.meta. The one use (sync.mjs, the plugin's background
+  // push) resolves it on use and treats a missing value as "no push from here".
+  define: { "import.meta.url": "undefined" },
   sourcemap: true,
   logLevel: "info",
 };

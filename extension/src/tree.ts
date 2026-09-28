@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { listAll, type StoredHandover } from "../../packages/store/store.mjs";
-import { describe, group, type Group } from "../../packages/store/view.mjs";
+import { describe, loadedAge, treeGroups, type Group } from "../../packages/store/view.mjs";
 import { worktreePaths } from "../../packages/store/worktree.mjs";
 
 type Node = GroupNode | HandoverNode;
@@ -13,6 +13,8 @@ export interface GroupNode {
 export interface HandoverNode {
   kind: "handover";
   record: StoredHandover;
+  /** A row of the Loaded group, which opens the handover's readable copy. */
+  loaded?: boolean;
 }
 
 export class HistoryProvider implements vscode.TreeDataProvider<Node> {
@@ -27,21 +29,20 @@ export class HistoryProvider implements vscode.TreeDataProvider<Node> {
 
   getChildren(node?: Node): Node[] {
     if (node?.kind === "handover") return [];
+    const rows = (g: Group): Node[] => g.records.map((record) => ({ kind: "handover", record, loaded: g.id === "loaded" }));
+    if (node?.kind === "group") return rows(node.group);
 
     const now = new Date();
     const here = currentRepoPath();
     // Worktrees of the open repo are the same repo. Without this, a project driven
     // through worktrees files most of its own handovers under "Other repos" while
     // every row still shows the project's name.
-    const groups = group(listAll(this.storeRootPath()), { repoPath: here, roots: worktreePaths(here), now }).filter(
-      (g) => g.id !== "archived" || this.showArchived(),
-    );
-
-    if (node?.kind === "group") return node.group.records.map((record) => ({ kind: "handover", record }));
+    const groups = treeGroups(listAll(this.storeRootPath()), { repoPath: here, roots: worktreePaths(here), now, showArchived: this.showArchived() });
 
     // One group only: skip the heading and show its rows directly. A single
-    // collapsible node wrapping everything is a click that buys nothing.
-    if (groups.length === 1) return groups[0].records.map((record) => ({ kind: "handover", record }));
+    // collapsible node wrapping everything is a click that buys nothing. Loaded
+    // keeps its heading, which is what says these rows were loaded, not waiting.
+    if (groups.length === 1 && groups[0].id !== "loaded") return rows(groups[0]);
     return groups.map((g) => ({ kind: "group", group: g }));
   }
 
@@ -55,6 +56,18 @@ export class HistoryProvider implements vscode.TreeDataProvider<Node> {
 
     const r = node.record;
     const item = new vscode.TreeItem(r.title, vscode.TreeItemCollapsibleState.None);
+    if (node.loaded) {
+      item.description = loadedAge(r);
+      item.tooltip = tooltip(r);
+      // The same record also sits in Archived when that is shown, and two rows
+      // with one id break the tree.
+      item.id = `loaded:${r.id}`;
+      item.iconPath = new vscode.ThemeIcon("check");
+      // Matches none of the inline-button rules: this row is for opening only.
+      item.contextValue = "loaded";
+      item.command = { command: "clearResume.openLoaded", title: "Open loaded handover", arguments: [r] };
+      return item;
+    }
     item.description = describe(r);
     item.tooltip = tooltip(r);
     item.id = r.id;

@@ -4,15 +4,14 @@
 // owner's full name ("Johns-MacBook-Pro"); a full path adds the home folder, which
 // carries the user name. Printed output reaches screenshares and demos, so it
 // names a handover by its title and a short id, and a path relative to "~".
-import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname } from "node:path";
 
-/** Seven hex characters that stand for a record id; load.mjs accepts them. */
-export function shortId(id) {
-  return createHash("sha1").update(String(id)).digest("hex").slice(0, 7);
-}
+// Seven hex characters that stand for a record id; load.mjs accepts them. Defined
+// with the readable copies, whose names carry it, so the extension computes the
+// same one.
+export { shortId } from "../../packages/store/loaded.mjs";
 
 // The long form of a path: Windows temp folders arrive in 8.3 form
 // (C:\Users\JOHNSM~1\...), which would not match the home folder. The nearest
