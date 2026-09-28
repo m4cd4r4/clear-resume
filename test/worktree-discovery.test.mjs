@@ -11,9 +11,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
-import { run } from "../scripts/lib/hook.mjs";
-import { forgetWorktrees } from "../packages/store/worktree.mjs";
+import { listWaiting, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { forgetWorktrees } from "../plugin/packages/store/worktree.mjs";
 
 let root, main, tree;
 
@@ -61,7 +61,7 @@ describe("a handover written in a worktree", () => {
 describe("save.mjs in a worktree", () => {
   it("names the worktree as the folder that loads it, and the hook loads it there and only there", () => {
     const env = { ...process.env, CLEAR_RESUME_HOME: root };
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "Worktree work", "--cwd", tree], {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "Worktree work", "--cwd", tree], {
       cwd: tree,
       input: "# Handover\n\nbody\n",
       env,

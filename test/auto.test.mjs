@@ -4,10 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { lastContextTokens, runMidTurn, runStop, threshold } from "../scripts/lib/nudge.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { lastContextTokens, runMidTurn, runStop, threshold } from "../plugin/scripts/lib/nudge.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
 const call = (ctx, extra = {}) =>
   JSON.stringify({
@@ -96,7 +96,7 @@ describe("Stop nudge", () => {
   });
 
   it("the script exits 0 silently on garbage input", () => {
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/stop.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: "not json",
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -106,7 +106,7 @@ describe("Stop nudge", () => {
 
   it("the script emits the nudge as JSON", () => {
     write(call(250_000));
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/stop.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: JSON.stringify(input()),
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -178,7 +178,7 @@ describe("mid-turn nudge", () => {
   });
 
   it("the script exits 0 silently on garbage input", () => {
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/post-tool.mjs")], {
       input: "not json",
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -188,7 +188,7 @@ describe("mid-turn nudge", () => {
 
   it("the script emits the warning as JSON", () => {
     write(call(250_000));
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/post-tool.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/post-tool.mjs")], {
       input: JSON.stringify(input()),
       env: { ...process.env, ...env() },
       encoding: "utf8",
@@ -247,7 +247,7 @@ describe("SessionStart after compaction", () => {
 // script that reads it (or anything else) before checking hangs until killed.
 describe("hook scripts with auto mode off", () => {
   it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
-    const child = spawn(process.execPath, [join(import.meta.dirname, "../scripts", script)], {
+    const child = spawn(process.execPath, [join(import.meta.dirname, "../plugin/scripts", script)], {
       env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });

@@ -13,7 +13,7 @@ import {
   parseId,
   recordId,
   SCHEMA_VERSION,
-} from "../schema.mjs";
+} from "../../plugin/packages/store/schema.mjs";
 
 const BASE = {
   title: "clear-resume extension phase 1",

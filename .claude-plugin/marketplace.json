@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "clear-resume",
-      "source": "./",
+      "source": "./plugin",
       "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste. Shares its store with the clear-resume VS Code extension.",
       "category": "workflow"
     }

@@ -14,9 +14,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveHandover } from "../scripts/lib/store.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
 
-const SESSION_START = join(import.meta.dirname, "../scripts/session-start.mjs");
+const SESSION_START = join(import.meta.dirname, "../plugin/scripts/session-start.mjs");
 
 const SLOW_TABLE = `
 const cp = require("child_process");

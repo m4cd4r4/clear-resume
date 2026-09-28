@@ -13,14 +13,14 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { archive, saveHandover } from "../scripts/lib/store.mjs";
-import { startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
-import { shortId as displayShortId } from "../scripts/lib/display.mjs";
-import { archiveRecord, listAll, prune, remove, update } from "../packages/store/store.mjs";
-import { loadedCopyName, loadedCopyPath, loadedCopyText, loadedDir, shortId, writeLoadedCopy } from "../packages/store/loaded.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { archive, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
+import { shortId as displayShortId } from "../plugin/scripts/lib/display.mjs";
+import { archiveRecord, listAll, prune, remove, update } from "../plugin/packages/store/store.mjs";
+import { loadedCopyName, loadedCopyPath, loadedCopyText, loadedDir, shortId, writeLoadedCopy } from "../plugin/packages/store/loaded.mjs";
 
-const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
+const LOAD = join(import.meta.dirname, "../plugin/scripts/load.mjs");
 const ME = "111";
 // Alive for as long as the tests run, and never the caller's CLAUDE_PID.
 const OTHER_LIVE = String(process.pid);

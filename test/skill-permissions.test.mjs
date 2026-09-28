@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const SKILL = join(dirname(fileURLToPath(import.meta.url)), "..", "skills", "handover", "SKILL.md");
+const SKILL = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "handover", "SKILL.md");
 const text = readFileSync(process.env.CR_SKILL_FILE || SKILL, "utf8").replace(/\r\n/g, "\n");
 const frontmatter = text.match(/^---\n([\s\S]*?)\n---\n/)[1];
 const body = text.slice(text.indexOf("\n---\n", 4) + 5);

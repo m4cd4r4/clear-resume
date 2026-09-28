@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { shellPath, shortId, tildePath } from "../scripts/lib/display.mjs";
+import { shellPath, shortId, tildePath } from "../plugin/scripts/lib/display.mjs";
 
 describe("tildePath and shellPath", () => {
   it("write a path under home as ~/... for reading and \"$HOME/...\" for a command, and leave other paths alone", () => {

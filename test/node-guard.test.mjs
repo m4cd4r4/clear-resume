@@ -11,9 +11,9 @@ import { delimiter, dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveHandover } from "../scripts/lib/store.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
 
-const PLUGIN = resolve(import.meta.dirname, "..");
+const PLUGIN = resolve(import.meta.dirname, "..", "plugin");
 const ENTRY = join(PLUGIN, "scripts", "hook-entry.cjs");
 const HOOKS = JSON.parse(readFileSync(join(PLUGIN, "hooks", "hooks.json"), "utf8")).hooks;
 const commandOf = (event) => HOOKS[event][0].hooks[0].command;

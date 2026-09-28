@@ -14,8 +14,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { sessionRoot } from "../scripts/lib/session.mjs";
-import { normalisePath } from "../packages/store/schema.mjs";
+import { sessionRoot } from "../plugin/scripts/lib/session.mjs";
+import { normalisePath } from "../plugin/packages/store/schema.mjs";
 
 let home, projects;
 

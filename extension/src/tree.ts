@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { listAll, type StoredHandover } from "../../packages/store/store.mjs";
-import { describe, loadedAge, treeGroups, type Group } from "../../packages/store/view.mjs";
-import { worktreePaths } from "../../packages/store/worktree.mjs";
+import { listAll, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { describe, loadedAge, treeGroups, type Group } from "../../plugin/packages/store/view.mjs";
+import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 
 type Node = GroupNode | HandoverNode;
 
