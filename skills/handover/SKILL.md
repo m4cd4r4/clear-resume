@@ -1,6 +1,9 @@
 ---
 name: handover
 description: Write a short handover for the current work so a fresh session (after /clear) picks it up automatically. Use for '/handover', 'write a handover', 'hand this off', 'save my place before I clear'.
+allowed-tools:
+  - Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/save.mjs" *)
+  - Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/load.mjs" *)
 ---
 
 # handover
@@ -11,7 +14,8 @@ After the user runs `/clear`, the plugin's SessionStart hook loads it for them.
 ## 1. Check the facts first
 
 Run these rather than recalling them. A handover with a wrong branch or a stale
-"next step" costs the next session more than it saves.
+"next step" costs the next session more than it saves. Run them where you are,
+without a `cd` first: a `cd` before a git command asks the user for approval.
 
 ```bash
 git branch --show-current
@@ -71,6 +75,12 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/save.mjs" --title "<short title>" <<'EOF'
 <the handover markdown>
 EOF
 ```
+
+Run it exactly in this form: one command, the heredoc, nothing chained before or
+after it. This skill pre-approves the plugin's own save.mjs and load.mjs, so the save
+runs without a permission prompt. Do not write the handover to a temporary file
+and redirect it with `<`, and do not add a `cd`: either one makes the user approve
+it by hand.
 
 It saves one JSON record under `~/.clear-resume/handovers/`. Saving again archives only this
 window's own earlier handover, never another window's - since #27 the record is kept per
