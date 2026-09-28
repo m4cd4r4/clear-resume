@@ -63,7 +63,7 @@ describe("Stop nudge", () => {
     const out = runStop(input(), { env: env() });
     expect(out.decision).toBe("block");
     expect(out.reason).toMatch(/185k.*threshold 180k/);
-    expect(out.reason).toContain("/handover");
+    expect(out.reason).toContain("/clear-resume:handover");
     expect(runStop(input(), { env: env() })).toBeNull();
     expect(runStop(input({ session_id: "s2" }), { env: env() }).decision).toBe("block");
   });
@@ -139,7 +139,7 @@ describe("mid-turn nudge", () => {
     expect(out.decision).toBeUndefined();
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
     expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
-    expect(out.hookSpecificOutput.additionalContext).toContain("/handover");
+    expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
   });
 
   it("fires once per session, and shares the mark with the Stop nudge", () => {

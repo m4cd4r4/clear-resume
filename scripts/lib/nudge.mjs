@@ -93,7 +93,7 @@ export function runStop(input, { env = process.env } = {}) {
     decision: "block",
     reason:
       `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
-      `If the current task is finished or at a clean stopping point, write a handover now with the /handover skill, ` +
+      `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, ` +
       `then tell the user to type /clear: the handover loads by itself in the fresh session. ` +
       `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
       `This reminder fires once per session.`,
@@ -121,7 +121,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
       additionalContext:
         `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
         `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
-        `then write a handover with the /handover skill and tell the user to type /clear: the handover loads by ` +
+        `then write a handover with the /clear-resume:handover skill and tell the user to type /clear: the handover loads by ` +
         `itself in the fresh session. Do not abandon work in progress to do it. This warning fires once per session.`,
     },
   };
