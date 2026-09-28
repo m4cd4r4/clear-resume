@@ -21,6 +21,16 @@ export const options = {
   logLevel: "info",
 };
 
+/** The plugin's sync CLI, bundled beside the extension as dist/sync.js. The sidebar's
+ * pin, delete and archive push through it as a child process, and the plugin's own
+ * scripts/ folder is not in the VSIX. */
+export const syncCliOptions = {
+  ...options,
+  entryPoints: ["../plugin/scripts/sync.mjs"],
+  outfile: "dist/sync.js",
+  sourcemap: false,
+};
+
 // Build only when run as a script (`node esbuild.mjs`), not when a test imports it.
 const invoked = (() => {
   try {
@@ -31,8 +41,9 @@ const invoked = (() => {
 })();
 
 if (invoked && process.argv.includes("--watch")) {
+  await build(syncCliOptions);
   const ctx = await context(options);
   await ctx.watch();
 } else if (invoked) {
-  await build(options);
+  await Promise.all([build(options), build(syncCliOptions)]);
 }

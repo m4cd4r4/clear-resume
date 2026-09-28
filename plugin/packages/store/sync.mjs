@@ -256,8 +256,7 @@ export function sync(root = storeRoot(), { now = new Date(), timeout = TIMEOUT_M
 // Resolved on use, not at load. The VS Code extension bundles this file as
 // CommonJS, where import.meta is empty: a path computed at load time threw before
 // the extension could activate, so the packaged sidebar never opened (2026-09-28).
-// The extension ships without scripts/sync.mjs, so there it resolves to nothing
-// and no push is started.
+// The extension bundles its own copy of the CLI and passes that path in.
 function cliPath() {
   try {
     return join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
@@ -273,15 +272,16 @@ function cliPath() {
  * push - so the save fires this and returns. The child outlives the session that
  * started it; the returned handle exists so a test can wait for it.
  */
-export function pushInBackground(root = storeRoot(), env = process.env) {
+export function pushInBackground(root = storeRoot(), env = process.env, cli = cliPath()) {
   if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return null;
-  const cli = cliPath();
   if (!cli || !existsSync(cli)) return null;
   const child = spawn(process.execPath, [cli], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
-    env: { ...process.env, CLEAR_RESUME_HOME: root },
+    // Inside VS Code, process.execPath is the editor itself. Without this flag the
+    // child would start another editor instead of running the CLI as node.
+    env: { ...process.env, CLEAR_RESUME_HOME: root, ELECTRON_RUN_AS_NODE: "1" },
   });
   child.unref();
   return child;
@@ -295,7 +295,7 @@ export function pushInBackground(root = storeRoot(), env = process.env) {
  * changes exactly as a save is, and a tombstone that never leaves this machine is
  * precisely the delete the other machine undoes.
  */
-export function pushIfSynced(root = storeRoot(), env = process.env) {
+export function pushIfSynced(root = storeRoot(), env = process.env, cli = cliPath()) {
   if (!isSynced(root)) return null;
-  return pushInBackground(root, env);
+  return pushInBackground(root, env, cli);
 }
