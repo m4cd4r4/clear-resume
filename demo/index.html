@@ -32,9 +32,11 @@
       #st-token,
       .stat .lab,
       .stat .num small,
+      .stat .sub,
       #st-share,
       #st-source,
       #close-line,
+      #close-ext,
       #close-foot {
         font-family: "Inter", sans-serif;
       }
@@ -43,6 +45,11 @@
       .card p code {
         font-family: "JetBrains Mono", monospace;
       }
+      /* Window 1's height in beat 06, so window 2 sits below it, not inside it. */
+      #root {
+        --win1-many-h: 470px;
+      }
+
       #glow {
         left: 50%;
         top: 50%;
@@ -146,10 +153,10 @@
       /* ---- the second window ---- */
 
       #win2 {
-        left: 250px;
-        top: 590px;
-        width: 960px;
-        height: 250px;
+        left: 196px;
+        top: 606px;
+        width: 1050px;
+        height: 230px;
       }
 
       .tb2 {
@@ -280,6 +287,11 @@
         font-size: 30px;
       }
 
+      .stat .sub {
+        margin-top: 14px;
+        font-size: 24px;
+      }
+
       #st-share {
         font-size: 40px;
         padding: 18px 36px;
@@ -321,6 +333,10 @@
       /* The first command fits on one line here, so no continuation mark. */
       #close-cmd .cont {
         display: none;
+      }
+
+      #close-ext {
+        font-size: 28px;
       }
 
       #close-foot {
