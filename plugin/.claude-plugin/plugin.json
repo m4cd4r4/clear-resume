@@ -1,9 +1,27 @@
 {
   "name": "clear-resume",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
-  "author": { "name": "Macdara Ó Murchú" },
+  "author": {
+    "name": "Macdara Ó Murchú"
+  },
   "license": "MIT",
   "homepage": "https://github.com/m4cd4r4/clear-resume",
-  "repository": "https://github.com/m4cd4r4/clear-resume"
+  "repository": "https://github.com/m4cd4r4/clear-resume",
+  "userConfig": {
+    "auto_nudge": {
+      "type": "boolean",
+      "title": "Nudge to save a handover",
+      "description": "When the chat's context passes the size in Nudge at, Claude is asked once per session to save a handover. You still type /clear. A CLEAR_RESUME_AUTO line in settings.json wins over this.",
+      "default": false
+    },
+    "nudge_at": {
+      "type": "number",
+      "title": "Nudge at (tokens)",
+      "description": "Context size, in tokens, that triggers the nudge. Set it above the size a new session starts at, and below the size where Claude Code compacts on its own. A CLEAR_RESUME_NUDGE_AT line in settings.json wins over this.",
+      "default": 180000,
+      "min": 50000,
+      "max": 1000000
+    }
+  }
 }
