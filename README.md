@@ -74,10 +74,7 @@ Two windows on one repo write two handovers. The plugin never guesses between th
 
 ## Install
 
-Node 18 or later, and git. Claude Code's native installer does not add Node, so check with
-`node -v`. Without Node 18 on your PATH, the plugin shows one line saying so when a session
-starts and stays quiet the rest of the time. On Windows, Claude Code runs plugin hooks
-through Git Bash, which comes with Git for Windows.
+Node 18 or later, and git.
 
 ```bash
 claude plugin marketplace add m4cd4r4/clear-resume
