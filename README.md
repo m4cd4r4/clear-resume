@@ -3,7 +3,7 @@
 A Claude Code plugin: write a handover, type `/clear`, and carry on in a fresh context.
 Nothing to paste and nothing else to type.
 
-<!-- VIDEO: github user-attachments URL goes here -->
+https://github.com/user-attachments/assets/32846470-8fd4-4f25-9467-1f64a08c7efc
 
 ## Why
 
