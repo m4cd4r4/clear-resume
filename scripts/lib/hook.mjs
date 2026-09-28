@@ -246,8 +246,9 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // The systemMessage below is the only line the user sees, and Claude Code draws
     // it, not us. A fresh-user test (2026-09-28, Linux, tmux) found it missing from
     // the screen after /clear in 3 of 3 tries, visible only under ctrl+o, although
-    // the model had the handover. So Claude's first reply names the handover too:
-    // whatever the terminal drew, the user learns what was resumed.
+    // the model had the handover. So Claude is also asked to name the handover in its
+    // first reply. That is a request, not a guarantee: in testing Claude skipped it
+    // 3 times in 9, so nothing user-facing may promise the line.
     parts.push(
       `clear-resume: this session continues earlier work. Handover "${load.meta.title}", saved ${age(load.meta.created, now)}${from}. ` +
         `Its branch, file and status claims are a snapshot: check them before acting. ` +

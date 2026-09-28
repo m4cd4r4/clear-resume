@@ -19,9 +19,7 @@ brief about the work, and the next session picks it up on its own.
    `~/.clear-resume/handovers/<machine>-<pid>-<timestamp>.json`.
 2. Type `/clear`.
 3. The plugin's SessionStart hook puts that handover into the fresh session's context and
-   marks it archived, so it loads exactly once. A line under the header says which handover
-   loaded, and Claude's first reply opens with `Resuming handover "<title>".` Some terminals
-   do not draw the header line after `/clear` until you press ctrl+o, so the reply names it too.
+   marks it archived, so it loads exactly once.
 
 That is the whole thing. Step 3 needs no input from you: the hook runs on every session
 start, clear and compaction, and stays silent when there is nothing waiting.
