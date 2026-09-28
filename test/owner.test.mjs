@@ -6,7 +6,7 @@
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
+import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
@@ -246,7 +246,7 @@ describe("on this machine's real process table", () => {
     expect(me).toMatch(new RegExp(`^${LIVE}@[0-9]+$`));
 
     // What save.mjs records in one process, load.mjs and the hook re-read in another.
-    const owner = new URL("../scripts/lib/owner.mjs", import.meta.url).href;
+    const owner = new URL("../plugin/scripts/lib/owner.mjs", import.meta.url).href;
     const child = spawnSync(
       process.execPath,
       ["--input-type=module", "-e", `import { ownerId } from ${JSON.stringify(owner)}; process.stdout.write(ownerId({ CLAUDE_PID: "${LIVE}" }, { timeout: ${timeout} }))`],

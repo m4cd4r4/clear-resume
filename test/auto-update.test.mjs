@@ -12,8 +12,8 @@ import { runPluginUpdate } from "../scripts/lib/auto-update-run.mjs";
 
 describe("pluginPathsChanged", () => {
   it("keeps only paths under a shipped prefix", () => {
-    const changed = ["scripts/lib/x.mjs", "docs/notes.md", "README.md", "packages/store/store.mjs", ".claude-plugin/plugin.json"];
-    expect(pluginPathsChanged(changed)).toEqual(["scripts/lib/x.mjs", "packages/store/store.mjs", ".claude-plugin/plugin.json"]);
+    const changed = ["plugin/scripts/lib/x.mjs", "docs/notes.md", "README.md", "plugin/packages/store/store.mjs", ".claude-plugin/marketplace.json"];
+    expect(pluginPathsChanged(changed)).toEqual(["plugin/scripts/lib/x.mjs", "plugin/packages/store/store.mjs", ".claude-plugin/marketplace.json"]);
   });
 
   it("is empty for a docs-only change", () => {
@@ -30,17 +30,22 @@ describe("pluginPathsChanged", () => {
   });
 
   it("covers every prefix the plugin actually ships", () => {
-    expect(PLUGIN_PATH_PREFIXES).toEqual(["scripts/", "packages/", "hooks/", "skills/", ".claude-plugin/"]);
+    expect(PLUGIN_PATH_PREFIXES).toEqual(["plugin/", ".claude-plugin/"]);
+  });
+
+  it("ignores the root dev tooling, tests and demo, which the plugin does not ship", () => {
+    const changed = ["scripts/drill.mjs", "scripts/lib/auto-update.mjs", "test/store/sync.test.mjs", "demo/index.html", "package.json"];
+    expect(pluginPathsChanged(changed)).toEqual([]);
   });
 });
 
 describe("decideAutoUpdate", () => {
-  const base = { branch: "main", isPrimaryCheckout: true, changedPaths: ["scripts/lib/x.mjs"] };
+  const base = { branch: "main", isPrimaryCheckout: true, changedPaths: ["plugin/scripts/lib/x.mjs"] };
 
   it("runs when on main, in the primary checkout, with a plugin path touched", () => {
     const d = decideAutoUpdate(base);
     expect(d.run).toBe(true);
-    expect(d.reason).toContain("scripts/lib/x.mjs");
+    expect(d.reason).toContain("plugin/scripts/lib/x.mjs");
   });
 
   it("skips on any branch other than main", () => {
@@ -74,13 +79,13 @@ describe("decideAutoUpdate", () => {
   });
 
   it("runs on a mix of plugin and non-plugin paths", () => {
-    const d = decideAutoUpdate({ ...base, changedPaths: ["README.md", "packages/store/store.mjs"] });
+    const d = decideAutoUpdate({ ...base, changedPaths: ["README.md", "plugin/packages/store/store.mjs"] });
     expect(d.run).toBe(true);
-    expect(d.reason).toContain("packages/store/store.mjs");
+    expect(d.reason).toContain("plugin/packages/store/store.mjs");
   });
 
   it("truncates a long list of touched paths in the reason", () => {
-    const changedPaths = ["scripts/a.mjs", "scripts/b.mjs", "scripts/c.mjs", "scripts/d.mjs", "scripts/e.mjs"];
+    const changedPaths = ["plugin/scripts/a.mjs", "plugin/scripts/b.mjs", "plugin/scripts/c.mjs", "plugin/scripts/d.mjs", "plugin/scripts/e.mjs"];
     const d = decideAutoUpdate({ ...base, changedPaths });
     expect(d.run).toBe(true);
     expect(d.reason).toContain("+2 more");

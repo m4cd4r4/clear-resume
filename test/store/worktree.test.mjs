@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { realpathSync } from "node:fs";
-import { normalisePath } from "../schema.mjs";
+import { normalisePath } from "../../plugin/packages/store/schema.mjs";
 
 const real = (p) => normalisePath(realpathSync.native(p));
-import { forgetWorktrees, worktreePaths } from "../worktree.mjs";
+import { forgetWorktrees, worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 
 vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 

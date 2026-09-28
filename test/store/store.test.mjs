@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { archiveRecord, handoversDir, listAll, prune, read, remove, save, setPinned, update } from "../store.mjs";
+import { archiveRecord, handoversDir, listAll, prune, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
 
 let root;
 beforeEach(() => {

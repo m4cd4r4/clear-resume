@@ -2,12 +2,12 @@ import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../packages/store/store.mjs";
-import { migrate } from "../../packages/store/migrate.mjs";
-import { pushIfSynced } from "../../packages/store/sync.mjs";
-import { loadedCopyPath } from "../../packages/store/loaded.mjs";
-import { loadedInFolders, statusText } from "../../packages/store/view.mjs";
-import { worktreePaths } from "../../packages/store/worktree.mjs";
+import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { migrate } from "../../plugin/packages/store/migrate.mjs";
+import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
+import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
+import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
+import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";

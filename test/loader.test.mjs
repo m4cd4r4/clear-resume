@@ -4,11 +4,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { age, chooseHandover } from "../scripts/lib/select.mjs";
-import { OPENER, run } from "../scripts/lib/hook.mjs";
-import { ownerId, startHookClock } from "../scripts/lib/owner.mjs";
-import { listWaiting, saveHandover } from "../scripts/lib/store.mjs";
-import { listAll, read, save } from "../packages/store/store.mjs";
+import { age, chooseHandover } from "../plugin/scripts/lib/select.mjs";
+import { OPENER, run } from "../plugin/scripts/lib/hook.mjs";
+import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
+import { listWaiting, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { listAll, read, save } from "../plugin/packages/store/store.mjs";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 const h = (title, branch, created = "2026-09-19T11:00:00Z") => ({ file: `${title}.md`, meta: { title, branch, created } });
@@ -249,7 +249,7 @@ describe("SessionStart hook", () => {
 
   it("the script emits valid JSON on stdout and exits 0", () => {
     saveHandover({ cwd: repo, title: "cli", body: "body text", root });
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/session-start.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/session-start.mjs")], {
       input: JSON.stringify({ cwd: repo, source: "clear" }),
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",
@@ -258,7 +258,7 @@ describe("SessionStart hook", () => {
   });
 
   it("the script exits 0 silently on garbage input", () => {
-    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/session-start.mjs")], {
+    const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/session-start.mjs")], {
       input: "not json",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",
@@ -368,7 +368,7 @@ describe("SessionStart hook", () => {
     git("checkout", "-q", "-b", "b");
     saveHandover({ cwd: repo, title: "not me", body: "z", root });
     const file = path.split(/[\\/]/).at(-1);
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/load.mjs"), file], {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/load.mjs"), file], {
       cwd: repo,
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",

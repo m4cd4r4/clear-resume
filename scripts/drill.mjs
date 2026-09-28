@@ -15,8 +15,8 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listAll, read, remove, save, update } from "../packages/store/store.mjs";
-import { initSync, pull, sync } from "../packages/store/sync.mjs";
+import { listAll, read, remove, save, update } from "../plugin/packages/store/store.mjs";
+import { initSync, pull, sync } from "../plugin/packages/store/sync.mjs";
 
 const seed = process.argv[2];
 const D = mkdtempSync(join(tmpdir(), "cr-drill-"));

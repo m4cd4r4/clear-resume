@@ -49,7 +49,7 @@ function simulatePull(cwd, relPath, contents, message) {
 
 describe("runHook", () => {
   it("runs the update on main, in the primary checkout, when a plugin path changed", () => {
-    simulatePull(repo, "scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
+    simulatePull(repo, "plugin/scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
     const log = vi.fn();
     const update = vi.fn(() => ({ ok: true }));
     runHook({ argv: ["node", "auto-update-on-pull.mjs", "post-merge", "0"], cwd: repo, log, update });
@@ -59,7 +59,7 @@ describe("runHook", () => {
 
   it("skips on a branch that is not main", () => {
     git(repo, "checkout", "-q", "-b", "feat/x");
-    simulatePull(repo, "scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
+    simulatePull(repo, "plugin/scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
     const log = vi.fn();
     const update = vi.fn();
     runHook({ argv: ["node", "auto-update-on-pull.mjs", "post-merge", "0"], cwd: repo, log, update });
@@ -68,7 +68,7 @@ describe("runHook", () => {
   });
 
   it("skips in a linked worktree even though it is on main", () => {
-    simulatePull(repo, "scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
+    simulatePull(repo, "plugin/scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
     const wt = join(repo, "..", `${join(repo).split(/[\\/]/).pop()}-wt`);
     git(repo, "worktree", "add", wt, "-b", "wt-branch");
     try {
@@ -110,7 +110,7 @@ describe("runHook", () => {
   });
 
   it("runs on a post-rewrite rebase that touched a plugin path", () => {
-    simulatePull(repo, "packages/store/new.mjs", "export const y = 1;\n", "rebase-equivalent change");
+    simulatePull(repo, "plugin/packages/store/new.mjs", "export const y = 1;\n", "rebase-equivalent change");
     const log = vi.fn();
     const update = vi.fn(() => ({ ok: true }));
     runHook({ argv: ["node", "auto-update-on-pull.mjs", "post-rewrite", "rebase"], cwd: repo, log, update });
@@ -118,7 +118,7 @@ describe("runHook", () => {
   });
 
   it("reports an update failure without throwing", () => {
-    simulatePull(repo, "scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
+    simulatePull(repo, "plugin/scripts/lib/new.mjs", "export const x = 1;\n", "add plugin file");
     const log = vi.fn();
     const update = vi.fn(() => ({ ok: false, detail: "claude plugin update: ENOENT" }));
     expect(() =>
