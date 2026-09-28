@@ -142,19 +142,19 @@ is asked, once per session, to write a handover and tell you to type `/clear`. T
 from the tail of the session transcript on disk. Set the threshold well above your
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
 
-It is checked after each tool call, where it warns and lets the turn continue, and when a turn
+The plugin checks the size after each tool call, where it warns and lets the turn continue, and when a turn
 ends, where it keeps the turn going so the handover gets written first. The first matters
 because one long turn can cross the threshold and be compacted without ever ending. The two
-share one mark, so you are interrupted once per session.
+checks share one marker file, so you are interrupted once per session.
 
 You see one status line, such as `clear-resume: context is about 182k tokens (nudge at 180k).
-Claude is asked to save a handover, then you can type /clear.` It is a note, not an error. At a
+Claude is asked to save a handover, then you can type /clear.` It is only a note. At a
 turn end, the instruction to Claude also shows, labelled `Stop hook feedback`.
 
 After any compaction the plugin tells the new context to re-check git and file state. That part
 is always on.
 
-As a backstop, set auto-compaction to fire well before the window is full, with
+As a fallback, set auto-compaction to fire well before the context window is full, with
 `/autocompact` or the `CLAUDE_CODE_AUTO_COMPACT_WINDOW` environment variable, for example at
 250k tokens.
 
@@ -241,7 +241,7 @@ node scripts/drill.mjs                    # synthetic store, no network
 node scripts/drill.mjs <your-store-url>   # your real store, at its real size
 ```
 
-Two machines, four fights: the same record rewritten on both in each push order, a delete
+The drill tests four conflicts between two machines: the same record rewritten on both in each push order, a delete
 racing an edit, and simultaneous creates. Then it checks the two stores agree record for
 record. Given a URL, it clones your store into a throwaway bare repo and pushes only there:
 your remote is read, never written, and `~/.clear-resume` is never opened.

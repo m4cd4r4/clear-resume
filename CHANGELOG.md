@@ -2,8 +2,8 @@
 
 ## 0.2.0
 
-Write one short handover on purpose, `/clear`, and that window's fresh session picks it up. It
-never goes to another open window, and it can sync across machines over your own git remote.
+Write one short handover on purpose, `/clear`, and that window's fresh session picks it up. Other
+open windows on the same project only list it, and it can sync across machines over your own git remote.
 
 ```bash
 claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
@@ -16,7 +16,7 @@ Already installed? Run `claude plugin marketplace update clear-resume`, then
 ### Added
 
 - **Each handover belongs to the window that wrote it.** `/clear` loads this window's own handover.
-  One that another open window owns is listed, never taken.
+  A handover that another open window owns is only listed.
 - **`load.mjs --peek`** reads a handover without taking it; **`--take`** moves another window's
   handover to this one.
 - **CI** runs the test suite on Windows, macOS and Linux.
@@ -24,7 +24,7 @@ Already installed? Run `claude plugin marketplace update clear-resume`, then
   `~/.clear-resume/loaded/`, and the load message names it on a second line. `load.mjs --peek`
   and `--take` also work on a handover that has already loaded, so a closed window's handover
   can be read or moved again.
-- **A VS Code extension** (`macdara.clear-resume`, on the Marketplace and Open VSX): a sidebar
+- **A VS Code extension** (`macdara.clear-resume`, on the Marketplace and Open VSX) shows a sidebar
   of waiting handovers with a Loaded group at the top, and a status-bar item naming the handover
   this workspace loaded. Click either to open the readable copy.
 
@@ -32,7 +32,7 @@ Already installed? Run `claude plugin marketplace update clear-resume`, then
 
 - **A window is its Claude Code process id plus the time that process started.** A closed
   window's pid that Windows hands to a new process no longer looks like an open window, and on
-  macOS and Linux a native binary named after its version is recognised.
+  macOS and Linux the plugin now recognises a Claude Code native binary named after its version.
 - **After compaction, only this window's own handover loads.** Anything else waiting is listed.
 - **Printed output names a handover by its title and a short id**, with paths relative to `~`,
   so no machine or user name appears in it.

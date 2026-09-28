@@ -32,8 +32,8 @@ Generate New Token. Save the new value to the same file.
 
 ## Publish commands (every release)
 
-Run from `extension/`. Bump `version` in `extension/package.json` first -
-both stores refuse to publish a version that is already live.
+Run from `extension/`. Bump `version` in `extension/package.json` first.
+Both stores refuse to publish a version that is already live.
 
 ```bash
 cd extension
@@ -53,7 +53,7 @@ npx ovsx publish -p "$(cat ~/.claude/secrets/ovsx-token)"
 
 Both `publish` commands package the extension themselves, so the earlier
 `vsce package` step is only there so you can read the file list and size
-before anything goes out. If you logged in with `vsce login` above, the
+before anything goes out. If you have logged in with `vsce login`, the
 Marketplace command can drop `-p "..."` and just be `npx @vscode/vsce
 publish`.
 
@@ -65,7 +65,7 @@ would rather not hand-edit the version number first.
 
 - Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume`
 - Open VSX listing: `https://open-vsx.org/extension/macdara/clear-resume`
-- The root README's "The VS Code sidebar" section installs from these
+- The root README's "The VS Code sidebar" section links to these
   listings. Check both links resolve after the first publish.
 
 ## Regenerating the Marketplace icon
@@ -81,6 +81,5 @@ cd extension
 npx --yes sharp-cli -i media/icon-marketplace.svg -o media/icon.png resize 256 256
 ```
 
-`icon-marketplace.svg` is excluded from the packaged `.vsix` by
-`.vscodeignore`; it is a source asset, not something the running extension
-needs.
+`icon-marketplace.svg` is only the source for `media/icon.png`, so
+`.vscodeignore` keeps it out of the packaged `.vsix`.
