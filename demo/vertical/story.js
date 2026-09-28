@@ -73,35 +73,38 @@
   var CARDS = {
     c1a: "<b>Context</b>: everything Claude is holding in mind for this chat.",
     c1b: "Each reply rereads all of it, so long chats get slow.",
-    c1c: "Long chats also cost more, and Claude starts losing track.",
-    c2a: "<code>/compact</code>: Claude summarises itself. You do not choose what stays.",
-    c2b: "<code>/clear</code>: a fresh start. Like a new shift with no note.",
-    c3a: "A third way: a short handover note, written on purpose.",
+    c1c: "Long chats also use up more of your plan or budget.",
+    c2a: "Chat full? <code>/compact</code> shrinks it into Claude's own summary.",
+    c2b: "<code>/clear</code> empties it. The next session starts knowing nothing.",
+    c3a: "A third way: type <code>/clear-resume:handover</code>. Claude writes a short note.",
     c3b: "Like a nurse's shift note, so the next shift can carry on.",
     c3c: "It holds the goal, the next step and the decisions made.",
     c4a: "Type <code>/clear</code>. The fresh session loads the note by itself.",
     c4b: "Then type <code>go</code>. The next shift reads the note and carries on.",
-    c4c: "It also saves a readable copy and prints where it is.",
-    c6a: "Each note belongs to the window that wrote it.",
-    c6b: "Other open windows see it waiting. They do not load it.",
-    c7a: "Hours later, the sidebar shows what this window loaded.",
+    c4c: "The plugin also keeps the note as a file to reopen or share.",
+    c6a: "Two Claude Code windows open on the same project?",
+    c6b: "Only the window that wrote the note loads it after <code>/clear</code>.",
+    c6c: "Others list it when they start. They load it only if asked.",
+    c7a: "The clear-resume VS Code extension lists each loaded note for a day.",
     c7b: "Click the status bar line to reopen the note.",
-    c8a: "Auto mode is off unless you turn it on.",
-    c8b: "When on, it offers a handover past a size you choose.",
+    c8a: "Optional: past a size you set, the plugin asks Claude for a note.",
+    c8b: "Here that size is 180k tokens. It is off by default.",
   };
 
   var STATS = {
     token: "Token: a small piece of text, roughly a word.",
-    s1: ["197,536", "tokens in the chat before each /clear"],
-    s2: ["102,088", "tokens freed by each /clear"],
+    s1: ["197,536", "tokens in the chat before a typical /clear"],
+    s2: ["102,088", "tokens a typical /clear frees"],
+    s2note: "The rest is what any new session starts with.",
     s3: ["780", "tokens in the handover note (an estimate)"],
-    share: "The note is about 0.4% of the chat it replaces.",
+    share: "The note is about 0.4% of the context before a /clear.",
     source: "Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.",
   };
 
   var CLOSE = {
     headline: "Clear often, lose nothing.",
     line: "clear-resume: a free, open-source plugin for Claude Code.",
+    ext: "The VS Code sidebar is a separate clear-resume extension.",
     foot: "Made by an independent developer. Not an Anthropic product.",
   };
 
@@ -177,12 +180,12 @@
 
   /* ---- timing shared by the markup and the timeline ---- */
   var CUT = {
-    p1: [0, 17],
-    p3: [17, 13.3],
-    p4: [30.3, 11.3],
-    p6: [50.2, 6.5],
-    p8: [62.8, 6.0],
-    close: [68.5, 6.5],
+    p1: [0, 16.4],
+    p3: [16.4, 11.9],
+    p4: [28.3, 10.6],
+    p6: [50.0, 7.3],
+    p8: [63.6, 6.0],
+    close: [69.4, 5.6],
   };
 
   function clip(id, cls, span, track) {
@@ -193,14 +196,14 @@
   }
 
   var BEATS = [
-    { n: "01", word: "THE PROBLEM", ghost: "CONTEXT", at: 0, until: 9.5 },
-    { n: "02", word: "TWO OLD WAYS", ghost: "CHOICES", at: 9.5, until: 17 },
-    { n: "03", word: "THE NOTE", ghost: "NOTE", at: 17, until: 30.2 },
-    { n: "04", word: "CLEAR, THEN GO", ghost: "RESUME", at: 30.3, until: 41.2 },
-    { n: "05", word: "THE NUMBERS", ghost: "NUMBERS", at: 41.5, until: 50.2 },
-    { n: "06", word: "MANY WINDOWS", ghost: "WINDOWS", at: 50.3, until: 56.4 },
-    { n: "07", word: "THE SIDEBAR", ghost: "SIDEBAR", at: 56.6, until: 62.8 },
-    { n: "08", word: "AUTO MODE", ghost: "AUTO", at: 63, until: 68.2 },
+    { n: "01", word: "THE PROBLEM", ghost: "CONTEXT", at: 0, until: 9.2 },
+    { n: "02", word: "TWO BUILT-IN WAYS", ghost: "CHOICES", at: 9.2, until: 16.4 },
+    { n: "03", word: "THE NOTE", ghost: "NOTE", at: 16.4, until: 28.2 },
+    { n: "04", word: "CLEAR, THEN GO", ghost: "RESUME", at: 28.3, until: 38.6 },
+    { n: "05", word: "THE NUMBERS", ghost: "NUMBERS", at: 38.9, until: 50.0 },
+    { n: "06", word: "MANY WINDOWS", ghost: "WINDOWS", at: 50.1, until: 57.1 },
+    { n: "07", word: "VS CODE SIDEBAR", ghost: "SIDEBAR", at: 57.3, until: 63.7 },
+    { n: "08", word: "OPTIONAL NUDGE", ghost: "NUDGE", at: 63.9, until: 69.2 },
   ];
 
   function markup() {
@@ -265,17 +268,21 @@
       out("p4-h1", CAP.loaded),
       out("p4-h2", CAP.copy, true),
       typed("p4-go", "p4-gotyped"),
-      said("p4-c1", "Claude", "The handover's next action: run the cart tests, then fix src/cart.js:2."),
+      said("p4-c1", "Claude", "Running the cart tests, then fixing src/cart.js:2."),
       tool("p4-c2", "", "Bash", "npm test -- cart"),
       tool("p4-c3", "", "Edit", "src/cart.js"),
       tool("p4-c4", "", "Bash", "npm test -- cart"),
       said("p4-c5", "", "cartTotal now rounds once, at the total. The cart tests pass."),
       "</section>",
 
-      // 06 many windows: window 1 has just saved; window 2 opens
+      // 06 many windows: window 1 has just saved; window 2 opens. The save
+      // command is the whole captured line, heredoc and all; only body lines
+      // between the title and EOF are left out.
       clip("p6", "phase top", CUT.p6, 1),
       ask(null, "/clear-resume:handover", true),
-      tool(null, "Claude", "Bash", CAP.saveCmd, true),
+      tool(null, "Claude", "Bash", CAP.saveCmd + " <<'EOF'", true),
+      row(null, "", "md md-h1", text(CAP.body[0][1]), true),
+      row(null, "", "md md-mu", text("EOF"), true),
       out(null, CAP.saved, false, true),
       out(null, CAP.next, true, true),
       "</section>",
@@ -299,7 +306,7 @@
       "</div>", // #body
       "</div>", // #window
 
-      // the second window, in front of the first
+      // the second window: its own frame, below and offset from the first
       '<div id="win2" data-layout-allow-overlap>',
       '<div class="tb2"><span class="repo2">widget-shop</span><span class="tag2">window 2</span></div>',
       '<div class="body2">',
@@ -309,7 +316,7 @@
 
       // VS Code, hours later: the sidebar, the status bar, the readable copy
       '<div id="editor">',
-      '<div id="ed-top"><span>widget-shop</span></div>',
+      '<div id="ed-top"><span>VS Code &middot; widget-shop</span></div>',
       '<div id="ed-main">',
       '<div id="ed-activity"><i></i><i></i><i></i><i class="on"></i></div>',
       '<div id="ed-side">',
@@ -336,10 +343,10 @@
       // the side cards, one set per beat
       '<div id="cards">',
       '<div class="cardset" id="cs1">' + card("c1a") + card("c1b") + card("c1c") + "</div>",
-      '<div class="cardset" id="cs2">' + card("c2a") + card("c2b", "shift") + "</div>",
+      '<div class="cardset" id="cs2">' + card("c2a") + card("c2b") + "</div>",
       '<div class="cardset" id="cs3">' + card("c3a") + card("c3b", "shift") + card("c3c") + "</div>",
       '<div class="cardset" id="cs4">' + card("c4a") + card("c4b", "shift") + card("c4c") + "</div>",
-      '<div class="cardset" id="cs6">' + card("c6a") + card("c6b") + "</div>",
+      '<div class="cardset" id="cs6">' + card("c6a") + card("c6b") + card("c6c") + "</div>",
       '<div class="cardset" id="cs7">' + card("c7a") + card("c7b") + "</div>",
       '<div class="cardset" id="cs8">' + card("c8a") + card("c8b") + "</div>",
       "</div>",
@@ -349,7 +356,8 @@
       '<div id="st-token">' + esc(STATS.token) + "</div>",
       '<div id="st-row">',
       '<div class="stat" id="st1"><div class="num">' + STATS.s1[0] + '</div><div class="lab">' + text(STATS.s1[1]) + "</div></div>",
-      '<div class="stat" id="st2"><div class="num">' + STATS.s2[0] + '</div><div class="lab">' + text(STATS.s2[1]) + "</div></div>",
+      '<div class="stat" id="st2"><div class="num">' + STATS.s2[0] + '</div><div class="lab">' + text(STATS.s2[1]) + "</div>" +
+        '<div class="sub" id="st2n">' + esc(STATS.s2note) + "</div></div>",
       '<div class="stat" id="st3"><div class="num"><small>about</small>' + STATS.s3[0] + '</div><div class="lab">' + text(STATS.s3[1]) + "</div></div>",
       "</div>",
       '<div id="st-share">' + esc(STATS.share) + "</div>",
@@ -372,6 +380,7 @@
       '<div class="cmd">' + esc(CAP.installAdd) + '<span class="cont"> \\</span> <span class="arg">' + esc(CAP.installUrl) + "</span></div>",
       '<div class="cmd">' + esc(CAP.installPlugin) + "</div>",
       "</div>",
+      '<div id="close-ext">' + esc(CLOSE.ext) + "</div>",
       '<div id="close-foot">' + esc(CLOSE.foot) + "</div>",
       "</section>",
 
@@ -504,12 +513,12 @@
     var SEGMENTS = [
       { t0: 0.8, t1: 4.2, v0: 0.62, v1: 0.82, ease: "linear" },
       { t0: 4.3, t1: 5.6, v0: 0.82, v1: 0.93, ease: "linear" },
-      { t0: 18.9, t1: 23.4, v0: 0.93, v1: 0.96, ease: "linear" },
-      { t0: 29.55, t1: 30.3, v0: 0.96, v1: 0.05, ease: "out3" },
-      { t0: 30.9, t1: 31.7, v0: 0.05, v1: 0.08, ease: "out2" },
-      { t0: 33.4, t1: 37.0, v0: 0.08, v1: 0.13, ease: "linear" },
-      { t0: 50.1, t1: 50.15, v0: 0.13, v1: 0.96, ease: "linear" },
-      { t0: 62.7, t1: 62.75, v0: 0.96, v1: 0.91, ease: "linear" },
+      { t0: 18.3, t1: 22.0, v0: 0.93, v1: 0.96, ease: "linear" },
+      { t0: 27.55, t1: 28.3, v0: 0.96, v1: 0.05, ease: "out3" },
+      { t0: 28.9, t1: 29.7, v0: 0.05, v1: 0.08, ease: "out2" },
+      { t0: 31.4, t1: 35.0, v0: 0.08, v1: 0.13, ease: "linear" },
+      { t0: 49.9, t1: 49.95, v0: 0.13, v1: 0.96, ease: "linear" },
+      { t0: 63.5, t1: 63.55, v0: 0.96, v1: 0.91, ease: "linear" },
     ];
     function shape(p, ease) {
       if (ease === "out3") return 1 - Math.pow(1 - p, 3);
@@ -585,7 +594,7 @@
     });
 
     /* ==================================================================
-     * 01 THE PROBLEM - 0.0 to 9.5
+     * 01 THE PROBLEM - 0.0 to 9.2
      * ================================================================ */
     print("#p1-ask", 0.8);
     print("#p1-c1", 1.7);
@@ -594,135 +603,146 @@
     print("#p1-c4", 3.9);
     print("#p1-c5", 5.2);
     showCard("#c1a", 1.2);
-    showCard("#c1b", 4.4);
-    showCard("#c1c", 6.9);
-    hideSet("#cs1", 9.2);
+    showCard("#c1b", 4.3);
+    showCard("#c1c", 6.7);
+    hideSet("#cs1", 8.9);
 
     /* ==================================================================
-     * 02 TWO OLD WAYS - 9.5 to 17.0: the user types each, and thinks better
+     * 02 TWO BUILT-IN WAYS - 9.2 to 16.4: the user types each, and thinks
+     * better of it
      * ================================================================ */
-    print("#p1-type", 9.8);
+    print("#p1-type", 9.5);
     typeScript(
       document.getElementById("p1-typed"),
       [
-        { at: 10.1, text: "/compact", speed: 0.075 },
-        { at: 12.9, erase: true, speed: 0.035 },
-        { at: 13.5, text: "/clear", speed: 0.075 },
-        { at: 16.0, erase: true, speed: 0.035 },
+        { at: 9.8, text: "/compact", speed: 0.075 },
+        { at: 12.4, erase: true, speed: 0.035 },
+        { at: 13.0, text: "/clear", speed: 0.075 },
+        { at: 15.4, erase: true, speed: 0.035 },
       ],
-      16.9,
+      16.3,
     );
-    showCard("#c2a", 10.2);
-    showCard("#c2b", 13.6);
-    hideSet("#cs2", 16.7);
+    showCard("#c2a", 9.9);
+    showCard("#c2b", 13.0);
+    hideSet("#cs2", 16.1);
 
     /* ==================================================================
-     * 03 THE NOTE - 17.0 to 30.3: the handover skill writes and saves it
+     * 03 THE NOTE - 16.4 to 28.3: the handover skill writes and saves it
      * ================================================================ */
-    print("#p3-ask", 17.2);
-    typeScript(document.getElementById("p3-typed"), [{ at: 17.3, text: "/clear-resume:handover", speed: 0.05 }], 18.7);
-    print("#p3-t", 18.9);
-    var at = 19.35;
+    print("#p3-ask", 16.6);
+    typeScript(document.getElementById("p3-typed"), [{ at: 16.7, text: "/clear-resume:handover", speed: 0.05 }], 18.1);
+    print("#p3-t", 18.3);
+    var at = 18.75;
     CAP.body.forEach(function (b, i) {
       print("#p3-b" + i, at, b[0] === "bd" ? 30 : 44);
       at += b[0] === "bd" ? 0.32 : 0.2;
     });
     print("#p3-eof", at + 0.1);
-    print("#p3-o1", 23.4);
-    print("#p3-o2", 23.75);
-    showCard("#c3a", 17.6);
-    showCard("#c3b", 20.4);
-    showCard("#c3c", 22.4);
+    print("#p3-o1", 21.6);
+    print("#p3-o2", 21.95);
+    showCard("#c3a", 16.9);
+    showCard("#c3b", 19.5);
+    showCard("#c3c", 21.6);
 
     // The /clear that ends the session: typed with the note still on screen,
     // then the whole session leaves upward as one group.
-    print("#p3-clear", 28.6);
-    var clearTyped = typeScript(document.getElementById("p3-cleartyped"), [{ at: 28.7, text: "/clear", speed: 0.07 }], 29.5);
-    hideSet("#cs3", 29.2);
-    tl.fromTo("#p3-stack", { y: 0 }, { y: -80, duration: 0.46, ease: "power3.in", immediateRender: false }, Math.max(clearTyped, 29.5));
-    tl.fromTo("#p3-stack", { opacity: 1 }, { opacity: 0, duration: 0.46, ease: "power3.in", immediateRender: false }, Math.max(clearTyped, 29.5));
+    print("#p3-clear", 26.6);
+    var clearTyped = typeScript(document.getElementById("p3-cleartyped"), [{ at: 26.7, text: "/clear", speed: 0.07 }], 27.5);
+    hideSet("#cs3", 27.2);
+    tl.fromTo("#p3-stack", { y: 0 }, { y: -80, duration: 0.46, ease: "power3.in", immediateRender: false }, Math.max(clearTyped, 27.5));
+    tl.fromTo("#p3-stack", { opacity: 1 }, { opacity: 0, duration: 0.46, ease: "power3.in", immediateRender: false }, Math.max(clearTyped, 27.5));
 
     /* ==================================================================
-     * 04 CLEAR, THEN GO - 30.3 to 41.2
+     * 04 CLEAR, THEN GO - 28.3 to 38.6
      * The hook's lines are there before anyone types. Claude says nothing
      * until the user types go.
      * ================================================================ */
-    print("#p4-h1", 30.9);
-    print("#p4-h2", 31.15);
-    print("#p4-go", 32.4);
-    typeScript(document.getElementById("p4-gotyped"), [{ at: 32.5, text: "go", speed: 0.09 }], 33.1);
-    print("#p4-c1", 33.4);
-    print("#p4-c2", 34.3);
-    print("#p4-c3", 35.2);
-    print("#p4-c4", 36.0);
-    print("#p4-c5", 37.0);
-    showCard("#c4a", 30.6);
-    showCard("#c4b", 32.8);
-    showCard("#c4c", 37.9);
+    print("#p4-h1", 28.9);
+    print("#p4-h2", 29.15);
+    print("#p4-go", 30.4);
+    typeScript(document.getElementById("p4-gotyped"), [{ at: 30.5, text: "go", speed: 0.09 }], 31.1);
+    print("#p4-c1", 31.4);
+    print("#p4-c2", 32.3);
+    print("#p4-c3", 33.2);
+    print("#p4-c4", 34.0);
+    print("#p4-c5", 35.0);
+    showCard("#c4a", 28.6);
+    showCard("#c4b", 30.8);
+    showCard("#c4c", 35.4);
     // the copy's path line lights up as the card names it
-    tl.fromTo("#p4-h2 .txt", { backgroundColor: "rgba(229,167,67,0)" }, { backgroundColor: "rgba(229,167,67,0.14)", duration: 0.3, ease: "power2.out", immediateRender: false }, 38.0);
-    hideSet("#cs4", 40.8);
-    fadeOut("#window", 41.0, 0.45);
+    tl.fromTo("#p4-h2 .txt", { backgroundColor: "rgba(229,167,67,0)" }, { backgroundColor: "rgba(229,167,67,0.14)", duration: 0.3, ease: "power2.out", immediateRender: false }, 35.5);
+    hideSet("#cs4", 38.2);
+    fadeOut("#window", 38.4, 0.45);
 
     /* ==================================================================
-     * 05 THE NUMBERS - 41.5 to 50.2
+     * 05 THE NUMBERS - 38.9 to 50.0, one figure at a time; the share line
+     * gets the last 3.7 seconds to itself
      * ================================================================ */
-    tl.set("#stats", { opacity: 1 }, 41.45);
-    showCard("#st-token", 41.6);
-    showCard("#st-source", 41.6);
-    showCard("#st1", 42.3);
-    showCard("#st2", 43.7);
-    showCard("#st3", 45.1);
-    showCard("#st-share", 46.7);
-    hideSet("#stats", 49.9);
+    tl.set("#stats", { opacity: 1 }, 38.85);
+    showCard("#st-token", 39.1);
+    showCard("#st1", 40.2);
+    showCard("#st-source", 40.2);
+    showCard("#st2", 41.9);
+    showCard("#st2n", 42.7);
+    showCard("#st3", 44.3);
+    showCard("#st-share", 46.0);
+    hideSet("#stats", 49.7);
 
     /* ==================================================================
-     * 06 MANY WINDOWS - 50.3 to 56.4
+     * 06 MANY WINDOWS - 50.1 to 57.1. Window 1 is shortened while it is off
+     * screen, so window 2 sits below it in its own frame, never inside it.
      * ================================================================ */
-    tl.set("#wtag", { opacity: 1 }, 50.2);
-    tl.set("#wtag", { opacity: 0 }, 56.7);
-    fadeIn("#window", 50.35, 0.4);
-    tl.fromTo("#win2", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 51.2);
-    print("#w2-line", 51.9);
-    showCard("#c6a", 50.9);
-    showCard("#c6b", 53.3);
-    hideSet("#cs6", 56.1);
-    fadeOut("#window", 56.2, 0.35);
-    tl.fromTo("#win2", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power3.in", immediateRender: false }, 56.2);
+    var win = document.getElementById("window");
+    var winFullH = getComputedStyle(win).height;
+    var winManyH = getComputedStyle(root).getPropertyValue("--win1-many-h").trim();
+    tl.set("#window", { height: winManyH }, 50.0);
+    tl.set("#wtag", { opacity: 1 }, 50.0);
+    tl.set("#wtag", { opacity: 0 }, 57.4);
+    fadeIn("#window", 50.15, 0.4);
+    tl.fromTo("#win2", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 51.6);
+    print("#w2-line", 52.2);
+    showCard("#c6a", 50.5);
+    showCard("#c6b", 52.2);
+    showCard("#c6c", 54.2);
+    hideSet("#cs6", 56.8);
+    fadeOut("#window", 56.9, 0.35);
+    tl.fromTo("#win2", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power3.in", immediateRender: false }, 56.9);
+    tl.set("#window", { height: winFullH }, 57.4);
 
     /* ==================================================================
-     * 07 THE SIDEBAR - 56.6 to 62.8, hours later in VS Code
+     * 07 VS CODE SIDEBAR - 57.3 to 63.7, hours later, in the extension
      * ================================================================ */
-    fadeIn("#editor", 56.6, 0.4);
-    showCard("#ed-group", 57.1);
-    showCard("#ed-row", 57.3);
-    showCard("#ed-item", 57.7);
-    showCard("#c7a", 57.2);
-    showCard("#c7b", 59.3);
-    tl.fromTo("#ed-item", { backgroundColor: "rgba(229,167,67,0)" }, { backgroundColor: "rgba(229,167,67,0.30)", duration: 0.25, ease: "power2.out", immediateRender: false }, 59.7);
-    tl.set("#ed-tab", { opacity: 1 }, 60.3);
-    tl.set("#ed-doc", { opacity: 1 }, 60.3);
-    tl.fromTo("#ed-doc", { y: 16 }, { y: 0, duration: 0.2, ease: "power4.out", immediateRender: false }, 60.3);
-    hideSet("#cs7", 62.5);
-    fadeOut("#editor", 62.5, 0.35);
+    fadeIn("#editor", 57.3, 0.4);
+    showCard("#ed-group", 57.8);
+    showCard("#ed-row", 58.0);
+    showCard("#ed-item", 58.4);
+    showCard("#c7a", 57.9);
+    showCard("#c7b", 60.2);
+    tl.fromTo("#ed-item", { backgroundColor: "rgba(229,167,67,0)" }, { backgroundColor: "rgba(229,167,67,0.30)", duration: 0.25, ease: "power2.out", immediateRender: false }, 60.6);
+    tl.set("#ed-tab", { opacity: 1 }, 61.2);
+    tl.set("#ed-doc", { opacity: 1 }, 61.2);
+    tl.fromTo("#ed-doc", { y: 16 }, { y: 0, duration: 0.2, ease: "power4.out", immediateRender: false }, 61.2);
+    hideSet("#cs7", 63.4);
+    fadeOut("#editor", 63.4, 0.35);
 
     /* ==================================================================
-     * 08 AUTO MODE - 63.0 to 68.2
+     * 08 OPTIONAL NUDGE - 63.9 to 69.2
      * ================================================================ */
-    fadeIn("#window", 62.95, 0.4);
-    showCard("#c8a", 63.4);
-    print("#p8-nudge", 64.5);
-    showCard("#c8b", 65.3);
-    hideSet("#cs8", 67.9);
+    fadeIn("#window", 63.75, 0.4);
+    showCard("#c8a", 64.2);
+    print("#p8-nudge", 65.0);
+    showCard("#c8b", 66.4);
+    hideSet("#cs8", 68.9);
 
     /* ==================================================================
-     * CLOSE - 68.5 to the end
+     * CLOSE - 69.4 to the end
      * ================================================================ */
-    fadeOut("#window", 68.0, 0.5);
-    showCard("#close-head", 68.7);
-    showCard("#close-line", 69.0);
-    showCard("#close-cmd", 69.3);
-    showCard("#close-foot", 69.7);
+    fadeOut("#window", 68.9, 0.5);
+    showCard("#close-head", 69.6);
+    showCard("#close-line", 69.9);
+    showCard("#close-cmd", 70.2);
+    showCard("#close-ext", 70.6);
+    showCard("#close-foot", 70.9);
 
     tl.seek(0);
     return tl;

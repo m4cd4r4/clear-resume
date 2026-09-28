@@ -52,3 +52,14 @@ terminal that behaves, no voiceover, no music.
 - Terminal text is the captured output (`D:/Scratch/cr-video3-sandbox/captured-text.md`),
   shortened only by leaving lines out. User and Claude lines are labelled.
 - Not made by Anthropic; the close says so.
+
+## v3.1 (2026-09-28, after two critic passes)
+
+- Share line reads "about 0.4% of the context before a /clear" (what was measured); labels say
+  "a typical /clear", since the values are medians. Stat 2 carries one line on the gap: the rest
+  is what any new session starts with.
+- No quality claim anywhere: card 1c is about cost only.
+- The sidebar is labelled as the separate clear-resume VS Code extension, and the card says what
+  the code does (lists each loaded note for a day), not "this window".
+- Publish preconditions: the extension listing is live, and the repo README shows the HTTPS
+  marketplace form the close uses (clear-resume PR #37).
