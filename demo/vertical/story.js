@@ -93,11 +93,11 @@
 
   var STATS = {
     token: "Token: a small piece of text, roughly a word.",
-    s1: ["197,536", "tokens in the chat before a typical /clear"],
-    s2: ["102,088", "tokens a typical /clear frees"],
-    s2note: "The rest is what any new session starts with.",
+    // Only what a /clear frees, never the context before it: the gap between the
+    // two is the author's own session-start setup, which is not a typical user's.
+    s1: ["102,088", "tokens a typical /clear frees"],
     s3: ["780", "tokens in the handover note (an estimate)"],
-    share: "The note is about 0.4% of the context before a /clear.",
+    share: "The note costs under 1% of what a /clear frees.",
     source: "Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.",
   };
 
@@ -356,8 +356,6 @@
       '<div id="st-token">' + esc(STATS.token) + "</div>",
       '<div id="st-row">',
       '<div class="stat" id="st1"><div class="num">' + STATS.s1[0] + '</div><div class="lab">' + text(STATS.s1[1]) + "</div></div>",
-      '<div class="stat" id="st2"><div class="num">' + STATS.s2[0] + '</div><div class="lab">' + text(STATS.s2[1]) + "</div>" +
-        '<div class="sub" id="st2n">' + esc(STATS.s2note) + "</div></div>",
       '<div class="stat" id="st3"><div class="num"><small>about</small>' + STATS.s3[0] + '</div><div class="lab">' + text(STATS.s3[1]) + "</div></div>",
       "</div>",
       '<div id="st-share">' + esc(STATS.share) + "</div>",
@@ -682,10 +680,8 @@
     showCard("#st-token", 39.1);
     showCard("#st1", 40.2);
     showCard("#st-source", 40.2);
-    showCard("#st2", 41.9);
-    showCard("#st2n", 42.7);
-    showCard("#st3", 44.3);
-    showCard("#st-share", 46.0);
+    showCard("#st3", 42.6);
+    showCard("#st-share", 45.0);
     hideSet("#stats", 49.7);
 
     /* ==================================================================
