@@ -15,6 +15,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileName, isExpired, isPurgeable, normalise, recordId } from "./schema.mjs";
+import { pruneLoaded } from "./loaded.mjs";
 
 export function storeRoot(env = process.env) {
   return env.CLEAR_RESUME_HOME ? resolve(env.CLEAR_RESUME_HOME) : join(homedir(), ".clear-resume");
@@ -167,6 +168,9 @@ export function listAll(root = storeRoot(), { includeDeleted = false } = {}) {
  * Pinned records are exempt from both, and a waiting record is never deleted
  * however old: it only falls to the Stale group.
  *
+ * The readable copies of loaded handovers (loaded.mjs) go on the archived-record
+ * timer too, so that folder never grows without limit either.
+ *
  * Returns the ids that left the visible tree, so a caller can log what it tidied.
  */
 export function prune({ root = storeRoot(), now = new Date() } = {}) {
@@ -179,5 +183,6 @@ export function prune({ root = storeRoot(), now = new Date() } = {}) {
       if (unlink(record.id, root)) affected.push(record.id);
     }
   }
+  pruneLoaded({ root, now });
   return affected;
 }

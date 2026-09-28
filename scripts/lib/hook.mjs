@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url";
 import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
+import { writeLoadedCopy } from "../../packages/store/loaded.mjs";
 import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
 import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
-import { shellPath } from "./display.mjs";
+import { shellPath, tildePath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
 
 const LOAD_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "load.mjs");
@@ -133,6 +134,40 @@ function pruneQuietly(root, now) {
   }
 }
 
+/**
+ * Write the readable copy of a loaded handover and return the line that names it,
+ * or "" when there is no copy.
+ *
+ * After /clear the loaded handover is in Claude's context and nowhere the user can
+ * open, so the load message names a plain markdown copy to read, copy, or
+ * @-mention in another session. Best effort: a copy that cannot be written is
+ * skipped, and the load goes on without the line.
+ *
+ * The path is printed relative to "~", as every path this plugin prints is, so it
+ * carries no user name. The twin invocation rewrites the same file, dated by the
+ * first one's load.
+ */
+function copyLine(root, load, top, loadedAt) {
+  try {
+    const copy = writeLoadedCopy(
+      root,
+      {
+        id: load.id ?? handoverId(load.meta),
+        title: load.meta.title,
+        // A copy carried in git names a repo path from wherever it was written.
+        repoPath: load.source === "worktree" ? top : load.meta.repo || top,
+        branch: load.meta.branch,
+        createdAt: load.meta.created,
+        body: load.body,
+      },
+      { loadedAt },
+    );
+    return copy ? `A copy to read or share: ${tildePath(copy)}` : "";
+  } catch {
+    return "";
+  }
+}
+
 // Window in which a second SessionStart is taken for the twin of the first rather
 // than a genuinely new session. Measured here the pair land within a second of
 // each other; 15s is slack for a slow pull. Kept deliberately short, because a
@@ -232,11 +267,13 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
 
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
+  let copy = "";
 
   if (load) {
     // The owner is already known whenever any waiting handover has one. For an
     // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
     if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: cheapMe() });
+    copy = copyLine(root, load, top, echo ? load.archivedAt || now : now);
     // An untracked working-tree copy is marked consumed only once the output is
     // out (afterOutput below): marked here, an undelivered load lost it for good.
     if (!echo && load.source !== "worktree") markConsumed(root, key, load.meta);
@@ -292,6 +329,9 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     const note = `${plural(inGit.length, "handover")} found in git, not loaded (may not be yours): ${titleList(inGit)}.`;
     shown = shown ? `${shown} Also ${note}` : `clear-resume: ${note}`;
   }
+
+  // Its own line, and the last one, so it can be copied or clicked on its own.
+  if (copy) shown = `${shown}\n${copy}`;
 
   const out = {
     systemMessage: shown,

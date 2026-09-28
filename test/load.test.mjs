@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
+import { ownerId, pidAlive, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
 
 const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 
@@ -20,6 +20,28 @@ const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
 // as long as the child it spawns, and its pid is never the caller's CLAUDE_PID.
 const OTHER_LIVE = String(process.pid);
 const ME = "111";
+
+// A live process that is not Claude-shaped, holding a pid a handover names. It runs
+// in the test repo: in the runner's own cwd, outside any repo, `git cat-file` exits
+// at once, and a dead pid is a closed window, which is not the case under test.
+function squat() {
+  const p = spawn("git", ["cat-file", "--batch"], { cwd: repo, stdio: ["pipe", "ignore", "ignore"] });
+  expect(pidAlive(p.pid)).toBe(true);
+  return p;
+}
+
+// Ends it and waits until it has gone, so it no longer holds the repo as its cwd:
+// Windows will not delete a folder a live process sits in. End of input stops git
+// itself as well as the Git for Windows launcher in front of it; kill() would stop
+// only the launcher.
+function unsquat(p) {
+  return new Promise((resolve) => {
+    if (p.exitCode !== null || p.signalCode !== null) return resolve();
+    p.once("exit", resolve);
+    p.stdin.end();
+    setTimeout(() => p.kill(), 10_000).unref();
+  });
+}
 
 let root, repo;
 const git = (...a) => execFileSync("git", a, { cwd: repo, stdio: "ignore" });
@@ -83,8 +105,8 @@ describe("load.mjs on a handover another open window owns", () => {
 describe("load.mjs on a pid that a closed window left behind", { timeout: 30_000 }, () => {
   // Windows hands a closed window's pid to the next process. A live pid that is
   // no longer a Claude process is a closed window, so its handover is claimable.
-  it("archives a handover whose owner pid now belongs to a non-Claude process", () => {
-    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+  it("archives a handover whose owner pid now belongs to a non-Claude process", async () => {
+    const squatter = squat();
     try {
       const { path } = saveHandover({ cwd: repo, title: "orphaned", body: "o", root, owner: String(squatter.pid) });
       const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
@@ -92,11 +114,13 @@ describe("load.mjs on a pid that a closed window left behind", { timeout: 30_000
         env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
         encoding: "utf8",
       });
+      // Still alive: a pid that died is a closed window for a simpler reason.
+      expect(pidAlive(squatter.pid)).toBe(true);
       expect(out.status).toBe(0);
       expect(out.stdout).not.toContain("read only");
       expect(record(path).status).toBe("archived");
     } finally {
-      squatter.kill();
+      await unsquat(squatter);
     }
   });
 });
@@ -285,10 +309,10 @@ describe("SessionStart judges owners against the env it runs with", () => {
 describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 }, () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("loads a handover whose owner pid now belongs to a non-Claude process", () => {
+  it("loads a handover whose owner pid now belongs to a non-Claude process", async () => {
     vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
     startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
-    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+    const squatter = squat();
     try {
       const { path } = saveHandover({ cwd: repo, title: "Yesterday's work", body: "y", root, owner: String(squatter.pid) });
 
@@ -298,7 +322,7 @@ describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 
       expect(out.hookSpecificOutput.additionalContext).not.toContain("belongs to another open window");
       expect(record(path).status).toBe("archived");
     } finally {
-      squatter.kill();
+      await unsquat(squatter);
     }
   });
 });
@@ -371,8 +395,8 @@ describe("load.mjs on a pid a later Claude-shaped process now holds", { timeout:
 // the one mistake this cannot make. /proc is read directly on Linux, with no
 // process to time out.
 describe.skipIf(process.platform === "linux")("load.mjs when the process lookup times out", { timeout: 30_000 }, () => {
-  it("leaves a live owner's handover waiting rather than guess the window closed", () => {
-    const squatter = spawn("git", ["cat-file", "--batch"], { stdio: ["pipe", "ignore", "ignore"] });
+  it("leaves a live owner's handover waiting rather than guess the window closed", async () => {
+    const squatter = squat();
     try {
       const { path } = saveHandover({ cwd: repo, title: "unknown", body: "u", root, owner: String(squatter.pid) });
       const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
@@ -380,10 +404,15 @@ describe.skipIf(process.platform === "linux")("load.mjs when the process lookup 
         env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "", CLEAR_RESUME_PROCESS_TIMEOUT_MS: "1" },
         encoding: "utf8",
       });
+      // The owner is still running: had it died, archiving would be right.
+      expect(pidAlive(squatter.pid)).toBe(true);
       expect(out.stdout).toContain("read only");
       expect(record(path).status).toBe("waiting");
+      // A read is not a load: no readable copy is written or named.
+      expect(out.stdout).not.toContain("A copy to read or share");
+      expect(existsSync(join(root, "loaded"))).toBe(false);
     } finally {
-      squatter.kill();
+      await unsquat(squatter);
     }
   });
 });

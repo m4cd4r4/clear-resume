@@ -19,7 +19,9 @@ brief about the work, and the next session picks it up on its own.
    `~/.clear-resume/handovers/<machine>-<pid>-<timestamp>.json`.
 2. Type `/clear`.
 3. The plugin's SessionStart hook puts that handover into the fresh session's context and
-   marks it archived, so it loads exactly once.
+   marks it archived, so it loads exactly once. It also writes a plain markdown copy to
+   `~/.clear-resume/loaded/` and prints its path, so you can read the handover this session
+   started from, or @-mention it in another session.
 
 That is the whole thing. Step 3 needs no input from you: the hook runs on every session
 start, clear and compaction, and stays silent when there is nothing waiting.
@@ -65,7 +67,9 @@ Two windows on one repo write two handovers. The plugin never guesses between th
 - Otherwise it lists them by title and branch and waits for you to say which.
 - A handover that belongs to another open window is listed with `load.mjs --peek`, which
   reads it without taking it. Plain `load.mjs` also leaves it waiting for that window;
-  `--take` moves it to this session.
+  `--take` moves it to this session. Both also find a handover that was already loaded, so
+  one from a window that has closed can still be read, or taken back to wait for this
+  window's `/clear`.
 - A handover older than 7 days is listed, never loaded, so a forgotten one cannot land in
   unrelated work.
 - A handover dated more than 5 minutes in the future, or one that came through git (a file
@@ -94,7 +98,8 @@ claude --plugin-dir ./clear-resume
 - **A turn.** Writing a handover is Claude doing work: it runs a few git commands and writes
   30-odd lines.
 - **Files on disk.** One small JSON file per handover under `~/.clear-resume/handovers/`,
-  plain text, holding whatever the handover said. Resumed handovers are kept for 30 days and
+  plain text, holding whatever the handover said, and a markdown copy of each loaded one
+  under `~/.clear-resume/loaded/`. Resumed handovers and their copies are kept for 30 days and
   then removed; nothing grows without limit, but nothing is encrypted either.
 - **Three hooks.** SessionStart on every start, clear and compaction. PostToolUse after every
   tool call and Stop after every turn, auto mode or not: each starts node and exits at once

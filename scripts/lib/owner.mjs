@@ -30,8 +30,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
 
-// A hook waits at most this long for the process table and then carries on not
-// knowing...
+// A hook waits at most this long for the process table when it asks about
+// another window, and then carries on not knowing: that only answers "open"...
 const HOOK_TIMEOUT_MS = 2500;
 // ...and never past this point in its own run. Claude Code kills a SessionStart
 // hook at 10s, the pull before the lookup may take 8s of that, and the archive
@@ -40,15 +40,27 @@ const HOOK_TIMEOUT_MS = 2500;
 // all and answers as a failed lookup does: the bare CLAUDE_PID for this window,
 // "open" for any other. A fixed 2.5s ran a slow-pull start to 10.7s (review of
 // fix/owner-and-hook-cost, 2026-09-27), and Claude Code killed it.
+//
+// This window's own lookup (ownerId) is not held to the 2.5s: it gets all that is
+// left of the 9s. Not knowing this window's start costs its own handover, listed
+// instead of loaded and after /compact not offered at all, and under load
+// Get-Process took over 2.5s (2026-09-28: the --take tests failed that way when
+// several suites ran at once). The hook asks only when a handover in play carries
+// this window's pid, so only a /clear that should load one pays for the wait.
 const HOOK_BUDGET_MS = 9000;
 const MIN_LOOKUP_MS = 200;
 // A hook is its own process, so the process's start is the hook's, node's own
 // startup included.
 let hookStart = performance.timeOrigin;
 
-/** Restart the hook's budget, for a caller that runs hook code inside a longer-lived process (the tests). */
+/**
+ * Restart the hook's budget, for a caller that runs hook code inside a
+ * longer-lived process (the tests). Each such run is a new hook, so the reads an
+ * earlier one remembered, a failed one included, are forgotten too.
+ */
 export function startHookClock(at = Date.now()) {
   hookStart = at;
+  memo.clear();
 }
 // load.mjs and save.mjs have no budget. Windows PowerShell on a cold CI runner
 // took over 5s.
@@ -67,12 +79,14 @@ const timeoutFor = (env, fallback) =>
 
 // How long a read may take now: a function, so a later read in the same run gets
 // what is left by then. An explicit timeout (load.mjs, save.mjs) has no deadline.
-function budget(env, timeout) {
+// A hook's own lookup (`self`) is capped only by the budget, or by an explicit
+// CLEAR_RESUME_PROCESS_TIMEOUT_MS.
+function budget(env, timeout, { self = false } = {}) {
   if (timeout != null) {
     const t = timeoutFor(env, timeout);
     return () => t;
   }
-  const cap = timeoutFor(env, HOOK_TIMEOUT_MS);
+  const cap = timeoutFor(env, self ? Infinity : HOOK_TIMEOUT_MS);
   return () => Math.min(cap, HOOK_BUDGET_MS - (Date.now() - hookStart));
 }
 
@@ -319,7 +333,7 @@ const myPid = (env) => String(env.CLAUDE_PID ?? "").trim() || walkedPid;
  */
 export function ownerId(env = process.env, { table, readTable, timeout } = {}) {
   const injected = Boolean(table || readTable);
-  const left = budget(env, timeout);
+  const left = budget(env, timeout, { self: true });
   const fromEnv = String(env.CLAUDE_PID ?? "").trim();
   if (fromEnv) {
     if ((!injected && walkOff(env)) || !pidAlive(fromEnv)) return fromEnv;

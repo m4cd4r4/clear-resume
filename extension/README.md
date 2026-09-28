@@ -10,6 +10,10 @@ writes them and loads them automatically when you `/clear`.
 ## What it gives you
 
 - A **Handovers** sidebar, grouped into Current repo, Other repos and Stale.
+- A **Loaded** group at the top lists the handovers loaded in the last 24 hours, and a click
+  opens a readable copy of one.
+- A **status-bar item** names the handover this repo loaded most recently, such as
+  `Handover: Cart totals rounding (loaded 3h ago)`, and a click opens the same copy.
 - **Resume** opens a Claude Code tab with that handover's prompt pre-filled and
   not submitted, so you read it before you send it.
 - **Pin** keeps a handover out of the stale and delete timers.

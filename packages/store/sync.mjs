@@ -253,7 +253,18 @@ export function sync(root = storeRoot(), { now = new Date(), timeout = TIMEOUT_M
   return { ok: true, resolved: pulled.resolved };
 }
 
-const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
+// Resolved on use, not at load. The VS Code extension bundles this file as
+// CommonJS, where import.meta is empty: a path computed at load time threw before
+// the extension could activate, so the packaged sidebar never opened (2026-09-28).
+// The extension ships without scripts/sync.mjs, so there it resolves to nothing
+// and no push is started.
+function cliPath() {
+  try {
+    return join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Send this machine's changes without waiting for the network.
@@ -264,7 +275,9 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts",
  */
 export function pushInBackground(root = storeRoot(), env = process.env) {
   if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return null;
-  const child = spawn(process.execPath, [CLI], {
+  const cli = cliPath();
+  if (!cli || !existsSync(cli)) return null;
+  const child = spawn(process.execPath, [cli], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
