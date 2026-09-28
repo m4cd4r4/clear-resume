@@ -7,7 +7,7 @@ destination: github-readme (16:9); linkedin and threads (9:16)
 aspect: 1920x1080 and 1080x1920
 language: en
 length: 75s
-angle: explainer (shift-handover note metaphor)
+angle: explainer (plain words; the shift-note metaphor was cut 2026-09-28)
 ---
 
 ## Intent
@@ -44,7 +44,7 @@ terminal that behaves, no voiceover, no music.
 
 - Takeaway: "Clear often, lose nothing." ELI5: a viewer who has never heard of a context
   window must follow it; the first card defines "context" in plain words.
-- Side cards use the shift-handover note metaphor, at most about twelve words each, one claim
+- Side cards use plain words and no metaphor, at most about twelve words each, one claim
   per card, no em-dash, en-dash or ellipsis. Each card's paraphrase is in STORYBOARD.md.
 - Numbers are the author's own: 104 /clears, 20 to 28 Sep 2026, medians. Context before
   /clear 197,536 tokens; freed per /clear 102,088; the note about 780 (estimate), about 0.4%.

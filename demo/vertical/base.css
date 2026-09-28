@@ -520,7 +520,7 @@ body {
   will-change: transform, opacity;
 }
 
-/* The shift-note cards: the metaphor, set like a paper note. */
+/* Unused since the shift-note metaphor was cut (2026-09-28). */
 .card.shift {
   border-color: rgba(229, 167, 67, 0.55);
   border-left-color: var(--accent);
