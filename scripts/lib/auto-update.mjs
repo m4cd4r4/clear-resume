@@ -22,8 +22,12 @@
 // scripts/auto-update-on-pull.mjs for the CLI that gathers the real inputs and
 // scripts/lib/auto-update-run.mjs for the part that shells out.
 
-/** Path prefixes (relative to the repo root) that make up the shipped plugin. */
-export const PLUGIN_PATH_PREFIXES = ["scripts/", "packages/", "hooks/", "skills/", ".claude-plugin/"];
+/**
+ * Path prefixes (relative to the repo root) that make up the shipped plugin: the
+ * plugin/ folder the marketplace entry points at, and the marketplace file itself.
+ * The root scripts/ folder is dev tooling (this hook, the drill) and ships nothing.
+ */
+export const PLUGIN_PATH_PREFIXES = ["plugin/", ".claude-plugin/"];
 
 /**
  * Paths (relative, forward-slashed, as `git diff --name-only` prints them)

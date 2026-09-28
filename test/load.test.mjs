@@ -10,11 +10,11 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
-import { ownerId, pidAlive, startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { ownerId, pidAlive, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
-const LOAD = join(import.meta.dirname, "../scripts/load.mjs");
+const LOAD = join(import.meta.dirname, "../plugin/scripts/load.mjs");
 
 // This test process is a running window that is not the caller's: it is alive for
 // as long as the child it spawns, and its pid is never the caller's CLAUDE_PID.

@@ -3,10 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { listAll, read, remove, save, setPinned, update } from "../store.mjs";
-import { run } from "../../../scripts/lib/hook.mjs";
-import { reopen, saveHandover } from "../../../scripts/lib/store.mjs";
-import { initSync, isSynced, pushIfSynced, pushInBackground, sync } from "../sync.mjs";
+import { listAll, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
+import { run } from "../../plugin/scripts/lib/hook.mjs";
+import { reopen, saveHandover } from "../../plugin/scripts/lib/store.mjs";
+import { initSync, isSynced, pushIfSynced, pushInBackground, sync } from "../../plugin/packages/store/sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
 // timeout is about the process spawns, not about anything under test.
@@ -297,7 +297,7 @@ describe("session start", () => {
 
 describe("sync.mjs CLI", () => {
   function cli(root, ...args) {
-    return execFileSync(process.execPath, [join(import.meta.dirname, "../../../scripts/sync.mjs"), ...args], {
+    return execFileSync(process.execPath, [join(import.meta.dirname, "../../plugin/scripts/sync.mjs"), ...args], {
       env: { ...process.env, CLEAR_RESUME_HOME: root },
       encoding: "utf8",
     });

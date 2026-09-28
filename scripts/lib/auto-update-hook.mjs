@@ -4,11 +4,11 @@
 //
 // Kept apart from the thin scripts/auto-update-on-pull.mjs CLI (which only
 // calls runHook() and swallows anything unexpected) so this can be imported
-// and tested directly, the same way scripts/lib/hook.mjs's run() is tested
+// and tested directly, the same way plugin/scripts/lib/hook.mjs's run() is tested
 // instead of the session-start.mjs entry point that calls it.
 import { execFileSync } from "node:child_process";
-import { repoInfo } from "./store.mjs";
-import { mainWorktree, worktreePaths } from "../../packages/store/worktree.mjs";
+import { repoInfo } from "../../plugin/scripts/lib/store.mjs";
+import { mainWorktree, worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { decideAutoUpdate } from "./auto-update.mjs";
 import { runPluginUpdate } from "./auto-update-run.mjs";
 

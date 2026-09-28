@@ -7,11 +7,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { ownerId } from "../scripts/lib/owner.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { ownerId } from "../plugin/scripts/lib/owner.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
 
-vi.mock("../scripts/lib/owner.mjs", async (importOriginal) => {
+vi.mock("../plugin/scripts/lib/owner.mjs", async (importOriginal) => {
   const real = await importOriginal();
   return { ...real, ownerId: vi.fn(real.ownerId) };
 });

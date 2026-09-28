@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { archiveRecord, listAll, setPinned } from "../store.mjs";
-import { migrate } from "../migrate.mjs";
+import { archiveRecord, listAll, setPinned } from "../../plugin/packages/store/store.mjs";
+import { migrate } from "../../plugin/packages/store/migrate.mjs";
 
 let tmp, notes, handoffs, root;
 

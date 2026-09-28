@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normalise } from "../schema.mjs";
-import { group, loadedAge, loadedHere, loadedInFolders, recentlyLoaded, statusText, treeGroups } from "../view.mjs";
+import { normalise } from "../../plugin/packages/store/schema.mjs";
+import { group, loadedAge, loadedHere, loadedInFolders, recentlyLoaded, statusText, treeGroups } from "../../plugin/packages/store/view.mjs";
 
 const NOW = new Date("2026-09-20T00:00:00.000Z");
 const rec = (over) =>

@@ -3,9 +3,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listAll } from "../packages/store/store.mjs";
-import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../scripts/lib/store.mjs";
-import { startFromEpochMs } from "../scripts/lib/owner.mjs";
+import { listAll } from "../plugin/packages/store/store.mjs";
+import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../plugin/scripts/lib/store.mjs";
+import { startFromEpochMs } from "../plugin/scripts/lib/owner.mjs";
 
 let root, repo;
 
@@ -172,7 +172,7 @@ describe("saveHandover", () => {
 
 describe("save.mjs CLI", () => {
   it("reads the body from stdin", () => {
-    execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+    execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "# Handover\n\nCost is $600 and `code` stays.\n",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
@@ -187,7 +187,7 @@ describe("save.mjs CLI", () => {
   // the whole path, home folder and all, and the skill showed it to the user - on
   // a screenshare, in a demo. It prints the title and a short id instead.
   it("reports the title and a short id, never the machine name or a home-folder path", () => {
-    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "body",
       env: { ...process.env, CLEAR_RESUME_HOME: root },
@@ -203,7 +203,7 @@ describe("save.mjs CLI", () => {
 
   it("exits 1 on empty stdin", () => {
     expect(() =>
-      execFileSync(process.execPath, [join(import.meta.dirname, "../scripts/save.mjs"), "--title", "t", "--cwd", repo], {
+      execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "t", "--cwd", repo], {
         cwd: repo,
         input: "",
         env: { ...process.env, CLEAR_RESUME_HOME: root },

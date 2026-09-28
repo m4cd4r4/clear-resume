@@ -14,12 +14,12 @@ import { existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, symlinkSync, unl
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { chooseHandover } from "../scripts/lib/select.mjs";
-import { saveHandover } from "../scripts/lib/store.mjs";
-import { commitHandover, REPO_FILE } from "../scripts/lib/web.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { chooseHandover } from "../plugin/scripts/lib/select.mjs";
+import { saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { commitHandover, REPO_FILE } from "../plugin/scripts/lib/web.mjs";
 
-const SESSION_START = join(import.meta.dirname, "../scripts/session-start.mjs");
+const SESSION_START = join(import.meta.dirname, "../plugin/scripts/session-start.mjs");
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
 beforeAll(() => {

@@ -4,11 +4,11 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { run } from "../scripts/lib/hook.mjs";
-import { handoverMarkdown, saveHandover } from "../scripts/lib/store.mjs";
-import { commitHandover, remoteBranches, REPO_FILE } from "../scripts/lib/web.mjs";
+import { run } from "../plugin/scripts/lib/hook.mjs";
+import { handoverMarkdown, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { commitHandover, remoteBranches, REPO_FILE } from "../plugin/scripts/lib/web.mjs";
 
-const SAVE = join(import.meta.dirname, "../scripts/save.mjs");
+const SAVE = join(import.meta.dirname, "../plugin/scripts/save.mjs");
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
 beforeAll(() => {

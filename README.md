@@ -90,7 +90,7 @@ without installing anything:
 
 ```bash
 git clone https://github.com/m4cd4r4/clear-resume
-claude --plugin-dir ./clear-resume
+claude --plugin-dir ./clear-resume/plugin
 ```
 
 ## What it costs you
@@ -189,8 +189,8 @@ two machines can never write the same path. That makes it a git repo that cannot
 creates.
 
 ```bash
-node scripts/sync.mjs init git@github.com:you/your-store.git   # once per machine
-node scripts/sync.mjs                                          # a sync by hand
+node plugin/scripts/sync.mjs init git@github.com:you/your-store.git   # once per machine
+node plugin/scripts/sync.mjs                                          # a sync by hand
 ```
 
 Use a **private** repo. The store holds every handover you have written: repo paths, branch
@@ -277,20 +277,24 @@ npm install
 npx vitest run
 ```
 
+The plugin is the `plugin/` folder, and the marketplace entry points there. An install copies
+that folder and nothing else. Tests, the extension, the demo and the dev scripts in `scripts/`
+stay in the repo. The plugin has no `package.json`, so an install runs no `npm` either.
+
 Web mode's save and push were tested live on Claude Code on the web on 2026-09-19. Since
 0.1.5 the next cloud session lists that handover with the command that prints it, rather than
 loading it.
 
 ### Developing this plugin
 
-Claude Code does not run this repo directly. Installing the plugin copies it into
+Claude Code does not run this repo directly. Installing the plugin copies `plugin/` into
 `~/.claude/plugins/cache/clear-resume/clear-resume/<version>/`, and that copy - not this
 checkout - is what a session actually loads. Merging a fix here changes nothing about it until
 someone updates the install:
 
 ```bash
 git pull --ff-only                                 # 1. bring the repo up to date
-claude plugin marketplace update clear-resume       # 2. re-read this repo's plugin.json
+claude plugin marketplace update clear-resume       # 2. re-read this repo's marketplace.json
 claude plugin update clear-resume@clear-resume      # 3. copy the new version into the cache
 ```
 
@@ -301,8 +305,7 @@ Skipping steps 2-3 is exactly how a merged fix sits unused: it happened three ti
 `.githooks/post-merge` and `.githooks/post-rewrite` (covering both a fast-forward/merge pull
 and a `--rebase` one) run the two `claude plugin` commands automatically, but only when the
 branch is `main`, the checkout is the primary one (never a linked worktree), and the pull
-actually touched a plugin path (`scripts/`, `packages/`, `hooks/`, `skills/`,
-`.claude-plugin/`). It never fails the pull: on skip or on error it prints one line saying
+actually touched a plugin path (`plugin/` or `.claude-plugin/`). It never fails the pull: on skip or on error it prints one line saying
 what happened and exits 0 regardless. The decision logic lives in
 `scripts/lib/auto-update-hook.mjs` and is covered by `test/auto-update.test.mjs` and
 `test/auto-update-hook.test.mjs`.
