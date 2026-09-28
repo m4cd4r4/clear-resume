@@ -9,46 +9,16 @@ publish commands per release.
 
 ### Visual Studio Code Marketplace
 
-1. **Create the publisher.** Go to
-   [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage)
-   and sign in with a Microsoft account. Create a publisher with the id
-   `m4cd4r4` (this must match the `publisher` field in
-   `extension/package.json`). Pick a display name; a publisher icon is
-   optional.
-2. **Get a Marketplace access token.** As of today (2026-09-28) a classic
-   Azure DevOps Personal Access Token still works, but Microsoft has
-   announced that classic PATs in Azure DevOps retire on 1 December 2026, and
-   its docs already point automated publishing toward Microsoft Entra ID
-   with workload identity federation instead. That path is written for CI
-   pipelines, not a single local publish, so it is not a clean drop-in yet.
-   **Re-read
-   [the official publishing guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension)
-   before your first publish if that publish happens on or after 1 December
-   2026** - the steps below may need replacing by then.
+Already done. The publisher is `macdara`, the same one that publishes
+[Portpilot](https://marketplace.visualstudio.com/items?itemName=macdara.portpilot),
+and it matches the `publisher` field in `extension/package.json`. The access
+token is saved at `C:/Users/Hard-Worker/.claude/secrets/vsce-pat` (bare value,
+never committed). It passed `npx @vscode/vsce verify-pat macdara` on 2026-09-28.
 
-   Today's steps:
-   - Go to [dev.azure.com](https://dev.azure.com) and sign in (create a free
-     organization if you do not have one).
-   - User settings (top right) -> Personal access tokens -> New Token.
-   - Name: anything, for example "clear-resume marketplace".
-   - Organization: **All accessible organizations**.
-   - Expiration: your choice, up to one year. Note the date so you remember
-     to rotate it.
-   - Scopes: Custom defined -> **Marketplace: Manage**.
-   - Create, then copy the token immediately. It is shown once.
-3. **Save the token locally**, not in the repo:
-   `C:/Users/Hard-Worker/.claude/secrets/vsce-pat`, the bare token value,
-   nothing else in the file.
-4. **Log in once** from `extension/`:
-   ```
-   npx @vscode/vsce login m4cd4r4
-   ```
-   and paste the token when prompted. This stores it for future `vsce
-   publish` calls without a `-p` flag; you can also pass `-p` explicitly
-   each time instead of logging in (see the publish commands below).
-
-Rough time: 10 minutes if you already have an Azure DevOps organization,
-15 to 20 if you need to create one.
+Microsoft retires classic Azure DevOps personal access tokens on 1 December
+2026. Before any publish on or after that date, re-read
+[the official publishing guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension)
+for the replacement sign-in.
 
 ### Open VSX
 
@@ -68,7 +38,7 @@ Rough time: 10 minutes if you already have an Azure DevOps organization,
    `C:/Users/Hard-Worker/.claude/secrets/ovsx-token`, the bare token value.
 7. **Create the namespace**, once, from `extension/`:
    ```
-   npx ovsx create-namespace m4cd4r4 -p "$(cat /c/Users/Hard-Worker/.claude/secrets/ovsx-token)"
+   npx ovsx create-namespace macdara -p "$(cat /c/Users/Hard-Worker/.claude/secrets/ovsx-token)"
    ```
 
 Rough time: 10 minutes.
@@ -106,8 +76,8 @@ would rather not hand-edit the version number first.
 
 ## After publishing
 
-- Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=m4cd4r4.clear-resume`
-- Open VSX listing: `https://open-vsx.org/extension/m4cd4r4/clear-resume`
+- Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume`
+- Open VSX listing: `https://open-vsx.org/extension/macdara/clear-resume`
 - Update the root README's "The VS Code sidebar" section with the install
   lines drafted below, replacing the current build-it-yourself instructions.
 
