@@ -5,15 +5,37 @@
   "version": "0.2.1",
   "publisher": "m4cd4r4",
   "license": "MIT",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1E2536",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/m4cd4r4/clear-resume/tree/main/extension#readme",
+  "bugs": {
+    "url": "https://github.com/m4cd4r4/clear-resume/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/m4cd4r4/clear-resume"
+    "url": "https://github.com/m4cd4r4/clear-resume",
+    "directory": "extension"
   },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "AI"
+  ],
+  "keywords": [
+    "claude",
+    "claude code",
+    "ai agent",
+    "handover",
+    "resume",
+    "sessions",
+    "context",
+    "sidebar",
+    "productivity"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -41,7 +63,13 @@
     "viewsWelcome": [
       {
         "view": "clearResume.history",
-        "contents": "No handovers yet.\n\nWrite one with the /handover skill, or import the ones you already have.\n[Import existing handovers](command:clearResume.migrate)"
+        "when": "clearResume.hasLegacy",
+        "contents": "No handovers yet.\n\nWrite one with the /clear-resume:handover skill, or import the ones you already have.\n[Import existing handovers](command:clearResume.migrate)"
+      },
+      {
+        "view": "clearResume.history",
+        "when": "!clearResume.hasLegacy",
+        "contents": "No handovers yet.\n\nWrite one with the /clear-resume:handover skill."
       }
     ],
     "commands": [
@@ -105,6 +133,10 @@
         {
           "command": "clearResume.open",
           "when": "false"
+        },
+        {
+          "command": "clearResume.migrate",
+          "when": "clearResume.hasLegacy"
         }
       ],
       "view/title": [

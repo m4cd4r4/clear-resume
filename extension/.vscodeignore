@@ -2,3 +2,5 @@ src/**
 esbuild.mjs
 tsconfig.json
 **/*.map
+media/icon-marketplace.svg
+PUBLISHING.md
