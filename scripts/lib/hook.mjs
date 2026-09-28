@@ -91,6 +91,9 @@ function titleList(list) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+/** The line Claude's first reply opens with after a load. One line, whatever the title holds. */
+export const OPENER = (title) => `Resuming handover "${clean(title)}".`;
+
 // After auto-compaction the summary is lossy about exact state, so the new
 // context is told to re-check it before acting on anything it "remembers".
 const COMPACT_NOTE =
@@ -240,9 +243,17 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     // A branch mismatch is the one thing about a loaded handover the user should
     // notice, so it goes in both strings rather than only in Claude's copy.
     const from = load.meta.branch && load.meta.branch !== branch ? `, written on branch ${load.meta.branch}` : "";
+    // The systemMessage below is the only line the user sees, and Claude Code draws
+    // it, not us. A fresh-user test (2026-09-28, Linux, tmux) found it missing from
+    // the screen after /clear in 3 of 3 tries, visible only under ctrl+o, although
+    // the model had the handover. So Claude is also asked to name the handover in its
+    // first reply. That is a request, not a guarantee: in testing Claude skipped it
+    // 3 times in 9, so nothing user-facing may promise the line.
     parts.push(
       `clear-resume: this session continues earlier work. Handover "${load.meta.title}", saved ${age(load.meta.created, now)}${from}. ` +
-        `Its branch, file and status claims are a snapshot: check them before acting.\n\n${load.body.trim()}`,
+        `Its branch, file and status claims are a snapshot: check them before acting. ` +
+        `The user may not have seen the load notice, so open your first reply with this one line, then carry on: ` +
+        `${OPENER(load.meta.title)}\n\n${load.body.trim()}`,
     );
     shown = `clear-resume: loaded handover "${load.meta.title}" (saved ${age(load.meta.created, now)}${from}).`;
   }
