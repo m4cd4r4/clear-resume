@@ -276,8 +276,13 @@ describe("session start", () => {
     const repo = join(tmp, "work");
     mkdirSync(repo, { recursive: true });
 
+    // saveHandover starts its own push in the background. Racing it, the sync
+    // below could lose the commit and give up, and machine b then fetched before
+    // the winner had pushed (macOS CI, three runs). One sync, checked.
+    vi.stubEnv("CLEAR_RESUME_SYNC", "off");
     saveHandover({ cwd: repo, title: "written on a", body: "do the thing", root: a });
-    sync(a);
+    vi.unstubAllEnvs();
+    expect(sync(a).ok).toBe(true);
 
     const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: b } });
     expect(out.hookSpecificOutput.additionalContext).toContain("written on a");
