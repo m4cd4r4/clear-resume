@@ -79,7 +79,7 @@ function claimNudge(env, sessionId) {
 
 export function runStop(input, { env = process.env } = {}) {
   if (!autoEnabled(env)) return null;
-  if (input.stop_hook_active) return null; // Claude is already continuing from a Stop block
+  if (input.stop_hook_active) return null; // Claude is already continuing from a Stop hook
   const sessionId = slugify(input.session_id ?? "");
   if (!sessionId) return null;
 
@@ -89,15 +89,27 @@ export function runStop(input, { env = process.env } = {}) {
 
   if (!claimNudge(env, sessionId)) return null;
 
+  // Not `decision: "block"`: Claude Code 2.1.283 shows a block as "Stop hook
+  // error: ...", which reads as a crash. Stop's additionalContext still keeps
+  // the turn going so Claude can act, with the same stop_hook_active loop guard,
+  // but is labelled "Stop hook feedback". systemMessage is the user's own line.
   return {
-    decision: "block",
-    reason:
-      `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
-      `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, ` +
-      `then tell the user to type /clear: the handover loads by itself in the fresh session. ` +
-      `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
-      `This reminder fires once per session.`,
+    systemMessage: userLine(tokens, limit, "Claude is asked to save a handover"),
+    hookSpecificOutput: {
+      hookEventName: "Stop",
+      additionalContext:
+        `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
+        `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, ` +
+        `then tell the user to type /clear: the handover loads by itself in the fresh session. ` +
+        `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
+        `This reminder fires once per session.`,
+    },
   };
+}
+
+// The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
+function userLine(tokens, limit, ask) {
+  return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, then you can type /clear.`;
 }
 
 // PostToolUse: the Stop hook only runs when a turn ends, so a single long
@@ -116,6 +128,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
   if (!claimNudge(env, sessionId)) return null;
 
   return {
+    systemMessage: userLine(tokens, limit, "Claude is asked to save a handover when this step is done"),
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext:

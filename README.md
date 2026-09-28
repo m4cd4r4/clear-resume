@@ -126,8 +126,12 @@ Claude Code cannot run `/clear` from a hook, so the plugin can only get close to
 
   It is checked in two places, because one long turn can cross the threshold and be compacted
   without ever ending: after each tool call, where it warns and lets the turn continue, and
-  when a turn ends, where it blocks so the handover gets written first. The two share one
-  mark, so you are interrupted once per session either way.
+  when a turn ends, where it keeps the turn going so the handover gets written first. The two
+  share one mark, so you are interrupted once per session either way.
+
+  You see one status line, such as `clear-resume: context is about 182k tokens (nudge at
+  180k)`. It is a note, not an error. At a turn end, Claude's instruction also shows as
+  `Stop hook feedback`.
 - **After compaction.** When Claude Code compacts the context, the plugin tells the new
   context to re-check git and file state, and loads a waiting handover if there is one. This
   part is always on.
