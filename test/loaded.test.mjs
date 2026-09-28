@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../scripts/lib/hook.mjs";
 import { archive, saveHandover } from "../scripts/lib/store.mjs";
-import { startHookClock } from "../scripts/lib/owner.mjs";
+import { startFromEpochMs, startHookClock } from "../scripts/lib/owner.mjs";
 import { shortId as displayShortId } from "../scripts/lib/display.mjs";
 import { archiveRecord, listAll, prune, remove, update } from "../packages/store/store.mjs";
 import { loadedCopyName, loadedCopyPath, loadedCopyText, loadedDir, shortId, writeLoadedCopy } from "../packages/store/loaded.mjs";
@@ -374,7 +374,7 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
 
   it("refuses a superseded, a deleted and an extension-resumed handover: only a hook or load.mjs load counts", () => {
     const began = Date.now() - 4000;
-    const owner = `${ME}@${began}`;
+    const owner = `${ME}@${startFromEpochMs(began)}`;
     const superseded = saveHandover({ cwd: repo, title: "First draft", body: "f body", root, owner, now: new Date(began + 1000) });
     saveHandover({ cwd: repo, title: "Second draft", body: "s", root, owner, now: new Date(began + 2000) });
     expect(record(superseded.path).archivedBy.via).toBe("supersede");
