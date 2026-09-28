@@ -59,9 +59,18 @@ export function lastContextTokens(transcriptPath) {
 
 export { autoEnabled };
 
+// The plugin option nudge_at, which Claude Code passes to hooks only once the
+// user has set it (and bounds to 50000-1000000 itself).
+export const NUDGE_AT_OPTION = "CLAUDE_PLUGIN_OPTION_NUDGE_AT";
+
+// CLEAR_RESUME_NUDGE_AT wins when it is a usable number, then the plugin option,
+// then the default. A bad value falls through rather than turning the nudge off.
 export function threshold(env) {
-  const n = Number(env.CLEAR_RESUME_NUDGE_AT);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_THRESHOLD;
+  for (const raw of [env.CLEAR_RESUME_NUDGE_AT, env[NUDGE_AT_OPTION]]) {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return DEFAULT_THRESHOLD;
 }
 
 const k = (n) => `${Math.round(n / 1000)}k`;
