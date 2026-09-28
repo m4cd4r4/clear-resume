@@ -77,7 +77,7 @@ Claude counts context in tokens. A token is a small piece of text, roughly a wor
 ## Install: two commands in your terminal
 
 > [!IMPORTANT]
-> Needs **Node 18 or later** and **git**. Claude Code's native installer does not add Node, so check with `node -v`. Without Node 18 on your PATH, the plugin shows one line saying so when a session starts, and does nothing else.
+> You need **Node 18 or later** and **git**. Claude Code's native installer does not add Node, so check with `node -v`. Without Node 18 on your PATH, the plugin shows one line saying so when a session starts, and does nothing else.
 >
 > On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
 
@@ -88,7 +88,7 @@ claude plugin install clear-resume@clear-resume
 
 Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`.
 
-Built and used daily on Windows 11. CI runs the tests on Windows, macOS and Linux. macOS and Linux have not been tested by hand yet.
+The author built it on Windows 11 and uses it there every day. CI runs the tests on Windows, macOS and Linux, but macOS and Linux have not been tested by hand yet.
 
 <details>
 <summary><b>Update</b></summary>
@@ -122,7 +122,7 @@ Your handovers stay in `~/.clear-resume` until you delete that folder. If you ad
   <img src="docs/media/windows.png" width="560" alt="Window 1, on widget-shop, branch fix/cart-rounding, runs /clear-resume:handover and prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). Then it runs /clear and prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now). Window 2, open on the same project and branch, prints: clear-resume: 1 handover waiting for this repo: &quot;Cart totals rounding&quot;. Say which to resume.">
 </p>
 
-**Two Claude Code windows open on one project do not load each other's handovers.** While the window that wrote a handover is open, only that window loads it after `/clear`. Other windows on the same project list it when they start, and load it only if you ask. Once that window closes, a session on the same branch loads it. A handover older than 7 days is listed, not loaded.
+**Each handover belongs to the Claude Code window that wrote it.** While that window is open, it is the only one that loads the handover after `/clear`. Other windows on the same project list it when they start, and load it only if you ask. Once that window closes, a session on the same branch loads it. A handover older than 7 days is listed, not loaded.
 
 <details>
 <summary><b>Which handover loads when a session starts</b></summary>
@@ -157,7 +157,7 @@ These are the common cases. After compaction, only this window's own handover lo
   <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the clear-resume sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor, and the status bar reads: Handover: Cart totals rounding (loaded 3h ago).">
 </p>
 
-**The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. The status bar names the handover this workspace loaded; click it to open the copy. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, not yet sent.
+**The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. The status bar names the handover this workspace loaded; click it to open the copy. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, where it waits for you to send it.
 
 Search for clear-resume in the Extensions view, or run:
 
@@ -171,7 +171,7 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** is off by default. To turn it on, add one line to the `env` block of `~/.claude/settings.json`:
+**The nudge** (auto mode) is off by default. To turn it on, add one line to the `env` block of `~/.claude/settings.json`:
 
 ```json
 { "env": { "CLEAR_RESUME_AUTO": "1" } }
