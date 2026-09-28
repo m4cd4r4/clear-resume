@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- The store listing shows two screenshots: the sidebar with a loaded handover open, and Resume
+  filling in a Claude Code tab.
+
 ## 0.2.1
 
 First Marketplace release.

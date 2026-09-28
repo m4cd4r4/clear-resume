@@ -2,6 +2,8 @@
 
 Browse your Claude Code handovers and resume one in a fresh conversation.
 
+![The clear-resume sidebar in VS Code: Loaded, Current repo, Other repos and Stale groups, the loaded handover's readable copy open in the editor, and the status bar reading Handover: Cart totals rounding (loaded 3h ago).](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-sidebar.png)
+
 A handover is a short brief a session writes about its own work, so the next
 session can carry on without the conversation that produced it. This extension
 is the history view over them; the [clear-resume plugin](https://github.com/m4cd4r4/clear-resume)
@@ -24,6 +26,8 @@ claude plugin install clear-resume@clear-resume
 - **Resume** opens a Claude Code tab with that handover's prompt pre-filled and
   not submitted, so you read it before you send it.
 - **Pin** keeps a handover out of the stale and delete timers.
+
+![After Resume, a Claude Code tab with the prompt box filled in: Resume from handover "Refund flow tests", then its goal and next action. It is not sent.](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-resume.png)
 
 The plugin covers the common path: write a handover, `/clear`, the next session
 in that folder loads it with no typing. The sidebar is for the rest: an older

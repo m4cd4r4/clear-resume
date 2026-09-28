@@ -154,7 +154,7 @@ These are the common cases. After compaction, only this window's own handover lo
 ## Optional: a VS Code sidebar and a nudge when the chat gets long
 
 <p align="center">
-  <img src="docs/media/sidebar.png" width="560" alt="VS Code on widget-shop with the CLEAR-RESUME: HANDOVERS sidebar. A Loaded group lists Cart totals rounding, loaded 3h ago. A Current repo group lists Receipt email, widget-shop, feat/receipt, 20m, with Resume, Pin and Delete buttons; the Resume button is labelled. The status bar reads: Handover: Cart totals rounding (loaded 3h ago).">
+  <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the clear-resume sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email and Refund flow tests. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor, and the status bar reads: Handover: Cart totals rounding (loaded 3h ago).">
 </p>
 
 **The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. The status bar names the handover this workspace loaded; click it to open the copy. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, not yet sent.
