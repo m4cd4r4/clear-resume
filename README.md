@@ -93,6 +93,10 @@ claude --plugin-dir ./clear-resume
 
 - **A turn.** Writing a handover is Claude doing work: it runs a few git commands and writes
   30-odd lines.
+- **No permission prompt for the save.** The handover skill pre-approves the plugin's own
+  `save.mjs` and `load.mjs`, and nothing else, for the turn the skill runs in. The git
+  commands it runs are read-only. If Claude starts the skill without you typing
+  `/clear-resume:handover`, manual mode asks once to use the skill.
 - **Files on disk.** One small JSON file per handover under `~/.clear-resume/handovers/`,
   plain text, holding whatever the handover said. Resumed handovers are kept for 30 days and
   then removed; nothing grows without limit, but nothing is encrypted either.
