@@ -352,8 +352,13 @@
         margin-top: 14px;
       }
 
-      /* Too narrow for the first command on one line: a shell continuation,
-         and the URL on its own indented line, so it still reads as two commands. */
+      /* Too narrow for the first command on one line: the URL goes on its own
+         indented line, so it still reads as two commands. No shell continuation
+         mark: typed into PowerShell, a trailing backslash breaks the command. */
+      #close-cmd .cont {
+        display: none;
+      }
+
       #close-cmd .arg {
         display: block;
         padding-left: 2ch;

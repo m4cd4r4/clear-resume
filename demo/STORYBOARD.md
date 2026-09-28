@@ -120,16 +120,19 @@ Terminal (phase `p4`, a fresh session, starts at the top; meter near empty):
 ## 05 THE NUMBERS - 38.9 to 50.0s
 
 The window steps aside; full-canvas numbers, revealed one at a time. 16:9 in a row, 9:16
-stacked. The share line arrives last, at 46.0s, and has 3.7s alone before the beat ends.
+stacked. The share line arrives last, at 45.0s, and has 4.7s alone before the beat ends.
+
+Two figures only. The context before a /clear (median 197,536) is left out on purpose: the
+gap between it and what a /clear frees is the author's own session-start setup (rules,
+CLAUDE.md, tool schemas), which a typical user does not carry, so showing both invites a
+subtraction that describes the author's machine, not the product.
 
 | Element (at) | Text | Paraphrase |
 |---|---|---|
 | definition (39.1s) | Token: a small piece of text, roughly a word. | A token is the unit Claude counts text in, about one word. |
-| stat 1 + source (40.2s) | 197,536 / tokens in the chat before a typical /clear | The median context was 197,536 tokens when the author cleared it. |
-| stat 2 (41.9s) | 102,088 / tokens a typical /clear frees | The median drop in context from before /clear to the fresh session's first reply was 102,088 tokens. |
-| stat 2 note (42.7s) | The rest is what any new session starts with. | The other ~95,000 tokens are what a new session loads at start anyway (the fresh session's first-turn context, `after` in measure.mjs). |
-| stat 3 (44.3s) | about 780 / tokens in the handover note (an estimate) | A handover note is roughly 780 tokens; this figure is an estimate. |
-| share (46.0s) | The note is about 0.4% of the context before a /clear. | 780 tokens is about 0.4% of 197,536 tokens, the measured context before a clear. |
+| stat 1 + source (40.2s) | 102,088 / tokens a typical /clear frees | The median drop in context from before /clear to the fresh session's first reply was 102,088 tokens. |
+| stat 2 (42.6s) | about 780 / tokens in the handover note (an estimate) | A handover note is roughly 780 tokens; this figure is an estimate. |
+| share (45.0s) | The note costs under 1% of what a /clear frees. | 780 is 0.76% of 102,088. |
 | source | Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians. | The figures come from the author's own 104 clears in that week, as medians. |
 
 No quality claim and no "work per token" figure.
