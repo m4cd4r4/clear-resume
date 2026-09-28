@@ -74,4 +74,19 @@ on a phone held upright without zooming.
 
 - No green-on-black terminal cliche, no traffic-light window dots, no cyan.
 - No gradient text, no neon, no pure `#000`.
-- No number anywhere that claims a saving.
+- No number anywhere that claims a saving or a quality gain. The context meter carries no
+  number; the only figures are the measured ones in beat 05, each with its source line.
+
+## v3 additions: side cards, numbers, sidebar
+
+- A third face, **Inter** 600, for the side cards and the numbers' labels: the cards are
+  sentences for a newcomer, and a heavy display face or mono is slow to read at that length.
+- Cards: `--surface-2` with a 6px amber left rule, 12px radius. Shift-note cards (the
+  metaphor) are warmer (`#2d2416`) with an amber hairline. 31px in 16:9, 38px in 9:16.
+- 16:9: window 1150x830 at (96, 104); card column 524 wide at x 1300. 9:16: window 960x1110
+  at (60, 160); cards from y 1300. Cards never overlap the terminal.
+- Terminal rows carry a speaker: a 104px column in 16:9 (`you` amber, `Claude` light muted);
+  in 9:16 the speaker sits on its own line. Plugin output has no speaker; it is amber.
+- Numbers beat: Archivo Black figures in amber (104px / 128px), Inter labels, the 0.4% line
+  in an amber-bordered box, the source line in muted.
+- Sidebar beat: a VS Code mock in the window's place, Inter UI text, mono document.
