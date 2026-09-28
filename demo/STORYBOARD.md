@@ -22,10 +22,9 @@ sitting beside it: the numbers (full canvas) and the sidebar (a VS Code mock in 
 place). In beat 06 window 1 is shortened (470px / 800px, from `--win1-many-h`) so window 2
 sits below it in its own frame, offset right, never inside it.
 
-**Metaphor.** The side cards explain with the shift-handover note: a nurse at shift change
-writes a note, the next shift reads it and carries on. The metaphor cards (marked *shift*)
-are set on a warmer, paper-like card. The metaphor first appears in 3b; no card uses it
-before then.
+**No metaphor.** v3.1 explained the note as a nurse's shift note. The owner found it too
+obscure (2026-09-28), and it added a thing to decode: the terminal already shows the real
+note. Every card now states what happens in plain words.
 
 **Words on screen come in two kinds.**
 
@@ -95,7 +94,7 @@ card 3a names the command itself: a vertical viewer always sees what the user ty
 | Card | Text | Paraphrase |
 |---|---|---|
 | 3a (16.9s) | A third way: type /clear-resume:handover. Claude writes a short note. | Besides /compact and /clear, the user can type /clear-resume:handover and Claude then writes a short note about the work. |
-| 3b *shift* (19.5s) | Like a nurse's shift note, so the next shift can carry on. | The note does the job a nurse's handover note does: the next session reads it and continues the work. |
+| 3b (19.5s) | /clear wipes the chat, but the note is kept. | Running /clear deletes the conversation; the saved note is not deleted. |
 | 3c (21.6s) | It holds the goal, the next step and the decisions made. | The note has set parts: the goal, the next action and the decisions already taken. |
 
 ## 04 CLEAR, THEN GO - 28.3 to 38.6s
@@ -114,7 +113,7 @@ Terminal (phase `p4`, a fresh session, starts at the top; meter near empty):
 | Card | Text | Paraphrase |
 |---|---|---|
 | 4a (28.6s) | Type /clear. The fresh session loads the note by itself. | After the user types /clear, the new session reads the note without being asked. |
-| 4b *shift* (30.8s) | Then type go. The next shift reads the note and carries on. | The user types "go" and the new session continues the work from the note. |
+| 4b (30.8s) | Then type go. Claude reads the note and carries on. | The user types "go" and the new session continues the work from the note. |
 | 4c (35.4s) | The plugin also keeps the note as a file to reopen or share. | On loading, the plugin writes the note to a file (the highlighted path) that the user can open later or send to someone. |
 
 ## 05 THE NUMBERS - 38.9 to 50.0s

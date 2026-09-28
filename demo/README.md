@@ -4,7 +4,7 @@ The 75-second explainer for clear-resume: why long sessions hurt, the two old ch
 (`/compact`, `/clear`), the handover note, the real flow (`/clear`, then `go`), measured
 numbers, many windows, the VS Code sidebar (a separate extension), the opt-in context nudge
 (auto mode), and the install. Side cards
-explain it with a shift-handover note, for a viewer who has never heard of a context window.
+explain it in plain words, for a viewer who has never heard of a context window.
 It comes in two cuts that tell the same story on the same timings: 16:9 for the README, 9:16
 for LinkedIn and Threads.
 

@@ -81,8 +81,7 @@ on a phone held upright without zooming.
 
 - A third face, **Inter** 600, for the side cards and the numbers' labels: the cards are
   sentences for a newcomer, and a heavy display face or mono is slow to read at that length.
-- Cards: `--surface-2` with a 6px amber left rule, 12px radius. Shift-note cards (the
-  metaphor) are warmer (`#2d2416`) with an amber hairline. 31px in 16:9, 38px in 9:16.
+- Cards: `--surface-2` with a 6px amber left rule, 12px radius. 31px in 16:9, 38px in 9:16.
 - 16:9: window 1150x830 at (96, 104); card column 524 wide at x 1300. 9:16: window 960x1110
   at (60, 160); cards from y 1300. Cards never overlap the terminal.
 - Terminal rows carry a speaker: a 104px column in 16:9 (`you` amber, `Claude` light muted);
