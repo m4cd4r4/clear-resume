@@ -266,8 +266,11 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
     startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
     return { saved, out };
   }
-  const hookAs = (owner, source = "clear") =>
-    run({ cwd: repo, source }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
+  // Each call is a new SessionStart: a fresh budget, and nothing remembered from the last.
+  const hookAs = (owner, source = "clear") => {
+    startHookClock();
+    return run({ cwd: repo, source }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
+  };
 
   it("--take makes a closed window's loaded handover waiting again and this window's", () => {
     try {
