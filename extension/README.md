@@ -7,14 +7,14 @@ session can carry on without the conversation that produced it. This extension
 is the history view over them; the [clear-resume plugin](https://github.com/m4cd4r4/clear-resume)
 writes them and loads them automatically when you `/clear`.
 
+It needs that plugin: install the plugin first, then this extension.
+
 ## What it gives you
 
 - A **Handovers** sidebar, grouped into Current repo, Other repos and Stale.
 - **Resume** opens a Claude Code tab with that handover's prompt pre-filled and
   not submitted, so you read it before you send it.
 - **Pin** keeps a handover out of the stale and delete timers.
-- **Import existing handovers** reads an older `~/Notes/resume` layout into the
-  shared store. Additive and idempotent: it never deletes the originals.
 
 The plugin covers the common path - write a handover, `/clear`, the next session
 in that folder loads it with no typing. The sidebar is for the rest: an older
