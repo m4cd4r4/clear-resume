@@ -1,0 +1,693 @@
+/*
+ * clear-resume explainer: the look both cuts share. Palette, type, the
+ * terminal rows, the side cards, the VS Code mock, the numbers and the close.
+ * Each cut's index.html sets the canvas layout and the size variables below.
+ * Lives in vertical/ for the same reason as story.js (no "../" paths).
+ */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #100e0b;
+  --surface: #191510;
+  --surface-2: #221d16;
+  --border: #332c22;
+  --fg: #ece5d8;
+  --muted: #948b7b;
+  --muted-2: #b4aa99;
+  --accent: #e5a743;
+  --accent-deep: #c07c2a;
+  --accent-dim: #7d6236;
+  --mono: "JetBrains Mono", monospace;
+  --sans: "Inter", sans-serif;
+  --display: "Archivo Black", sans-serif;
+}
+
+html,
+body {
+  overflow: hidden;
+  background: #100e0b;
+}
+
+#root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-variant-ligatures: none;
+}
+
+/* ---- background decoratives, each with ambient motion ---- */
+
+#glow {
+  position: absolute;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(229, 167, 67, 0.15) 0%,
+    rgba(229, 167, 67, 0.05) 42%,
+    rgba(229, 167, 67, 0) 70%
+  );
+  will-change: transform, opacity;
+}
+
+#rules {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  will-change: opacity;
+}
+
+#rules > i {
+  display: block;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(51, 44, 34, 0) 0%,
+    rgba(51, 44, 34, 1) 24%,
+    rgba(51, 44, 34, 1) 76%,
+    rgba(51, 44, 34, 0) 100%
+  );
+}
+
+.ghost {
+  position: absolute;
+  font-family: var(--display);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--accent-dim);
+  opacity: 0;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+#grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.82%22%20numOctaves%3D%223%22%20seed%3D%227%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22220%22%20height%3D%22220%22%20filter%3D%22url(%23n)%22%20opacity%3D%220.6%22%2F%3E%3C%2Fsvg%3E");
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+  opacity: 0.16;
+}
+
+/* ---- the terminal window ---- */
+
+#window,
+#win2,
+#editor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.52);
+  will-change: transform, opacity;
+}
+
+#win2,
+#editor {
+  opacity: 0;
+}
+
+#win2 {
+  border-color: #4a3f2e;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+#titlebar {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  line-height: 1.2;
+}
+
+#where {
+  display: flex;
+  align-items: baseline;
+}
+
+#repo {
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+#branch {
+  color: var(--muted);
+}
+
+#wtag,
+.tag2 {
+  margin-left: auto;
+  padding: 2px 12px;
+  border: 1px solid rgba(229, 167, 67, 0.5);
+  border-radius: 6px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#wtag {
+  opacity: 0;
+}
+
+#meter {
+  display: flex;
+  align-items: center;
+}
+
+#meter-label {
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+#track {
+  position: relative;
+  border-radius: 6px;
+  background: #2a2419;
+  overflow: hidden;
+}
+
+#fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+}
+
+#body {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.phase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A long session: the newest row sits at the foot, older rows scroll off the
+   top and fade into it. */
+.phase.scroll {
+  justify-content: flex-end;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 110px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 110px);
+}
+
+/* A fresh session: it starts at the top, next to the meter. */
+.phase.top {
+  justify-content: flex-start;
+}
+
+#p3-stack {
+  display: flex;
+  flex-direction: column;
+  will-change: transform, opacity;
+}
+
+/* ---- terminal rows ---- */
+
+.row {
+  display: none;
+  will-change: transform, opacity;
+}
+
+.row.pre {
+  display: block;
+}
+
+.line {
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  white-space: normal;
+  border-radius: 6px;
+}
+
+.nb {
+  white-space: nowrap;
+}
+
+.who {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.who.you {
+  color: var(--accent);
+}
+
+.who.claude {
+  color: var(--muted-2);
+}
+
+.glyph {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.said,
+.reply .txt {
+  color: var(--fg);
+}
+
+.tool .txt {
+  display: block;
+  color: var(--muted);
+  padding-left: 6ch;
+  text-indent: -6ch;
+}
+
+.tool b {
+  display: inline-block;
+  width: 6ch;
+  text-indent: 0;
+  font-weight: 700;
+  color: var(--muted-2);
+}
+
+.out .txt {
+  display: block;
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+
+.voice .txt {
+  color: var(--accent);
+}
+
+.md .txt {
+  display: block;
+  padding-left: 6ch;
+}
+
+.md-h1 .txt {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.md-h2 .txt {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.md-bd .txt {
+  color: var(--fg);
+}
+
+.md-mu .txt {
+  color: var(--muted);
+}
+
+.caret {
+  display: inline-block;
+  margin-left: 2px;
+  background: var(--accent);
+}
+
+/* ---- the second window ---- */
+
+.tb2 {
+  display: flex;
+  align-items: baseline;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.repo2 {
+  font-weight: 700;
+}
+
+.body2 {
+  flex: 1 1 auto;
+}
+
+/* ---- VS Code, hours later ---- */
+
+#editor {
+  font-family: var(--sans);
+  background: #15120e;
+}
+
+#ed-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted-2);
+}
+
+#ed-main {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+#ed-activity {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid var(--border);
+  background: #120f0c;
+}
+
+#ed-activity i {
+  display: block;
+  border: 2px solid #4a4236;
+  border-radius: 6px;
+}
+
+#ed-activity i.on {
+  border-color: var(--accent);
+}
+
+#ed-side {
+  flex: 0 0 auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+#ed-head {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted-2);
+}
+
+#ed-group,
+#ed-row,
+#ed-item {
+  opacity: 0;
+}
+
+#ed-group {
+  color: var(--fg);
+}
+
+#ed-group .count {
+  margin-left: 10px;
+  color: var(--muted);
+}
+
+#ed-group .chev {
+  display: inline-block;
+  color: var(--muted);
+  transform: rotate(90deg);
+}
+
+#ed-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  border-radius: 6px;
+  background: rgba(229, 167, 67, 0.1);
+}
+
+#ed-row .check {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#ed-row .t {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+#ed-row .d {
+  color: var(--muted);
+}
+
+#ed-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#ed-tab {
+  align-self: flex-start;
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
+  background: var(--surface);
+  color: var(--fg);
+  opacity: 0;
+}
+
+#ed-doc {
+  font-family: var(--mono);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.doc {
+  white-space: normal;
+  line-height: 1.45;
+  color: var(--fg);
+}
+
+.doc-h1,
+.doc-h2 {
+  font-weight: 700;
+}
+
+.doc-h2 {
+  color: var(--accent);
+  margin-top: 0.5em;
+}
+
+.doc-mu {
+  color: var(--muted);
+}
+
+#ed-status {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  background: #2b2419;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+}
+
+#ed-status .br {
+  color: var(--muted-2);
+}
+
+#ed-item {
+  border-radius: 4px;
+}
+
+#p4-h2 .txt {
+  border-radius: 6px;
+}
+
+/* ---- side cards ---- */
+
+#cards {
+  position: absolute;
+}
+
+.cardset {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: opacity;
+}
+
+.card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface-2);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* The shift-note cards: the metaphor, set like a paper note. */
+.card.shift {
+  border-color: rgba(229, 167, 67, 0.55);
+  border-left-color: var(--accent);
+  background: #2d2416;
+}
+
+.card p {
+  text-wrap: balance;
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.card p b {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.card p code {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---- the numbers ---- */
+
+#stats {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  will-change: opacity;
+}
+
+#st-token,
+#st-source,
+#st-share,
+.stat {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+#st-token {
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--muted-2);
+}
+
+#st-row {
+  display: flex;
+}
+
+.stat .num {
+  font-family: var(--display);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat .num small {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--muted-2);
+  letter-spacing: 0;
+}
+
+.stat .lab {
+  text-wrap: balance;
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--fg);
+}
+
+#st-share {
+  text-wrap: balance;
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--fg);
+  border: 1px solid rgba(229, 167, 67, 0.5);
+  border-radius: 12px;
+  background: rgba(229, 167, 67, 0.08);
+}
+
+#st-source {
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ---- beat markers ---- */
+
+.beat {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  font-family: var(--display);
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.beat i {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.beat u {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+/* ---- close ---- */
+
+#close {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#close-head,
+#close-line,
+#close-cmd,
+#close-foot {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+#close-head {
+  text-wrap: balance;
+  font-family: var(--display);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+}
+
+#close-line {
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--muted-2);
+}
+
+#close-cmd {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  line-height: 1.5;
+  color: var(--accent);
+  white-space: nowrap;
+  text-align: left;
+}
+
+#close-foot {
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--muted);
+}
