@@ -95,24 +95,47 @@
 // one genuine SessionStart:clear load (paired or not).
 //
 // This control comes out HIGHER than "after" (a negative overhead), which reads
-// as "loading a handover makes the session cheaper" - not a real effect. Traced
-// by hand (see rows from an early run) to prompt-cache prefix invalidation, not a
-// bug: the early part of the system prompt includes several SessionStart hooks'
-// own output (an "N minutes ago" backlog-hygiene list, the current AWST clock,
-// etc.), which differs turn to turn. Prompt caching is prefix-based, so any
-// difference there forces a fresh cache_creation of EVERYTHING after it -
-// including the large, otherwise-identical tool/skill-listing block - for that
-// turn. A session that /clears again minutes after a previous one (which is
-// exactly the handover workflow: write a handover, clear, resume) lands inside
-// the prior session's still-warm ephemeral cache and mostly gets cache HITS,
-// cheap. A /clear after a longer gap (plausibly more common for the no-handover
-// group, e.g. the first session of the day) hits a fully expired cache and pays
-// to recreate that whole block. So this baseline is confounded with "how long
-// since this project last ran", not just "was a handover loaded" - it measures
-// something real, just not the handover's own marginal cost. It is printed for
-// completeness only; do not use it in anything public. The before/after/drop
-// figures above are unaffected by this: both sides of that comparison are the
-// same /clear event, so cache warmth is shared between them.
+// as "loading a handover makes the session cheaper" - not a real effect.
+//
+// An earlier version of this comment blamed prompt-cache prefix invalidation
+// (the idea being that a changed early-prompt hook line forces a fresh, larger
+// cache_creation downstream). That explanation was wrong and has been retracted:
+// CONTEXT SIZE (input + cache_creation + cache_read, see above) counts every
+// token delivered to the model for the turn regardless of whether it came from
+// a cache hit or a cache miss - caching changes which bucket the tokens land in
+// and what the turn costs in dollars, never the total. A cache-hit/miss theory
+// cannot explain a difference in the SIZE number this script reports.
+//
+// The real, measured cause (compared first-real-user-message length and
+// SessionStart-hook-output length between the two groups, same projects, same
+// "clear" trigger): baseline (no-handover) sessions' first real user message has
+// a median of ~1,912 characters, versus ~2 characters for handover-loaded
+// sessions - while the loaded sessions' injected hook content (the handover
+// itself, see HANDOVER SIZE below) has a median of ~3,764 characters against
+// ~0 for the no-handover group. In other words: without a handover to load, the
+// human is still doing the SAME job of restating "what was I doing" by hand, in
+// their own first message, exactly the manual pasted-resume workflow that
+// predates this plugin. That confirms the baseline is not "a plain fresh
+// session" at all - it is "a fresh session where the user just typed the recap
+// instead of the plugin injecting one". This alone (a few hundred to ~1-2k
+// characters either way) is real but too small to explain the full ~30k-token
+// gap between the two groups' medians; the rest of the gap most likely reflects
+// the wider, older time span the baseline pool is drawn from (it spans back to
+// before this plugin existed, months of CLAUDE.md/rules/skill-catalog growth
+// earlier or later than the tightly-clustered, recent load population - see
+// "N=104 is real but concentrated" in the final report), not anything to do
+// with the handover's own cost. Either way: do not publish this number. The
+// before/after/drop figures above are unaffected by any of this - both sides of
+// that comparison are the same /clear event.
+//
+// HANDOVER SIZE
+// -------------
+// Separately from the overhead question above: the size of the handover text
+// itself, per load, taken from the SAME record that carries it into context (see
+// HANDOVER_BODY_PREFIX below) - not modelled, read directly off disk. Reported
+// in characters (exact) and tokens (chars/4, a crude estimate, always labelled
+// as one), plus its median ratio against that load's own "before" context - how
+// big the note is relative to the conversation it stands in for.
 //
 // SUBAGENTS
 // ---------
@@ -126,9 +149,11 @@
 //   node scripts/measure.mjs                 # aggregates to stdout only
 //   node scripts/measure.mjs --rows out.csv  # also writes per-load rows for
 //                                             # checking (date, project slug,
-//                                             # before, after) - never commit
-//                                             # this file, and it is never
-//                                             # printed to stdout.
+//                                             # before, after, drop, gap_ms,
+//                                             # handover_chars,
+//                                             # handover_tokens_est) - never
+//                                             # commit this file, and it is
+//                                             # never printed to stdout.
 //   node scripts/measure.mjs --root <dir>    # override the projects root
 //                                             # (testing only)
 //
@@ -142,6 +167,49 @@ import readline from "node:readline";
 const DEFAULT_ROOT = "C:/Users/Hard-Worker/.claude/projects";
 const LOAD_PREFIX = "clear-resume: loaded handover";
 const GAP_MAX_MS = 120_000; // see PAIRING RULE step 4 above
+// Exact template opener from scripts/lib/hook.mjs (the `parts.push(...)` line
+// that fires when `load` is truthy and `compact` is false - i.e. every
+// SessionStart:clear load): "clear-resume: this session continues earlier
+// work. Handover "<title>", saved <age>[, written on branch <b>]. Its branch,
+// file and status claims are a snapshot: check them before acting.\n\n<body>".
+// This is the literal text the hook injects as additionalContext - the thing
+// task 1 below measures the size of.
+const HANDOVER_BODY_PREFIX = "clear-resume: this session continues earlier work.";
+const CHARS_PER_TOKEN_ESTIMATE = 4; // crude, clearly labelled as an estimate wherever printed
+
+// A hook_additional_context array element over ~8-10KB is not inlined - Claude
+// Code replaces it in the transcript with a "<persisted-output>" wrapper plus a
+// 2KB preview and writes the FULL original text to a file next to the session
+// (<project-dir>/<uuid>/tool-results/hook-*-additionalContext.txt). One real
+// load in the dataset this script was built against hit exactly this (a
+// 10,997-char handover). The wrapper's own path line is read back and the full
+// file used instead of the truncated preview, so a big handover is not silently
+// undercounted - this is a real path under the SAME project directory this
+// script already reads, never ~/.clear-resume.
+const PERSISTED_OUTPUT_PREFIX = "<persisted-output>";
+const PERSISTED_PATH_RE = /Full output saved to: (.+)/;
+
+// Given one element of a hook_additional_context content array, return the
+// handover body's character length if this element (or, if offloaded, the file
+// it points at) is clear-resume's own loaded-handover text, else null.
+async function resolveHandoverBodyChars(candidate) {
+  if (candidate.startsWith(HANDOVER_BODY_PREFIX)) {
+    return candidate.split("\n\n---\n\n")[0].length;
+  }
+  if (candidate.startsWith(PERSISTED_OUTPUT_PREFIX)) {
+    const m = candidate.match(PERSISTED_PATH_RE);
+    if (m) {
+      try {
+        const full = await fs.promises.readFile(m[1].trim(), "utf8");
+        if (full.startsWith(HANDOVER_BODY_PREFIX)) return full.split("\n\n---\n\n")[0].length;
+      } catch {
+        // referenced file missing/moved - fall through to null (counted as
+        // "no matching handover body found" by the caller)
+      }
+    }
+  }
+  return null;
+}
 
 function parseArgs(argv) {
   const args = { root: DEFAULT_ROOT, rows: null };
@@ -174,6 +242,7 @@ async function scanFile(fp) {
   let anyLoad = false; // any genuine clear-resume load, any hookName
   let startupOrCompactLoad = false; // for the side-note count only
   let sessionStartReason = null; // 'clear' | 'startup' | 'compact' | 'resume' | '' (bare) | null (no SessionStart hook record seen)
+  let handoverBodyChars = null; // chars in the injected handover body, for a real SessionStart:clear load only
   let firstAssistant = null; // {ts, total} of first main-chain assistant turn w/ usage
   let lastAssistant = null; // {ts, total} of last main-chain assistant turn w/ usage
 
@@ -196,7 +265,13 @@ async function scanFile(fp) {
       // (a session firing "SessionStart:clear" produces one such record per
       // installed hook, not just clear-resume's own) - so the first one we see
       // tells us WHY this session started, independent of which hook it came from.
-      if (sessionStartReason === null) {
+      // Excludes "hook_additional_context": that record type is the aggregate of
+      // ALL hooks' additionalContext for the event and carries a bare "SessionStart"
+      // hookName with no reason suffix, which would wrongly overwrite a real reason
+      // with "" if it were ever read first (it never is in practice - it's written
+      // once every individual hook has run - but this keeps the guard exact rather
+      // than order-dependent).
+      if (sessionStartReason === null && rec.attachment.type !== "hook_additional_context") {
         const hookName = rec.attachment.hookName || "";
         const idx = hookName.indexOf(":");
         sessionStartReason = idx >= 0 ? hookName.slice(idx + 1) : "";
@@ -213,6 +288,28 @@ async function scanFile(fp) {
           if (clearLoadTs === null) clearLoadTs = rec.timestamp;
         } else if (hookName === "SessionStart:startup" || hookName === "SessionStart:compact") {
           startupOrCompactLoad = true;
+        }
+      }
+
+      // The rendered form of hookSpecificOutput.additionalContext: one array
+      // entry per hook that returned one. clear-resume's own entry (when it
+      // loaded a handover, not-compact) always starts with HANDOVER_BODY_PREFIX
+      // and is exactly `${frame sentence}\n\n${handover body}`, optionally
+      // followed by a `\n\n---\n\n`-joined "N other handovers waiting" notice
+      // that is NOT part of the handover - split it off before measuring. A
+      // large body may have been offloaded to a file (see resolveHandoverBodyChars).
+      if (
+        handoverBodyChars === null &&
+        rec.attachment.type === "hook_additional_context" &&
+        Array.isArray(rec.attachment.content)
+      ) {
+        for (const c of rec.attachment.content) {
+          if (typeof c !== "string") continue;
+          const resolved = await resolveHandoverBodyChars(c);
+          if (resolved !== null) {
+            handoverBodyChars = resolved;
+            break;
+          }
         }
       }
       continue;
@@ -238,6 +335,7 @@ async function scanFile(fp) {
     anyLoad,
     startupOrCompactLoad,
     sessionStartReason,
+    handoverBodyChars,
     firstAssistant,
     lastAssistant,
   };
@@ -267,6 +365,10 @@ function stats(arr) {
 
 function fmt(n) {
   return n === null || n === undefined ? "n/a" : Math.round(n).toLocaleString("en-US");
+}
+
+function fmtPct(ratio) {
+  return ratio === null || ratio === undefined ? "n/a" : `${(ratio * 100).toFixed(1)}%`;
 }
 
 async function main() {
@@ -326,9 +428,12 @@ async function main() {
   let sideNoteStartupOrCompact = 0;
   let paired = 0;
   let unpaired = 0;
+  let handoverSizeMissing = 0; // real load where the injected body couldn't be found (unexpected)
   const beforeVals = [];
   const afterVals = [];
   const dropVals = [];
+  const handoverCharVals = []; // every real load with a found body, paired or not
+  const handoverRatioVals = []; // paired loads only (needs "before" to compute a ratio)
   const rows = [];
   const loadDates = [];
   const projectsWithAnyClearLoad = new Set();
@@ -341,6 +446,12 @@ async function main() {
       totalRealLoads++;
       loadDates.push(s.clearLoadTs);
       projectsWithAnyClearLoad.add(slug);
+
+      if (s.handoverBodyChars === null) {
+        handoverSizeMissing++;
+      } else {
+        handoverCharVals.push(s.handoverBodyChars);
+      }
 
       const T_F = new Date(s.firstTs).getTime();
       let best = null;
@@ -362,6 +473,13 @@ async function main() {
         beforeVals.push(before);
         afterVals.push(after);
         dropVals.push(before - after);
+
+        let handoverTokensEst = null;
+        if (s.handoverBodyChars !== null) {
+          handoverTokensEst = s.handoverBodyChars / CHARS_PER_TOKEN_ESTIMATE;
+          if (before > 0) handoverRatioVals.push(handoverTokensEst / before);
+        }
+
         rows.push({
           date: s.clearLoadTs,
           project: slug,
@@ -369,6 +487,8 @@ async function main() {
           after,
           drop: before - after,
           gapMs: T_F - bestLastMs,
+          handoverChars: s.handoverBodyChars,
+          handoverTokensEst,
         });
       } else {
         unpaired++;
@@ -384,12 +504,10 @@ async function main() {
   // can start (startup/resume/compact too), so a resumed session - whose first
   // recorded turn already carries a whole prior conversation's context, not a
   // fresh one - can't get counted as "baseline". This narrows the confound but
-  // does not remove it: see the BASELINE header comment above for the bigger,
-  // measured cause (prompt-cache prefix invalidation tracking how long it has
-  // been since this project last ran, not whether a handover was loaded) and why
-  // this number still is not safe to publish. The broader, more-confounded cut
-  // (every no-handover reason) is kept below as `baselineAnyReasonStats` purely
-  // for comparison, never as the headline number.
+  // does not remove it: see the BASELINE header comment above for the measured
+  // cause and why this number still is not safe to publish. The broader,
+  // more-confounded cut (every no-handover reason) is kept below as
+  // `baselineAnyReasonStats` purely for comparison, never as the headline number.
   const baselineVals = [];
   const baselineAnyReasonVals = [];
   for (const slug of projectsWithAnyClearLoad) {
@@ -405,6 +523,9 @@ async function main() {
   const beforeStats = stats(beforeVals);
   const afterStats = stats(afterVals);
   const dropStats = stats(dropVals);
+  const handoverCharStats = stats(handoverCharVals);
+  const handoverTokenStats = stats(handoverCharVals.map((c) => c / CHARS_PER_TOKEN_ESTIMATE));
+  const handoverRatioStats = stats(handoverRatioVals);
   const baselineStats = stats(baselineVals);
   const baselineAnyReasonStats = stats(baselineAnyReasonVals);
   const overheadMedian =
@@ -432,6 +553,13 @@ async function main() {
   console.log(`Context AFTER resume    (n=${afterStats.n}): median ${fmt(afterStats.median)}  p25 ${fmt(afterStats.p25)}  p75 ${fmt(afterStats.p75)}`);
   console.log(`Drop (before - after)   (n=${dropStats.n}): median ${fmt(dropStats.median)}  p25 ${fmt(dropStats.p25)}  p75 ${fmt(dropStats.p75)}`);
   console.log("");
+  console.log(`Handover body size, chars   (n=${handoverCharStats.n}): median ${fmt(handoverCharStats.median)}  p25 ${fmt(handoverCharStats.p25)}  p75 ${fmt(handoverCharStats.p75)}`);
+  console.log(`Handover body size, EST tokens (chars/4) (n=${handoverTokenStats.n}): median ${fmt(handoverTokenStats.median)}  p25 ${fmt(handoverTokenStats.p25)}  p75 ${fmt(handoverTokenStats.p75)}`);
+  console.log(`Handover EST tokens / context-before, paired loads (n=${handoverRatioStats.n}): median ${fmtPct(handoverRatioStats.median)}  p25 ${fmtPct(handoverRatioStats.p25)}  p75 ${fmtPct(handoverRatioStats.p75)}`);
+  if (handoverSizeMissing > 0) {
+    console.log(`  (${handoverSizeMissing} real load(s) had no matching handover body found - excluded from the size stats above)`);
+  }
+  console.log("");
   console.log(`Baseline first-turn context, same projects, /clear with NO handover to load (n=${baselineStats.n}): median ${fmt(baselineStats.median)}  p25 ${fmt(baselineStats.p25)}  p75 ${fmt(baselineStats.p75)}`);
   console.log(`Handover overhead vs baseline (median after - median baseline): ${fmt(overheadMedian)}`);
   console.log(`  (unrestricted baseline incl. resume/startup sessions, n=${baselineAnyReasonStats.n}, for comparison only: median ${fmt(baselineAnyReasonStats.median)} - do not use, see script header comment)`);
@@ -440,9 +568,12 @@ async function main() {
   console.log(`Runtime: ${runtimeS}s`);
 
   if (args.rows) {
-    const header = "date,project_slug,before,after,drop,gap_ms\n";
+    const header = "date,project_slug,before,after,drop,gap_ms,handover_chars,handover_tokens_est\n";
     const body = rows
-      .map((r) => `${r.date},${r.project},${r.before},${r.after},${r.drop},${r.gapMs}`)
+      .map(
+        (r) =>
+          `${r.date},${r.project},${r.before},${r.after},${r.drop},${r.gapMs},${r.handoverChars ?? ""},${r.handoverTokensEst ?? ""}`,
+      )
       .join("\n");
     fs.writeFileSync(args.rows, header + body + "\n", "utf8");
     console.error(`Wrote ${rows.length} per-load rows to ${args.rows}`);
