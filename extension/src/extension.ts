@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
@@ -31,6 +32,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const config = () => vscode.workspace.getConfiguration("clearResume");
   const root = () => config().get<string>("storePath")?.trim() || storeRoot();
   const showArchived = () => config().get<boolean>("showArchived") === true;
+
+  // Only the owner's original setup has anything to import. Everyone else gets no
+  // welcome link and no command-palette entry for a migration that would find
+  // nothing - the context key drives both `when` clauses in package.json.
+  void vscode.commands.executeCommand("setContext", "clearResume.hasLegacy", hasLegacyNotes());
 
   const provider = new HistoryProvider(root, showArchived);
   const tree = vscode.window.createTreeView(VIEW, { treeDataProvider: provider, showCollapseAll: true });
@@ -153,8 +159,25 @@ function watchStore(context: vscode.ExtensionContext, root: () => string, onChan
   );
 }
 
+/** The old flow's prompt folder. Only ever populated on the machine that ran it. */
+function legacyNotesDir(): string {
+  return join(homedir(), "Notes", "resume");
+}
+
+/** True only for the one setup that has anything to import: a `.txt` prompt file
+ * sitting in the legacy folder. Everyone else gets neither the welcome link nor the
+ * command-palette entry for a migration that would find nothing to do. */
+function hasLegacyNotes(): boolean {
+  const dir = legacyNotesDir();
+  try {
+    return existsSync(dir) && readdirSync(dir).some((f) => f.endsWith(".txt"));
+  } catch {
+    return false;
+  }
+}
+
 async function runMigration(root: string, onDone: () => void): Promise<void> {
-  const notesDir = join(homedir(), "Notes", "resume");
+  const notesDir = legacyNotesDir();
   const report = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Importing handovers" },
     async () => pushed(root, () => migrate({ notesDir, root, machine: "legacy" })),
