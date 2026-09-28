@@ -253,7 +253,18 @@ export function sync(root = storeRoot(), { now = new Date(), timeout = TIMEOUT_M
   return { ok: true, resolved: pulled.resolved };
 }
 
-const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
+/**
+ * Where the sync CLI lives when this file runs as the plugin's own ESM.
+ *
+ * Resolved on call, never at module load: the VS Code extension bundles this file
+ * as CommonJS, where esbuild makes `import.meta` an empty object. Resolving it at
+ * load threw while the bundle loaded, so the extension never activated. The
+ * bundle passes its own CLI path instead.
+ */
+function pluginCli() {
+  if (!import.meta.url) return null;
+  return join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts", "sync.mjs");
+}
 
 /**
  * Send this machine's changes without waiting for the network.
@@ -262,13 +273,16 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "scripts",
  * push - so the save fires this and returns. The child outlives the session that
  * started it; the returned handle exists so a test can wait for it.
  */
-export function pushInBackground(root = storeRoot(), env = process.env) {
+export function pushInBackground(root = storeRoot(), env = process.env, cli = pluginCli()) {
   if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return null;
-  const child = spawn(process.execPath, [CLI], {
+  if (!cli) return null;
+  const child = spawn(process.execPath, [cli], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
-    env: { ...process.env, CLEAR_RESUME_HOME: root },
+    // Inside VS Code, process.execPath is the editor itself. Without this flag the
+    // "node" child would open another editor window instead of running the CLI.
+    env: { ...process.env, CLEAR_RESUME_HOME: root, ELECTRON_RUN_AS_NODE: "1" },
   });
   child.unref();
   return child;
@@ -282,7 +296,7 @@ export function pushInBackground(root = storeRoot(), env = process.env) {
  * changes exactly as a save is, and a tombstone that never leaves this machine is
  * precisely the delete the other machine undoes.
  */
-export function pushIfSynced(root = storeRoot(), env = process.env) {
+export function pushIfSynced(root = storeRoot(), env = process.env, cli = pluginCli()) {
   if (!isSynced(root)) return null;
-  return pushInBackground(root, env);
+  return pushInBackground(root, env, cli);
 }

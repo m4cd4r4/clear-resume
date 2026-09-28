@@ -12,7 +12,8 @@ export function commitLocal(root?: string, opts?: { now?: Date }): { ok: boolean
 export function pull(root?: string, opts?: { timeout?: number }): SyncResult;
 export function resolveConflicts(root?: string): string[] | null;
 export function sync(root?: string, opts?: { now?: Date; timeout?: number }): SyncResult;
-/** null when CLEAR_RESUME_SYNC=off; otherwise the detached child, for tests to await. */
-export function pushInBackground(root?: string, env?: Record<string, string | undefined>): import("node:child_process").ChildProcess | null;
+/** null when CLEAR_RESUME_SYNC=off or no CLI path is known; otherwise the detached child, for tests to await.
+ * `cli` defaults to the plugin's scripts/sync.mjs; the VS Code bundle passes its own dist/sync.js. */
+export function pushInBackground(root?: string, env?: Record<string, string | undefined>, cli?: string | null): import("node:child_process").ChildProcess | null;
 /** pushInBackground, but a no-op on a store that was never set up to sync. */
-export function pushIfSynced(root?: string, env?: Record<string, string | undefined>): import("node:child_process").ChildProcess | null;
+export function pushIfSynced(root?: string, env?: Record<string, string | undefined>, cli?: string | null): import("node:child_process").ChildProcess | null;

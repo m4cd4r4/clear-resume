@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+- Fix: the extension failed to load, so the sidebar always said "No handovers
+  yet". The bundled store resolved a file path from `import.meta` at load time,
+  which is empty in the CommonJS bundle.
+- Pin, delete and archive from the sidebar now push to a synced store. The
+  bundle carries its own sync CLI instead of looking for the plugin's.
+
 ## 0.2.1
 
 First Marketplace release.
