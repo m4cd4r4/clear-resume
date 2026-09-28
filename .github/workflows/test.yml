@@ -23,4 +23,7 @@ jobs:
       # The sync tests commit with the global identity.
       - run: git config --global user.name "ci" && git config --global user.email "ci@example.invalid"
       - run: npm ci
+      # test/extension-bundle.test.mjs builds the extension with its own esbuild. It
+      # skips without these locally, and never in CI.
+      - run: npm ci --prefix extension
       - run: npx vitest run

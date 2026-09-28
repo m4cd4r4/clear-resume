@@ -27,15 +27,30 @@ export function inFuture(created, now = new Date()) {
   return new Date(created) - now > FUTURE_SKEW_MS;
 }
 
-/** Whether a handover is in play: no older than maxAgeDays, and not dated in the future. */
+/**
+ * When a handover became its owner's: when `load.mjs --take` claimed it, or else
+ * when it was saved. A taken handover keeps its original save date, and the window
+ * that took it started after that, so judged by the save it was never that
+ * window's own (2026-09-28).
+ */
+export function claimedAt(h) {
+  return h.meta.takenAt || h.meta.created;
+}
+
+/**
+ * Whether a handover is in play: claimed no more than maxAgeDays ago, and neither
+ * its save nor its claim dated in the future. A --take is a fresh claim, so a
+ * handover taken today is in play however long ago it was written.
+ */
 export function isFresh(h, now = new Date(), maxAgeDays = 7) {
-  return (now - new Date(h.meta.created ?? 0)) / 86_400_000 <= maxAgeDays && !inFuture(h.meta.created, now);
+  const at = claimedAt(h);
+  return (now - new Date(at ?? 0)) / 86_400_000 <= maxAgeDays && !inFuture(h.meta.created, now) && !inFuture(at, now);
 }
 
 export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
   const fresh = waiting.filter((h) => isFresh(h, now, maxAgeDays));
 
-  const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, h.meta.created, { toEpoch, machine: h.meta.machine })) : [];
+  const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, claimedAt(h), { toEpoch, machine: h.meta.machine })) : [];
   if (mine.length) {
     const load = mine.at(-1);
     return { load, list: waiting.filter((h) => h !== load) };

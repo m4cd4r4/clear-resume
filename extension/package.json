@@ -39,7 +39,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onView:clearResume.history"
+    "onView:clearResume.history",
+    "onStartupFinished"
   ],
   "contributes": {
     "viewsContainers": {
@@ -98,6 +99,10 @@
         "title": "Open handover"
       },
       {
+        "command": "clearResume.openLoaded",
+        "title": "Open loaded handover"
+      },
+      {
         "command": "clearResume.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -132,6 +137,10 @@
         },
         {
           "command": "clearResume.open",
+          "when": "false"
+        },
+        {
+          "command": "clearResume.openLoaded",
           "when": "false"
         },
         {

@@ -182,6 +182,42 @@ describe("the hook's lookup deadline", () => {
     expect(ownerId({ CLAUDE_PID: LIVE }, { readTable, timeout: 15_000 })).toBe(`${LIVE}@${START}`);
     expect(asked[1]).toBe(15_000);
   });
+
+  // Not knowing this window's own start costs its own handover: listed, not
+  // loaded, and after /compact not offered at all. Under load Get-Process took
+  // over 2.5s (2026-09-28), so the window's own lookup may use all that is left of
+  // the budget. Another window's keeps the 2.5s cap: not knowing it answers "open".
+  it("lets this window's own lookup use the rest of the budget; another window's stays capped at 2.5s", () => {
+    const START = 1790503200000;
+    const asked = [];
+    const readTable = (t) => (asked.push(t), [[LIVE, "1", "claude.exe", START]]);
+
+    startHookClock();
+    expect(ownerId({ CLAUDE_PID: LIVE }, { readTable })).toBe(`${LIVE}@${START}`);
+    expect(asked[0]).toBeGreaterThan(8_000);
+    expect(asked[0]).toBeLessThanOrEqual(9_000);
+
+    startHookClock();
+    expect(ownerOpen(`${LIVE}@${START}`, { readTable, env: { CLAUDE_PID: "1" } })).toBe(true);
+    expect(asked.at(-1)).toBe(2_500);
+  });
+
+  // A test runs many hooks in one process. A read that failed in one of them was
+  // remembered into the next, which then did not read at all and so did not know
+  // its own window: the --take tests' flake had this second route to it.
+  it.runIf(process.platform === "win32")("forgets an earlier run's failed read when the clock restarts", () => {
+    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    try {
+      // PowerShell cannot start in 250ms, so this read fails and is remembered.
+      expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "250" })).toBe(LIVE);
+
+      startHookClock();
+
+      expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" })).toMatch(new RegExp(`^${LIVE}@\\d+$`));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  }, 30_000);
 });
 
 describe("finding this window without CLAUDE_PID", () => {
