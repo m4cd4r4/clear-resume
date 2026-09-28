@@ -21,10 +21,13 @@ const CLAUDE_OPEN = "claude-vscode.editor.open";
  * machine will undo: it still holds the record, so its next push restores it.
  * Failing to push must never break the command - the next save picks the change up.
  */
+/** The extension's own copy of the sync CLI (dist/sync.js), set on activate. */
+let syncCli: string | undefined;
+
 function pushed<T>(root: string, mutate: () => T): T {
   const result = mutate();
   try {
-    pushIfSynced(root);
+    pushIfSynced(root, process.env, syncCli);
   } catch {
     // Offline, mid-rebase, no remote. All normal; the change is on disk.
   }
@@ -32,6 +35,7 @@ function pushed<T>(root: string, mutate: () => T): T {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  syncCli = context.asAbsolutePath(join("dist", "sync.js"));
   const config = () => vscode.workspace.getConfiguration("clearResume");
   const root = () => config().get<string>("storePath")?.trim() || storeRoot();
   const showArchived = () => config().get<boolean>("showArchived") === true;
