@@ -10,21 +10,22 @@ Claude writes something like this, under 40 lines, with empty sections left out:
 # Cart totals rounding
 
 ## Goal
-Make the basket total match the line items when a discount is applied.
+Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match.
 
 ## Next action
-Run `npm test -- totals` and fix the failing case for a 3-for-2 offer.
+Run `npm test -- cart` and fix `src/cart.js:2` so `cartTotal` rounds once at the end, half-up, to 2 decimal places.
 
 ## State
-- Branch `feat/cart-totals`, last commit `a1b2c3d`, no PR yet.
-- Rounding helper written in `src/money.js`, unit tests pass.
-- The checkout summary component is not wired up yet.
+- Branch `fix/cart-rounding`, last commit `a1b2c3d`, no PR yet.
+- Reproduced: 3 items at $19.99 total 59.97 in the cart but 59.96 on the receipt.
+- The receipt already prints the cart total.
 
 ## Decisions already made
-Round at the line, not at the total.
+Round once, at the total, never per line: the payment provider does the same.
 
 ## Key files
-- src/money.js - the rounding helper
+- src/cart.js - `cartTotal`, where the rounding goes
+- src/receipt.js - prints the cart total
 ```
 
 The skill also has a `Do not` section for traps and approaches that already failed. The next
@@ -347,6 +348,11 @@ Handovers are plain text. Do not put secrets in them.
 - macOS and Linux have not been tested by hand. The test suite runs on both in CI.
 
 ## Troubleshooting: my handover did not load
+
+First, check whether it loaded without showing its message. Claude Code draws the plugin's
+load message itself. In a test on Linux (tmux, Claude Code 2.1.283) the message was missing
+after `/clear` in 3 of 3 tries and showed only after pressing ctrl+o, although the handover
+had loaded. Press ctrl+o to see it.
 
 1. **Did the save succeed?** Its last line is `After /clear, the next session in <folder> loads
    it automatically.` If it printed a `WARNING`, load the handover with the command in it.
