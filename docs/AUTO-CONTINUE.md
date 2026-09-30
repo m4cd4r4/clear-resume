@@ -131,3 +131,10 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
 - Check the 0.2.1 load crash (`packages/store/sync.mjs:256`, `import.meta.url` in the CJS
   bundle) is fixed in the build before starting.
 - An EDH needs a throwaway `--user-data-dir` (edh-guard enforces it).
+- **Window key** (measured 2026-09-30, Claude Code 2.1.284, VS Code 1.138). A hook sees
+  `CLAUDE_PID`; that process's parent is the window's extension host (`Code.exe
+  --utility-sub-type=node.mojom.NodeService`), which is also the clear-resume extension's
+  own `process.pid`, since VS Code runs one extension host per window. So the per-window
+  budget and the auto record are keyed on parent-of-`CLAUDE_PID`, and the extension
+  matches on `process.pid` with no IPC. `VSCODE_PID` is the shared main process, so it
+  is the same in every window and cannot be the key.
