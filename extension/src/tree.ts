@@ -63,8 +63,9 @@ export class HistoryProvider implements vscode.TreeDataProvider<Node> {
       // with one id break the tree.
       item.id = `loaded:${r.id}`;
       item.iconPath = new vscode.ThemeIcon("check");
-      // Matches none of the inline-button rules: this row is for opening only.
-      item.contextValue = "loaded";
+      // Same shape as a waiting row, so the inline buttons follow it here too.
+      // Play on a loaded row loads it again, e.g. after an accidental /clear.
+      item.contextValue = `loaded:${r.status}:${r.pinned ? "pinned" : "unpinned"}`;
       item.command = { command: "clearResume.openLoaded", title: "Open loaded handover", arguments: [r] };
       return item;
     }
