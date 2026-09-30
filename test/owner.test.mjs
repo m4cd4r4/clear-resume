@@ -6,7 +6,7 @@
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
+import { findClaudeAncestor, hostWindow, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
 // Lets one test make the real process-table read time out, instead of hoping
 // PowerShell is slower than a short timeout (a fast CI runner answered in 250ms).
@@ -275,4 +275,14 @@ describe("on this machine's real process table", () => {
     expect(ownerOpen(me, { env: elsewhere, timeout })).toBe(true);
     expect(ownerOpen(`${LIVE}@${Number(me.split("@")[1]) - 60_000}`, { env: elsewhere, timeout })).toBe(false);
   }, 60_000);
+});
+
+describe("hostWindow", () => {
+  it("names the window by the parent of the Claude process, with its start", () => {
+    const table = [["41460", "16352", "claude.exe", 2000], ["16352", "5060", "Code.exe", 1000]];
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table })).toEqual({ pid: "16352", start: 1000 });
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table: [table[0]] })).toEqual({ pid: "16352", start: null });
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table: [] })).toBeNull();
+    expect(hostWindow({}, { table })).toBeNull();
+  });
 });
