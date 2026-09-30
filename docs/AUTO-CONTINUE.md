@@ -1,6 +1,6 @@
 # Auto-continue: design
 
-Status: phase 1 (headless runner) in build, phase 2 (interactive, VS Code) designed only.
+Status: phase 1 (headless runner) built in 0.3.0; phase 2 (interactive, VS Code) designed only.
 Decided with Macdara on 2026-09-30.
 
 ## The problem
