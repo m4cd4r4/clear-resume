@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- **Headless runs continue themselves.** `node plugin/scripts/run.mjs` runs `claude -p` in
+  segments. When a segment's context passes the nudge size, Claude commits, saves a handover and
+  ends; the runner starts a fresh process from that handover, with no `/clear` and nobody typing.
+  It needs caps (`--max-segments`, `--total-budget-usd`, and the command's own `--max-turns` and
+  `--max-budget-usd`), keeps its handovers in a store of its own, and stops the chain when two
+  continued segments in a row make no new commit. See [docs/AUTO-CONTINUE.md](docs/AUTO-CONTINUE.md).
+- A handover saved under the runner records `auto`, `chain` (which segment wrote it) and
+  `budget` (continues left). A handover you write yourself is unchanged.
+
 ## 0.2.1
 
 ### Added

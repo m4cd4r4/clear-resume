@@ -127,6 +127,9 @@ function asHandover(record) {
       // When load.mjs --take made it its owner's (reopen). The owner checks read
       // this, not `created`: the taking window started after the save.
       ...(record.takenAt ? { takenAt: record.takenAt } : {}),
+      // Auto-continue (docs/AUTO-CONTINUE.md): saved in response to the nudge,
+      // which segment wrote it, and how many continues are left (-1 unlimited).
+      ...(record.auto === true ? { auto: true, chain: record.chain ?? null, budget: record.budget ?? null } : {}),
     },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
@@ -246,13 +249,24 @@ export function findById(root = storeRoot(), id = "") {
   return record ? asHandover(record) : null;
 }
 
+// The auto-continue stamp: `auto` true plus `chain` and `budget` when they are
+// whole numbers. Nothing at all for a handover the user wrote themselves, so a
+// record without auto-continue is byte-for-byte what 0.2.1 wrote.
+function autoFields(auto) {
+  if (!auto) return {};
+  const whole = (v) => (v === "" || v == null || !Number.isInteger(Number(v)) ? undefined : Number(v));
+  const chain = whole(auto.chain);
+  const budget = whole(auto.budget);
+  return { auto: true, ...(chain != null ? { chain } : {}), ...(budget != null ? { budget } : {}) };
+}
+
 // Save a handover. A newer save from the same window supersedes that window's
 // waiting one, so re-running /handover never leaves two competing copies. Other
 // windows are left alone even on the same branch: every session opened in one
 // folder shares its branch, so the branch alone archived a different window's
 // handover (2026-09-25). With no owner known, the old same-branch rule applies,
 // but only to handovers that have no owner either.
-export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId() }) {
+export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId(), auto }) {
   if (!title || !String(title).trim()) throw new Error("title is required");
   if (!body || !String(body).trim()) throw new Error("handover body is empty");
   const { top, branch } = repoInfo(cwd);
@@ -279,6 +293,7 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
       createdAt: new Date(now).toISOString(),
       status: "waiting",
       source: "plugin",
+      ...autoFields(auto),
     },
     { root },
   );

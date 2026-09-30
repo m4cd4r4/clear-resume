@@ -163,6 +163,23 @@ turn end, the instruction to Claude also shows, labelled `Stop hook feedback`.
 After any compaction the plugin tells the new context to re-check git and file state. That part
 is always on.
 
+### Headless runs: no clear at all
+
+A headless `claude -p` has no one to type `/clear`, so the runner does it: the process ending is
+the clear, and a fresh process started from the handover is the resume.
+
+```
+node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file task.txt \
+  -- claude -p --max-turns 500 --max-budget-usd 40 --output-format stream-json --verbose
+```
+
+Each segment gets `CLEAR_RESUME_HEADLESS=1`, so the nudge asks Claude to commit, save a handover
+and end its turn (or, if the task is done, to save nothing). The runner then archives that
+handover and starts the next segment with the original prompt plus the handover. It stops when a
+segment saves no handover, at a cap (exit 4), or when two continued segments in a row add no
+commit (exit 3). Its handovers live in `~/.clear-resume-headless`, never in your own store.
+Every option and cap: [AUTO-CONTINUE.md](AUTO-CONTINUE.md).
+
 As a fallback, set auto-compaction to fire well before the context window is full, with
 `/autocompact` or the `CLAUDE_CODE_AUTO_COMPACT_WINDOW` environment variable, for example at
 250k tokens.
