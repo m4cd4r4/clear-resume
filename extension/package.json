@@ -163,22 +163,22 @@
       "view/item/context": [
         {
           "command": "clearResume.resume",
-          "when": "view == clearResume.history && viewItem =~ /^handover/",
+          "when": "view == clearResume.history && viewItem =~ /^(handover|loaded):/",
           "group": "inline@1"
         },
         {
           "command": "clearResume.pin",
-          "when": "view == clearResume.history && viewItem =~ /unpinned/",
+          "when": "view == clearResume.history && viewItem =~ /:unpinned$/",
           "group": "inline@2"
         },
         {
           "command": "clearResume.unpin",
-          "when": "view == clearResume.history && viewItem =~ /pinned$/",
+          "when": "view == clearResume.history && viewItem =~ /:pinned$/",
           "group": "inline@2"
         },
         {
           "command": "clearResume.delete",
-          "when": "view == clearResume.history && viewItem =~ /^handover/",
+          "when": "view == clearResume.history && viewItem =~ /^(handover|loaded):/",
           "group": "inline@3"
         }
       ]
