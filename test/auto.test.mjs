@@ -58,6 +58,20 @@ describe("Stop nudge", () => {
     expect(runStop(input(), { env: env() })).toBeNull();
   });
 
+  it("under the headless runner, asks for a commit and a save.mjs handover, never a /clear", () => {
+    write(call(200_000));
+    const out = runStop(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
+    const text = out.hookSpecificOutput.additionalContext;
+    expect(text).toMatch(/finished.*do not save/i);
+    expect(text).toMatch(/commit/i);
+    expect(text).toMatch(/save\.mjs" --title/);
+    expect(text).toMatch(/STOP question/);
+    expect(text).toMatch(/end your turn/i);
+    // The command, not the plugin's own path (".../clear-resume/...").
+    expect(text).not.toMatch(/\/clear(?!-)/);
+    expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
+  });
+
   it("nudges once past the threshold, then never again that session", () => {
     write(call(185_000));
     const out = runStop(input(), { env: env() });
@@ -176,6 +190,17 @@ describe("mid-turn nudge", () => {
   it("stays quiet below the threshold", () => {
     write(call(179_000));
     expect(runMidTurn(input(), { env: env() })).toBeNull();
+  });
+
+  it("under the headless runner, asks to finish the step, commit and save, never a /clear", () => {
+    write(call(200_000));
+    const out = runMidTurn(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
+    const text = out.hookSpecificOutput.additionalContext;
+    expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
+    expect(text).toMatch(/finish the current step/i);
+    expect(text).toMatch(/save\.mjs" --title/);
+    expect(text).not.toMatch(/\/clear(?!-)/);
+    expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
   });
 
   it("warns without blocking, and says the turn is still running", () => {

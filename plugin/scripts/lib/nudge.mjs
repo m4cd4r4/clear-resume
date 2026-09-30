@@ -5,7 +5,8 @@
 import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
-import { autoEnabled } from "./auto-flag.mjs";
+import { fileURLToPath } from "node:url";
+import { autoEnabled, headless } from "./auto-flag.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
 // A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
@@ -98,6 +99,13 @@ export function runStop(input, { env = process.env } = {}) {
 
   if (!claimNudge(env, sessionId)) return null;
 
+  if (headless(env)) {
+    return {
+      systemMessage: `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover; the runner resumes it.`,
+      hookSpecificOutput: { hookEventName: "Stop", additionalContext: headlessAsk(tokens, limit, "") },
+    };
+  }
+
   // Not `decision: "block"`: Claude Code 2.1.283 shows a block as "Stop hook
   // error: ...", which reads as a crash. Stop's additionalContext still keeps
   // the turn going so Claude can act, with the same stop_hook_active loop guard,
@@ -114,6 +122,23 @@ export function runStop(input, { env = process.env } = {}) {
         `This reminder fires once per session.`,
     },
   };
+}
+
+// Under the headless runner (run.mjs) there is no user to /clear: the process
+// ending is the clear and the runner starts the next segment from the handover.
+// A finished task must NOT save one, or the runner resumes a done job: the Stop
+// hook fires on the final turn end too.
+const SAVE_SCRIPT = fileURLToPath(new URL("../save.mjs", import.meta.url));
+function headlessAsk(tokens, limit, midTurn) {
+  return (
+    `clear-resume headless mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}).${midTurn} ` +
+    `If your task is finished, do not save a handover: just end, and the run stops. ` +
+    `Otherwise: commit all your work on your branch now, then save a handover by running ` +
+    `node "${SAVE_SCRIPT.replace(/\\/g, "/")}" --title "<short title>" with the handover markdown on stdin (a quoted heredoc). ` +
+    `It must name the single next action, and copy any open STOP question verbatim. ` +
+    `Then end your turn with no further tool calls. The runner starts a fresh session from that handover. ` +
+    `This reminder fires once per session.`
+  );
 }
 
 // The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
@@ -135,6 +160,16 @@ export function runMidTurn(input, { env = process.env } = {}) {
   const limit = threshold(env);
   if (tokens == null || tokens < limit) return null;
   if (!claimNudge(env, sessionId)) return null;
+
+  if (headless(env)) {
+    return {
+      systemMessage: `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover when this step is done; the runner resumes it.`,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: headlessAsk(tokens, limit, " This turn is still running: finish the current step first, but do not start new work."),
+      },
+    };
+  }
 
   return {
     systemMessage: userLine(tokens, limit, "Claude is asked to save a handover when this step is done"),

@@ -14,3 +14,8 @@ export function autoEnabled(env = process.env) {
   if (own) return ON.test(own);
   return ON.test(String(env[AUTO_OPTION] ?? "").trim());
 }
+
+// Set by the headless runner (run.mjs) for every segment it starts.
+export function headless(env = process.env) {
+  return ON.test(String(env.CLEAR_RESUME_HEADLESS ?? "").trim());
+}

@@ -13,6 +13,7 @@ import { normalisePath } from "../packages/store/schema.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
 import { ownerId, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
 import { shellPath, tildePath } from "./lib/display.mjs";
+import { headless } from "./lib/auto-flag.mjs";
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -36,7 +37,10 @@ try {
   // The owner's start time is what tells this window from a later process that
   // gets its pid, so a save waits for the lookup rather than use the hook budget.
   const owner = ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
-  const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner });
+  // Under the headless runner every save is an auto one: the store is the
+  // runner's own, and the runner sets which segment this is and what is left.
+  const auto = headless() ? { chain: process.env.CLEAR_RESUME_CHAIN, budget: process.env.CLEAR_RESUME_BUDGET } : undefined;
+  const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner, auto });
   // The title and a short id, never the record path: its file name carries the
   // machine name and the path the home folder, and this line reaches the user.
   console.log(`Saved handover "${title}" (id ${short}).`);
@@ -59,7 +63,9 @@ try {
     if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can list it.`);
     else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
-  if (found) {
+  if (found && auto) {
+    console.log("The runner resumes from it in a fresh session once this one ends. Commit anything left, then end your turn.");
+  } else if (found) {
     console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
   } else {
     console.error(
