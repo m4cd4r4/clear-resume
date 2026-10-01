@@ -25,8 +25,12 @@ export function interactiveAuto({ env = process.env, win, root = storeRoot(env) 
   const session = slugify(env.CLAUDE_CODE_SESSION_ID ?? "");
   if (!session || !existsSync(join(root, ".nudged", session))) return undefined;
   const auto = windowAuto({ env, win: win ?? hostWindow(env, { timeout: PATIENT_TIMEOUT_MS }), root });
-  // Where the session ran, so the extension's "same" mode continues it there.
-  return auto && { ...auto, surface: env.CLAUDE_CODE_ENTRYPOINT === "cli" ? "terminal" : "panel" };
+  // Where the session ran, so the extension's "same" mode continues it there,
+  // and the id of the terminal the extension opened for it, so that terminal
+  // (and only that one) is closed after the continue.
+  const surface = env.CLAUDE_CODE_ENTRYPOINT === "cli" ? "terminal" : "panel";
+  const terminal = env.CLEAR_RESUME_TERMINAL;
+  return auto && { ...auto, surface, ...(terminal ? { terminal } : {}) };
 }
 
 /**
