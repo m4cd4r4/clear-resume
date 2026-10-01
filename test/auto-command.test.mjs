@@ -1,10 +1,10 @@
 // /clear-resume:auto sets how many times this VS Code window may continue itself.
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runAuto } from "../plugin/scripts/lib/auto.mjs";
-import { readBudget } from "../plugin/packages/store/autobudget.mjs";
+import { interactiveAuto, runAuto } from "../plugin/scripts/lib/auto.mjs";
+import { readBudget, setBudget } from "../plugin/packages/store/autobudget.mjs";
 
 let home;
 beforeEach(() => {
@@ -21,6 +21,27 @@ describe("the /clear-resume:auto command file", () => {
     const grant = md.match(/^allowed-tools: Bash\((.*)\)$/m)[1];
     expect(grant).toBe('node "${CLAUDE_PLUGIN_ROOT}/scripts/auto.mjs" *');
     expect(md).toContain('!`node "${CLAUDE_PLUGIN_ROOT}/scripts/auto.mjs" $ARGUMENTS`');
+  });
+});
+
+describe("interactiveAuto", () => {
+  // A save in a nudged VS Code session, in a window with budget left, is an auto one.
+  const nudged = (env, id = "Sess-1") => {
+    mkdirSync(join(home, ".nudged"), { recursive: true });
+    writeFileSync(join(home, ".nudged", "sess-1"), "x");
+    return { ...env, CLAUDE_CODE_SESSION_ID: id };
+  };
+
+  it("stamps the window only when nudged, in VS Code, with budget left", () => {
+    setBudget(home, win, 2);
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: 2 });
+    expect(interactiveAuto({ env: { ...vscodeEnv(), CLAUDE_CODE_SESSION_ID: "other" }, win })).toBeUndefined();
+    expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli" }), win })).toBeUndefined();
+    expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLEAR_RESUME_HEADLESS: "1" }), win })).toBeUndefined();
+    setBudget(home, win, 0);
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toBeUndefined();
+    setBudget(home, win, "unlimited");
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: -1 });
   });
 });
 

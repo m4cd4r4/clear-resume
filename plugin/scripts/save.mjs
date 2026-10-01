@@ -14,6 +14,7 @@ import { commitHandover, webEnabled } from "./lib/web.mjs";
 import { ownerId, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
 import { shellPath, tildePath } from "./lib/display.mjs";
 import { headless } from "./lib/auto-flag.mjs";
+import { interactiveAuto } from "./lib/auto.mjs";
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -42,7 +43,9 @@ try {
   const owner = process.argv.includes("--unowned") ? "" : ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
   // Under the headless runner every save is an auto one: the store is the
   // runner's own, and the runner sets which segment this is and what is left.
-  const auto = headless() ? { chain: process.env.CLEAR_RESUME_CHAIN, budget: process.env.CLEAR_RESUME_BUDGET } : undefined;
+  // In VS Code a save is an auto one when the nudge asked for it and this window
+  // has budget left; the extension then opens the next conversation.
+  const auto = headless() ? { chain: process.env.CLEAR_RESUME_CHAIN, budget: process.env.CLEAR_RESUME_BUDGET } : interactiveAuto();
   const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner, auto });
   // The title and a short id, never the record path: its file name carries the
   // machine name and the path the home folder, and this line reaches the user.
@@ -66,7 +69,9 @@ try {
     if (r.pushed) console.log(`Pushed to ${r.ref} (your branch is untouched), so a new cloud session can list it.`);
     else console.log(`Could not push the handover to ${r.ref} (${r.error}). A new cloud session will not see it.`);
   }
-  if (found && auto) {
+  if (found && auto?.window) {
+    console.log("The clear-resume extension opens a new conversation from it in this window. End your turn; the user does not need to type /clear.");
+  } else if (found && auto) {
     console.log("The runner resumes from it in a fresh session once this one ends. Commit anything left, then end your turn.");
   } else if (found) {
     console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
