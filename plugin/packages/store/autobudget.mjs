@@ -91,3 +91,20 @@ export function takeOne(root, win) {
   writeFileSync(file(root, win), JSON.stringify(r, null, 2), "utf8");
   return view(r);
 }
+
+/**
+ * The handover this window should continue by itself: the oldest waiting record
+ * stamped auto with this window (`<pid>@<start>`, a second of slack on the start)
+ * and saved on this machine, or null. Pids are per machine, so a synced record
+ * from another machine never matches.
+ */
+export function autoContinueFor(records, win, machine) {
+  const mine = (r) => {
+    if (r.status !== "waiting" || r.auto !== true || r.machine !== machine) return false;
+    const [pid, start] = String(r.window ?? "").split("@");
+    if (pid !== String(win.pid)) return false;
+    return start == null || win.start == null || Math.abs(Number(start) - Number(win.start)) <= START_SLACK_MS;
+  };
+  const found = records.filter(mine).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  return found[0] ?? null;
+}

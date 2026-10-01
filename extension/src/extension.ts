@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
-import { budgetFile, budgetLabel, nextBudget, readBudget, setBudget, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
+import { autoContinueFor, budgetFile, budgetLabel, nextBudget, readBudget, setBudget, takeOne, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
 import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
@@ -67,10 +67,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   autoStatus(context, root);
   const status = loadedStatus(context, root);
+  const continuer = autoContinuer(root, () => provider.refresh());
   watchStore(context, root, () => {
     provider.refresh();
     lanesProvider.refresh();
     status.update();
+    continuer();
   });
   // "loaded 3h ago" has to stay true with nothing written to the store.
   const minute = setInterval(() => {
@@ -272,7 +274,7 @@ function autoStatus(context: vscode.ExtensionContext, root: () => string): void 
  * reaches the same code but shows a confirmation dialog and, on Windows, routes to
  * an arbitrary window - during the spike it landed in an unrelated workspace.
  */
-async function resume(record: StoredHandover, root: string): Promise<void> {
+async function resume(record: StoredHandover, root: string): Promise<boolean> {
   try {
     await vscode.commands.executeCommand(CLAUDE_OPEN, undefined, record.resumePrompt);
   } catch (err) {
@@ -284,10 +286,52 @@ async function resume(record: StoredHandover, root: string): Promise<void> {
     );
     if (choice === copy) await vscode.env.clipboard.writeText(record.resumePrompt);
     // Nothing was resumed, so the record stays waiting.
-    return;
+    return false;
   }
   // The extension host is not a Claude window, so there is no owner to record.
   pushed(root, () => archiveRecord(record.id, { root, by: { owner: "", pid: String(process.pid), via: "extension" } }));
+  return true;
+}
+
+/**
+ * Auto-continue: when a session in this window saves a handover in answer to the
+ * nudge (stamped auto with this window), open the next conversation from it, as
+ * the Resume button does, and spend one continue from the window's budget.
+ *
+ * Runs on every store change, so it guards itself: one continue at a time, and a
+ * record that failed to open is not retried (the error already asked the user).
+ * The short wait lets the old session finish ending its turn, and lets a save
+ * that lands as several writes settle.
+ */
+const SETTLE_MS = 1500;
+
+function autoContinuer(root: () => string, onDone: () => void): () => void {
+  let busy = false;
+  const tried = new Set<string>();
+  return () => {
+    if (busy) return;
+    busy = true;
+    void (async () => {
+      try {
+        await new Promise((r) => setTimeout(r, SETTLE_MS));
+        const win = thisWindow();
+        const record = autoContinueFor(listAll(root()), win, hostname());
+        if (!record || tried.has(record.id)) return;
+        tried.add(record.id);
+        // The budget can have run out since the save (a click on the status bar).
+        if (!((readBudget(root(), win)?.left ?? 0) > 0)) return;
+        if (!(await resume(record, root()))) return;
+        const after = takeOne(root(), win);
+        onDone();
+        const left = after && Number.isFinite(after.left) ? `${after.left} of ${after.budget} left` : "unlimited";
+        void vscode.window.showInformationMessage(`clear-resume: continued "${record.title}" in a new conversation (${left}).`);
+      } catch {
+        // Auto-continue must never break the extension; the record stays in the list.
+      } finally {
+        busy = false;
+      }
+    })();
+  };
 }
 
 /**
