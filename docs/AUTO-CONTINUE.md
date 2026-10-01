@@ -1,6 +1,8 @@
 # Auto-continue: design
 
-Status: phase 1 (headless runner) built in 0.3.0; phase 2 (interactive, VS Code) designed only.
+Status: phase 1 (headless runner) built in 0.3.0; phase 2 panel mode built on
+`feat/auto-continue-vscode` (PR #54, end to end passed 2026-10-01); phase 2 terminal mode
+designed only.
 Decided with Macdara on 2026-09-30.
 
 ## The problem
@@ -141,3 +143,90 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
   budget and the auto record are keyed on parent-of-`CLAUDE_PID`, and the extension
   matches on `process.pid` with no IPC. `VSCODE_PID` is the shared main process, so it
   is the same in every window and cannot be the key.
+
+## Phase 2b: terminal mode (designed 2026-10-01, not built)
+
+Panel mode stops one keypress short. Probed in Claude Code 2.1.285: the panel's open
+command (`editor.open(sessionId, prompt, ...)`) and the `/open` URI only pre-fill the
+input; neither submits. So a panel continue opens the next conversation and waits for
+Enter. Terminal mode removes that keypress: the extension starts the next session in a
+VS Code integrated terminal as `claude "<prompt>"`, and the CLI submits a positional
+prompt at once. Macdara chose this on 2026-10-01 so long work can run hands-off, with no
+one context over ~200k. Panel mode stays as an option.
+
+This is not the "Terminal CLI" row in the table at the top. A terminal the user opened is
+still manual. Terminal mode applies only to a terminal the extension created and can name.
+
+### Setting
+
+`clearResume.autoContinue.mode`: `"terminal"` (default) or `"panel"`. Terminal is the
+default because auto-continue is opt-in through the budget, and someone who sets a
+budget wants the continue to run without them. With no budget, the setting does nothing.
+
+### The window key travels in the environment
+
+A terminal session breaks both checks that panel mode relies on:
+
+- `hostWindow()` reads the parent of `CLAUDE_PID`. In a terminal that parent is a shell,
+  not the extension host.
+- `CLAUDE_CODE_ENTRYPOINT` is `cli`, so the `inVsCode` gate in `auto.mjs` turns auto
+  off.
+
+So the extension passes the window in the environment:
+`createTerminal({ env: { CLEAR_RESUME_WINDOW: "<pid>@<start>" } })`, using the same
+`thisWindow()` value it matches against. Claude and every hook it runs inherit it. On
+the plugin side:
+
+- `hostWindow()` returns `CLEAR_RESUME_WINDOW` when it is set and well formed, before
+  any process walk. This is also faster.
+- The `inVsCode` gate (in `auto.mjs` and `nudge.mjs`) also passes when `CLEAR_RESUME_WINDOW`
+  is set. A terminal the extension started is, for this purpose, inside VS Code.
+- The record stamp, budget file and `autoContinueFor` are unchanged. The key is the same
+  `<pid>@<start>`.
+
+The variable is set only on terminals the extension creates. A user's own terminal never
+carries it, so it stays manual, as before.
+
+### The prompt is one line that points at a file
+
+`resumePrompt` is multi-line markdown. Passing it as an argument means quoting it for
+whatever shell the terminal runs (pwsh, cmd, bash), and cmd cannot carry a newline in an
+argument at all. So the extension:
+
+1. writes `resumePrompt` to `<store>/loaded/<slug>-<shortid>.md` (load already writes a
+   copy there for reading and sharing);
+2. sends one line: `claude "Continue from the clear-resume handover in <path>. Read it in full first, then do its Next action."`.
+
+The extension sends it with `terminal.sendText(line)` into the default shell, not
+`shellPath: claude`. That keeps one code path across shells, needs no lookup of
+`claude.cmd` versus `claude.exe`, and leaves a shell behind if claude exits. The path is
+checked before sending. If it holds a character any of the three shells would treat
+specially (`` " $ ` % ^ & | < > ! ``), the extension falls back to panel mode for that
+continue and says so in the toast.
+
+### Closing the old session
+
+- **The old session ran in a terminal the extension created.** The extension keeps a map
+  of record id to `Terminal` for the terminals it opened. After the new terminal opens,
+  plus the same 10s grace the panel uses, it disposes the old terminal. Disposing kills
+  the idle claude in it. This is exact: no guess, unlike tabs.
+- **The old session was a panel tab** (the first link in a chain usually is). The
+  existing `oldTabToClose` rule applies unchanged.
+- A terminal the extension did not create is never closed.
+
+### Unchanged
+
+Budget, stall guard, `takeOne`, archiving through `resume`'s `via: "extension"`, and the
+toast all stay as they are. Only the open step and the old-session close differ.
+
+### Tests first
+
+- plugin: `hostWindow` returns `CLEAR_RESUME_WINDOW` when set; ignores a malformed value;
+  `interactiveAuto`/`windowAuto`/nudge accept an entrypoint of `cli` with the variable
+  set and stay off without it.
+- extension, as plain functions beside `oldtab.ts`: the launch line for a given path; the
+  unsafe-path check (falls back to panel); which terminal to dispose (only one the
+  extension made for the previous record of this window).
+- End to end: `/clear-resume:auto 2` in a panel session. Two continues chain into
+  terminals with no keypress. Budget used is 2, both records are archived via
+  `extension`, and the first terminal is disposed after the second opens.
