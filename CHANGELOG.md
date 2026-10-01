@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Interactive auto-continue in VS Code** (phase 2, in progress). `/clear-resume:auto <off|on|unlimited|n>`
+  sets how many times a window may continue by itself; a status-bar item shows and steps it.
+  When the nudge fires in a window with budget left, Claude commits, saves a handover and ends
+  its turn, and the extension opens the next conversation from it. The old tab closes when it
+  can be named. Two continued sessions in a row with no commit stop the chain.
+  See [docs/AUTO-CONTINUE.md](docs/AUTO-CONTINUE.md) and
+  [docs/findings-auto-continue-phase2.md](docs/findings-auto-continue-phase2.md).
+
 ## 0.3.2
 
 ### Changed
