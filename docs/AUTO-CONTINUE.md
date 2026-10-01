@@ -159,9 +159,29 @@ still manual. Terminal mode applies only to a terminal the extension created and
 
 ### Setting
 
-`clearResume.autoContinue.mode`: `"terminal"` (default) or `"panel"`. Terminal is the
-default because auto-continue is opt-in through the budget, and someone who sets a
-budget wants the continue to run without them. With no budget, the setting does nothing.
+`clearResume.autoContinue.mode`: `"same"` (default), `"panel"` or `"terminal"`. Decided
+with Macdara 2026-10-01: users stay on the surface they chose. A session in the Claude
+Code GUI (the panel) continues in the panel, at one Enter per continue. A session in a
+terminal continues in a terminal, with no keypress. The other two values override this.
+With no budget, the setting does nothing.
+
+To make "same" work, the auto stamp records where the session ran:
+`surface: "terminal"` when `CLAUDE_CODE_ENTRYPOINT` is `cli`, otherwise `"panel"`. A
+record with no `surface` (saved before this change) reads as panel.
+
+Who each path serves:
+
+| User | Hands-off path |
+|---|---|
+| Claude Code GUI in VS Code | panel mode: one Enter per continue, the limit the panel allows |
+| `claude` in a VS Code terminal | terminal mode: no keypress |
+| `claude` outside VS Code | `clear-resume run` (phase 1, headless) |
+| claude.ai | none: nothing outside the chat can open a new one. The skill still writes and loads handovers |
+
+Known gap (follow-up, not this change): a `claude` the user starts in their own VS Code
+terminal cannot set a budget. Its parent process is a shell, and no
+`CLEAR_RESUME_WINDOW` is set, so `/clear-resume:auto` cannot name the window. Only
+terminals the extension opened can be in a chain.
 
 ### The window key travels in the environment
 
