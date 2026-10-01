@@ -125,7 +125,7 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
 
 - The extension watches the store. When an auto record with budget left appears from one
   of its own windows, it opens a new conversation with `resumePrompt` (the Resume button's
-  path, `extension.ts` `resume()`), records the take, and toasts "Continued (2 of 4 left)".
+  path, `resume.ts` `resume()`), records the take, and toasts "Continued (2 of 4 left)".
 - **Old tabs.** Probed 2026-10-01 (Claude Code 2.1.285): a Claude Code chat tab is a
   `TabInputWebview` whose `viewType` contains `claudeVSCodePanel`, and
   `tabGroups.close(tab)` closes it. Every tab is labelled "Claude Code" with no session
