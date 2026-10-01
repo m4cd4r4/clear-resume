@@ -6,10 +6,6 @@
  * Kept free of the vscode import so it can be unit-tested.
  */
 
-/**
- * The one line sent to the terminal. The handover itself is multi-line, which
- * cmd cannot carry in an argument, so the prompt points at a file instead.
- */
 export type Surface = "panel" | "terminal";
 export type Mode = "same" | Surface;
 
@@ -42,6 +38,10 @@ export function safeForShell(path: string): boolean {
   return !/["$`%^&|<>!]/.test(path);
 }
 
+/**
+ * The one line sent to the terminal. The handover itself is multi-line, which
+ * cmd cannot carry in an argument, so the prompt points at a file instead.
+ */
 export function launchLine(path: string): string {
   return `claude "Continue from the clear-resume handover in ${path}. Read it in full first, then do its Next action."`;
 }
