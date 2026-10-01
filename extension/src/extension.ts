@@ -10,6 +10,7 @@ import { GIT_EXE, pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
+import { oldTabToClose } from "./oldtab";
 import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";
@@ -286,6 +287,30 @@ async function resume(record: StoredHandover, root: string): Promise<boolean> {
  * that lands as several writes settle.
  */
 const SETTLE_MS = 1500;
+// How long to wait for the new conversation's tab, then how long to give the old
+// session to finish ending its turn before its tab is closed.
+const NEW_TAB_WAIT_MS = 10_000;
+const OLD_TURN_GRACE_MS = 10_000;
+
+/** Claude Code chat tabs in this window (probe 2026-10-01: webview viewType contains claudeVSCodePanel). */
+function claudeTabs(): vscode.Tab[] {
+  return vscode.window.tabGroups.all
+    .flatMap((g) => g.tabs)
+    .filter((t) => t.input instanceof vscode.TabInputWebview && t.input.viewType.includes("claudeVSCodePanel"));
+}
+
+/**
+ * Close the session that just handed over, when it can be named: it was the only
+ * Claude tab before the continue, and exactly one new tab appeared. A failure
+ * here leaves the tab open, which costs nothing.
+ */
+async function closeOldTab(before: vscode.Tab[]): Promise<void> {
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  for (let waited = 0; waited < NEW_TAB_WAIT_MS && claudeTabs().length <= before.length; waited += 500) await sleep(500);
+  await sleep(OLD_TURN_GRACE_MS);
+  const old = oldTabToClose(before, claudeTabs());
+  if (old) await vscode.window.tabGroups.close(old);
+}
 
 /** The repo's HEAD, or null when it is not a repo or git fails. The real git
  * binary, not the Windows shim, which opens a console window from here. */
@@ -319,11 +344,13 @@ function autoContinuer(root: () => string, onDone: () => void): () => void {
           );
           return;
         }
+        const before = claudeTabs();
         if (!(await resume(record, root()))) return;
         const after = takeOne(root(), win, head);
         onDone();
         const left = after && Number.isFinite(after.left) ? `${after.left} of ${after.budget} left` : "unlimited";
         void vscode.window.showInformationMessage(`clear-resume: continued "${record.title}" in a new conversation (${left}).`);
+        await closeOldTab(before);
       } catch {
         // Auto-continue must never break the extension; the record stays in the list.
       } finally {
