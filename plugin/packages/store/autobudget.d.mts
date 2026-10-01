@@ -21,3 +21,8 @@ export function nextBudget(state: BudgetState | null): Budget;
 export function takeOne(root: string, win: HostWindow): BudgetState | null;
 /** The file holding a window's budget, for a watcher. */
 export function budgetFile(root: string, win: HostWindow): string;
+export function autoContinueFor<T extends { status: string; auto?: unknown; window?: unknown; machine: string; createdAt: string }>(
+  records: T[],
+  win: HostWindow,
+  machine: string,
+): T | null;

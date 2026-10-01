@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { budgetLabel, DEFAULT_BUDGET, nextBudget, parseBudget, readBudget, setBudget, takeOne } from "../../plugin/packages/store/autobudget.mjs";
+import { autoContinueFor, budgetLabel, DEFAULT_BUDGET, nextBudget, parseBudget, readBudget, setBudget, takeOne } from "../../plugin/packages/store/autobudget.mjs";
 
 let root;
 beforeEach(() => {
@@ -60,5 +60,26 @@ describe("parseBudget", () => {
     expect(parseBudget(" 5 ")).toBe(5);
     expect(parseBudget("Unlimited")).toBe("unlimited");
     for (const bad of ["", "-1", "2.5", "lots", "1000"]) expect(() => parseBudget(bad)).toThrow(/off, on, unlimited or a number/);
+  });
+});
+
+describe("autoContinueFor", () => {
+  // The extension continues only an auto handover this window saved, still waiting.
+  const rec = (over) => ({ status: "waiting", auto: true, window: `${win.pid}@${win.start}`, machine: "box", createdAt: "2026-10-01T00:00:00.000Z", ...over });
+  it("picks this window's oldest waiting auto record, on this machine, and nothing else", () => {
+    const mine = rec({ id: "a" });
+    const records = [
+      rec({ id: "newer", createdAt: "2026-10-01T00:05:00.000Z" }),
+      mine,
+      rec({ id: "manual", auto: undefined, createdAt: "2026-09-30T00:00:00.000Z" }),
+      rec({ id: "taken", status: "archived", createdAt: "2026-09-30T00:00:00.000Z" }),
+      rec({ id: "other-window", window: "999@5", createdAt: "2026-09-30T00:00:00.000Z" }),
+      rec({ id: "reused-pid", window: `${win.pid}@${win.start + 60_000}`, createdAt: "2026-09-30T00:00:00.000Z" }),
+      rec({ id: "other-machine", machine: "laptop", createdAt: "2026-09-30T00:00:00.000Z" }),
+    ];
+    expect(autoContinueFor(records, win, "box")?.id).toBe("a");
+    expect(autoContinueFor(records.filter((r) => r !== mine && r.id !== "newer"), win, "box")).toBeNull();
+    // A start a few ms off (rounding between tools) is the same window.
+    expect(autoContinueFor([rec({ id: "b", window: `${win.pid}@${win.start + 15}` })], win, "box")?.id).toBe("b");
   });
 });
