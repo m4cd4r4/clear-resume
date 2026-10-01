@@ -9,6 +9,11 @@
   When the nudge fires in a window with budget left, Claude commits, saves a handover and ends
   its turn, and the extension opens the next conversation from it. The old tab closes when it
   can be named. Two continued sessions in a row with no commit stop the chain.
+- **Terminal mode for auto-continue.** New setting `clearResume.autoContinue.mode`: `same`
+  (default) continues on the surface the session ran on, `panel` or `terminal` force one. In
+  terminal mode the next session starts in a new VS Code terminal with no keypress, and the
+  old terminal closes. A `claude` started in any terminal of the window can now use
+  `/clear-resume:auto`.
   See [docs/AUTO-CONTINUE.md](docs/AUTO-CONTINUE.md) and
   [docs/findings-auto-continue-phase2.md](docs/findings-auto-continue-phase2.md).
 

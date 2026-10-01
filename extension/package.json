@@ -223,6 +223,17 @@
           "type": "string",
           "default": "",
           "description": "Optional worktree registry (JSON with an entries array). When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up."
+        },
+        "clearResume.autoContinue.mode": {
+          "type": "string",
+          "enum": ["same", "panel", "terminal"],
+          "enumDescriptions": [
+            "Continue where the session ran: a panel session in the panel (one Enter per continue), a terminal session in a terminal (no keypress).",
+            "Always continue in the Claude Code panel. The prompt is filled in and waits for Enter.",
+            "Always continue in a new terminal, where the session starts with no keypress."
+          ],
+          "default": "same",
+          "description": "Where auto-continue opens the next session."
         }
       }
     }

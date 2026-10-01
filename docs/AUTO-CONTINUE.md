@@ -2,7 +2,7 @@
 
 Status: phase 1 (headless runner) built in 0.3.0; phase 2 panel mode built on
 `feat/auto-continue-vscode` (PR #54, end to end passed 2026-10-01); phase 2 terminal mode
-designed only.
+built on the same branch, unit-tested, end to end not yet run.
 Decided with Macdara on 2026-09-30.
 
 ## The problem
@@ -144,7 +144,7 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
   matches on `process.pid` with no IPC. `VSCODE_PID` is the shared main process, so it
   is the same in every window and cannot be the key.
 
-## Phase 2b: terminal mode (designed 2026-10-01, not built)
+## Phase 2b: terminal mode (designed 2026-10-01, built 2026-10-01, end to end not yet run)
 
 Panel mode stops one keypress short. Probed in Claude Code 2.1.285: the panel's open
 command (`editor.open(sessionId, prompt, ...)`) and the `/open` URI only pre-fill the
@@ -178,10 +178,12 @@ Who each path serves:
 | `claude` outside VS Code | `clear-resume run` (phase 1, headless) |
 | claude.ai | none: nothing outside the chat can open a new one. The skill still writes and loads handovers |
 
-Known gap (follow-up, not this change): a `claude` the user starts in their own VS Code
-terminal cannot set a budget. Its parent process is a shell, and no
-`CLEAR_RESUME_WINDOW` is set, so `/clear-resume:auto` cannot name the window. Only
-terminals the extension opened can be in a chain.
+A `claude` the user starts in their own VS Code terminal can join a chain too: the
+extension sets `CLEAR_RESUME_WINDOW` in every integrated terminal of its window through
+`context.environmentVariableCollection` (not persisted, since a reload changes the key).
+So `/clear-resume:auto` there names the window, the nudge fires, and the continue opens in
+a terminal the extension creates. The user's own terminal is not closed: it carries no
+`CLEAR_RESUME_TERMINAL` id.
 
 ### The window key travels in the environment
 
@@ -204,8 +206,9 @@ the plugin side:
 - The record stamp, budget file and `autoContinueFor` are unchanged. The key is the same
   `<pid>@<start>`.
 
-The variable is set only on terminals the extension creates. A user's own terminal never
-carries it, so it stays manual, as before.
+The extension also sets it in every other integrated terminal of the window (see above),
+so a `claude` the user starts there can be in a chain. A terminal opened before the
+extension activated does not carry it.
 
 ### The prompt is one line that points at a file
 
@@ -226,12 +229,16 @@ continue and says so in the toast.
 
 ### Closing the old session
 
-- **The old session ran in a terminal the extension created.** The extension keeps a map
-  of record id to `Terminal` for the terminals it opened. After the new terminal opens,
-  plus the same 10s grace the panel uses, it disposes the old terminal. Disposing kills
-  the idle claude in it. This is exact: no guess, unlike tabs.
+- **The old session ran in a terminal the extension created.** Each such terminal gets a
+  random id in `CLEAR_RESUME_TERMINAL`. The plugin copies it into the auto stamp
+  (`terminal`, plain ids only), so the record names its own terminal. The extension keeps
+  a map of id to `Terminal`; after the new terminal opens, plus the same 10s grace the
+  panel uses, it disposes the one the record names. Disposing kills the idle claude in it.
+  This is exact: no guess, unlike tabs. A window reload empties the map, and a terminal it
+  no longer knows is left open.
 - **The old session was a panel tab** (the first link in a chain usually is). The
-  existing `oldTabToClose` rule applies unchanged.
+  existing `oldTabToClose` rule applies unchanged. That rule needs a new tab beside the
+  old one, so a panel session that continues into a terminal leaves its tab open.
 - A terminal the extension did not create is never closed.
 
 ### Unchanged

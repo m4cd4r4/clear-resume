@@ -7,10 +7,12 @@ import { autoContinueFor, budgetFile, budgetLabel, nextBudget, readBudget, setBu
 import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { GIT_EXE, pushIfSynced } from "../../plugin/packages/store/sync.mjs";
-import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
+import { loadedCopyPath, writeLoadedCopy } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { oldTabToClose } from "./oldtab";
+import { continueSurface, safeForShell, type Mode } from "./terminal";
+import { closeOldTerminal, openSessionTerminal } from "./terminals";
 import { HistoryProvider, type HandoverNode } from "./tree";
 import { LanesProvider } from "./lanes-tree";
 
@@ -66,6 +68,13 @@ export function activate(context: vscode.ExtensionContext): void {
   const lanesProvider = new LanesProvider(root, registry);
   const lanesTree = vscode.window.createTreeView(LANES_VIEW, { treeDataProvider: lanesProvider, showCollapseAll: true });
   context.subscriptions.push(lanesTree);
+
+  // Every terminal in this window carries the window key, so a `claude` the user
+  // starts in one can join an auto-continue chain (/clear-resume:auto). Not
+  // persisted: a reload gives the window a new key, set here again.
+  const win = thisWindow();
+  context.environmentVariableCollection.persistent = false;
+  context.environmentVariableCollection.replace("CLEAR_RESUME_WINDOW", `${win.pid}@${win.start}`);
 
   autoStatus(context, root);
   const status = loadedStatus(context, root);
@@ -290,9 +299,36 @@ async function resume(record: StoredHandover, root: string): Promise<boolean> {
     // Nothing was resumed, so the record stays waiting.
     return false;
   }
-  // The extension host is not a Claude window, so there is no owner to record.
-  pushed(root, () => archiveRecord(record.id, { root, by: { owner: "", pid: String(process.pid), via: "extension" } }));
+  archived(record, root);
   return true;
+}
+
+/** Archive a record the extension opened. The extension host is not a Claude
+ * window, so there is no owner to record. */
+function archived(record: StoredHandover, root: string): void {
+  pushed(root, () => archiveRecord(record.id, { root, by: { owner: "", pid: String(process.pid), via: "extension" } }));
+}
+
+/**
+ * Open the next conversation where `clearResume.autoContinue.mode` says, and
+ * archive the record. Returns where it opened, for the toast, or null when
+ * nothing opened. Terminal mode needs the handover as a file whose path every
+ * shell reads as written; without that it opens in the panel and says why.
+ */
+async function openNext(record: StoredHandover, root: string, win: HostWindow): Promise<string | null> {
+  const mode = vscode.workspace.getConfiguration("clearResume").get<Mode>("autoContinue.mode");
+  const surface = typeof record.surface === "string" ? record.surface : undefined;
+  if (continueSurface(mode, { surface }) === "terminal") {
+    const path = writeLoadedCopy(root, record);
+    if (path && safeForShell(path)) {
+      openSessionTerminal({ cwd: record.repoPath, window: `${win.pid}@${win.start}`, path, title: record.title });
+      archived(record, root);
+      return "in a new terminal";
+    }
+    const why = path ? "its path has a character a shell would misread" : "its file could not be written";
+    return (await resume(record, root)) ? `in a new conversation, not a terminal: ${why}` : null;
+  }
+  return (await resume(record, root)) ? "in a new conversation" : null;
 }
 
 /**
@@ -364,12 +400,20 @@ function autoContinuer(root: () => string, onDone: () => void): () => void {
           return;
         }
         const before = claudeTabs();
-        if (!(await resume(record, root()))) return;
+        const where = await openNext(record, root(), win);
+        if (!where) return;
         const after = takeOne(root(), win, head);
         onDone();
         const left = after && Number.isFinite(after.left) ? `${after.left} of ${after.budget} left` : "unlimited";
-        void vscode.window.showInformationMessage(`clear-resume: continued "${record.title}" in a new conversation (${left}).`);
-        await closeOldTab(before);
+        void vscode.window.showInformationMessage(`clear-resume: continued "${record.title}" ${where} (${left}).`);
+        // The old session ran in a terminal this extension opened (it stamped the
+        // id), or in a panel tab. A panel tab is closed only when a new tab
+        // appeared beside it, so a panel-to-terminal continue leaves it open.
+        const oldTerminal = typeof record.terminal === "string" ? record.terminal : undefined;
+        if (oldTerminal) {
+          await new Promise((r) => setTimeout(r, OLD_TURN_GRACE_MS));
+          closeOldTerminal({ terminal: oldTerminal });
+        } else await closeOldTab(before);
       } catch {
         // Auto-continue must never break the extension; the record stays in the list.
       } finally {
