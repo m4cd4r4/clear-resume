@@ -1,11 +1,12 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
-import { autoContinueFor, budgetFile, budgetLabel, nextBudget, readBudget, setBudget, takeOne, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
+import { autoContinueFor, budgetFile, budgetLabel, nextBudget, readBudget, setBudget, stalls, takeOne, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
 import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
-import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
+import { GIT_EXE, pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
@@ -286,6 +287,16 @@ async function resume(record: StoredHandover, root: string): Promise<boolean> {
  */
 const SETTLE_MS = 1500;
 
+/** The repo's HEAD, or null when it is not a repo or git fails. The real git
+ * binary, not the Windows shim, which opens a console window from here. */
+function headOf(dir: string): string | null {
+  try {
+    return execFileSync(GIT_EXE, ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf8", timeout: 5000, windowsHide: true, stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function autoContinuer(root: () => string, onDone: () => void): () => void {
   let busy = false;
   const tried = new Set<string>();
@@ -301,8 +312,15 @@ function autoContinuer(root: () => string, onDone: () => void): () => void {
         tried.add(record.id);
         // The budget can have run out since the save (a click on the status bar).
         if (!((readBudget(root(), win)?.left ?? 0) > 0)) return;
+        const head = headOf(record.repoPath);
+        if (stalls(root(), win, head)) {
+          void vscode.window.showWarningMessage(
+            `clear-resume: auto-continue stopped. The last two continued sessions made no commit, so "${record.title}" is waiting in the list instead.`,
+          );
+          return;
+        }
         if (!(await resume(record, root()))) return;
-        const after = takeOne(root(), win);
+        const after = takeOne(root(), win, head);
         onDone();
         const left = after && Number.isFinite(after.left) ? `${after.left} of ${after.budget} left` : "unlimited";
         void vscode.window.showInformationMessage(`clear-resume: continued "${record.title}" in a new conversation (${left}).`);
