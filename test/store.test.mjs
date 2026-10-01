@@ -212,3 +212,14 @@ describe("save.mjs CLI", () => {
     ).toThrow();
   });
 });
+
+describe("saveHandover auto stamp for an interactive window", () => {
+  it("records which window may continue, and nothing extra for an ordinary save", () => {
+    saveHandover({ cwd: repo, title: "A", body: "x", root, owner: "", auto: { window: "16352@1000", budget: 2 } });
+    saveHandover({ cwd: repo, title: "B", body: "x", root, owner: "1@1" });
+    const byTitle = Object.fromEntries(listAll(root).map((r) => [r.title, r]));
+    expect(byTitle.A).toMatchObject({ auto: true, window: "16352@1000", budget: 2 });
+    expect(byTitle.B).not.toHaveProperty("auto");
+    expect(byTitle.B).not.toHaveProperty("window");
+  });
+});

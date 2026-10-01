@@ -129,7 +129,7 @@ function asHandover(record) {
       ...(record.takenAt ? { takenAt: record.takenAt } : {}),
       // Auto-continue (docs/AUTO-CONTINUE.md): saved in response to the nudge,
       // which segment wrote it, and how many continues are left (-1 unlimited).
-      ...(record.auto === true ? { auto: true, chain: record.chain ?? null, budget: record.budget ?? null } : {}),
+      ...(record.auto === true ? { auto: true, chain: record.chain ?? null, budget: record.budget ?? null, window: record.window ?? null } : {}),
     },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
@@ -257,7 +257,10 @@ function autoFields(auto) {
   const whole = (v) => (v === "" || v == null || !Number.isInteger(Number(v)) ? undefined : Number(v));
   const chain = whole(auto.chain);
   const budget = whole(auto.budget);
-  return { auto: true, ...(chain != null ? { chain } : {}), ...(budget != null ? { budget } : {}) };
+  // The VS Code window (extension host `<pid>@<start>`) whose extension opens the
+  // next conversation. Headless saves have none.
+  const window = /^\d+(@\d+)?$/.test(String(auto.window ?? "")) ? String(auto.window) : undefined;
+  return { auto: true, ...(chain != null ? { chain } : {}), ...(budget != null ? { budget } : {}), ...(window ? { window } : {}) };
 }
 
 // Save a handover. A newer save from the same window supersedes that window's
