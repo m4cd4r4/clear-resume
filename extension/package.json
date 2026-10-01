@@ -125,6 +125,10 @@
         "command": "clearResume.openLane",
         "title": "Open worktree window",
         "category": "clear-resume"
+      },
+      {
+        "command": "clearResume.stepAuto",
+        "title": "clear-resume: Step auto-continue (off, 3, unlimited)"
       }
     ],
     "menus": {
