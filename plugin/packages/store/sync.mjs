@@ -31,7 +31,7 @@ const GITIGNORE = ".nudged/\n";
 // into a NEW, VISIBLE console window. Calling the real binary directly avoids the shim
 // (2026-09-24, same fix as ~/.claude/scripts/repo-scanner.py).
 const REAL_GIT = "C:\\Program Files\\Git\\mingw64\\bin\\git.exe";
-const GIT_EXE = process.platform === "win32" && existsSync(REAL_GIT) ? REAL_GIT : "git";
+export const GIT_EXE = process.platform === "win32" && existsSync(REAL_GIT) ? REAL_GIT : "git";
 
 function git(cwd, args, { timeout = TIMEOUT_MS } = {}) {
   return execFileSync(GIT_EXE, args, {

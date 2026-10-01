@@ -119,7 +119,7 @@ Then the controlled test: one fix-round brief, segmented vs one long session, sa
 compare the review's blocker and should-fix counts. The earlier correlation (Spearman
 0.67, N=20) is confounded by model and scope.
 
-## Phase 2: interactive auto-continue (not built yet)
+## Phase 2: interactive auto-continue (in progress: tab closing and the EDH test remain)
 
 - The extension watches the store. When an auto record with budget left appears from one
   of its own windows, it opens a new conversation with `resumePrompt` (the Resume button's
@@ -127,7 +127,7 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
 - **Old tabs.** Once the record shows as taken (proof the new session loaded it), close
   the old tab. First a ~30 minute probe: can a third-party extension close a Claude Code
   chat tab via the tab groups API? If not, a "Close finished sessions" command instead.
-- Stall guard as in phase 1, alerting by toast.
+- Stall guard as in phase 1, alerting by toast. HEAD is recorded in the window's budget file at each continue (`lastHead`, `stalled`); a third continue after two commit-less sessions is refused and the handover is left waiting.
 - Check the 0.2.1 load crash (`packages/store/sync.mjs:256`, `import.meta.url` in the CJS
   bundle) is fixed in the build before starting.
 - An EDH needs a throwaway `--user-data-dir` (edh-guard enforces it).

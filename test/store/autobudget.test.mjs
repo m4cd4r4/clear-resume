@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { autoContinueFor, budgetLabel, DEFAULT_BUDGET, nextBudget, parseBudget, readBudget, setBudget, takeOne } from "../../plugin/packages/store/autobudget.mjs";
+import { autoContinueFor, budgetLabel, DEFAULT_BUDGET, nextBudget, parseBudget, readBudget, setBudget, stalls, takeOne } from "../../plugin/packages/store/autobudget.mjs";
 
 let root;
 beforeEach(() => {
@@ -81,5 +81,25 @@ describe("autoContinueFor", () => {
     expect(autoContinueFor(records.filter((r) => r !== mine && r.id !== "newer"), win, "box")).toBeNull();
     // A start a few ms off (rounding between tools) is the same window.
     expect(autoContinueFor([rec({ id: "b", window: `${win.pid}@${win.start + 15}` })], win, "box")?.id).toBe("b");
+  });
+});
+
+describe("stall guard", () => {
+  // As the headless runner: two continued sessions in a row with no new commit
+  // stop the chain. HEAD is recorded at each continue.
+  it("refuses a continue after two continued sessions made no commit, and a commit resets it", () => {
+    setBudget(root, win, "unlimited");
+    expect(stalls(root, win, "h1")).toBe(false);
+    takeOne(root, win, "h1"); // session 2 starts at h1
+    expect(stalls(root, win, "h1")).toBe(false); // session 2 made nothing: one strike
+    takeOne(root, win, "h1");
+    expect(stalls(root, win, "h1")).toBe(true); // session 3 made nothing either
+    expect(stalls(root, win, "h2")).toBe(false); // ...unless it committed
+    takeOne(root, win, "h2");
+    expect(stalls(root, win, "h2")).toBe(false);
+    // No HEAD (not a git repo) never stalls.
+    takeOne(root, win, null);
+    takeOne(root, win, null);
+    expect(stalls(root, win, null)).toBe(false);
   });
 });
