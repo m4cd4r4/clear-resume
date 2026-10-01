@@ -22,10 +22,20 @@ export function interactiveAuto({ env = process.env, win, root = storeRoot(env) 
   if (headless(env) || !inVsCode(env)) return undefined;
   const session = slugify(env.CLAUDE_CODE_SESSION_ID ?? "");
   if (!session || !existsSync(join(root, ".nudged", session))) return undefined;
-  const window = win ?? hostWindow(env, { timeout: PATIENT_TIMEOUT_MS });
-  const state = window && readBudget(root, window);
+  return windowAuto({ env, win: win ?? hostWindow(env, { timeout: PATIENT_TIMEOUT_MS }), root });
+}
+
+/**
+ * This VS Code window's auto-continue stamp, `{ window, budget }`, when it has
+ * budget left, else undefined. The nudge asks this to choose its text; a save
+ * asks it (behind the nudged check) to choose its stamp. `win` may be a lookup
+ * result of null, which reads as no budget.
+ */
+export function windowAuto({ env = process.env, win, root = storeRoot(env) } = {}) {
+  if (headless(env) || !inVsCode(env) || !win) return undefined;
+  const state = readBudget(root, win);
   if (!state || state.left <= 0) return undefined;
-  const id = window.start != null ? `${window.pid}@${window.start}` : String(window.pid);
+  const id = win.start != null ? `${win.pid}@${win.start}` : String(win.pid);
   // -1 is unlimited, as the headless runner writes it.
   return { window: id, budget: Number.isFinite(state.left) ? state.left : -1 };
 }
