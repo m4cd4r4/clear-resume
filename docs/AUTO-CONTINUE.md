@@ -124,9 +124,12 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
 - The extension watches the store. When an auto record with budget left appears from one
   of its own windows, it opens a new conversation with `resumePrompt` (the Resume button's
   path, `extension.ts` `resume()`), records the take, and toasts "Continued (2 of 4 left)".
-- **Old tabs.** Once the record shows as taken (proof the new session loaded it), close
-  the old tab. First a ~30 minute probe: can a third-party extension close a Claude Code
-  chat tab via the tab groups API? If not, a "Close finished sessions" command instead.
+- **Old tabs.** Probed 2026-10-01 (Claude Code 2.1.285): a Claude Code chat tab is a
+  `TabInputWebview` whose `viewType` contains `claudeVSCodePanel`, and
+  `tabGroups.close(tab)` closes it. Every tab is labelled "Claude Code" with no session
+  id, so the old tab is closed only when it was the one Claude tab in the window and the
+  continue added exactly one more (`extension/src/oldtab.ts`); otherwise nothing closes.
+  It waits up to 10s for the new tab, then 10s more so the old session can finish its turn.
 - Stall guard as in phase 1, alerting by toast. HEAD is recorded in the window's budget file at each continue (`lastHead`, `stalled`); a third continue after two commit-less sessions is refused and the handover is left waiting.
 - Check the 0.2.1 load crash (`packages/store/sync.mjs:256`, `import.meta.url` in the CJS
   bundle) is fixed in the build before starting.
