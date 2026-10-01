@@ -83,10 +83,31 @@ export function nextBudget(state) {
   return "unlimited";
 }
 
-/** Spend one continue. Returns the budget after it, or null when none was left. */
-export function takeOne(root, win) {
+// The stall guard, as the headless runner's: two continued sessions in a row
+// that made no commit stop the chain, whatever budget is left.
+const STALL_LIMIT = 2;
+const strikes = (r, head) => (head && r.lastHead === head ? (Number(r.stalled) || 0) + 1 : 0);
+
+/**
+ * Whether continuing now, with the repo at `head`, would stall: the session that
+ * the last continue opened made no commit, and neither did the one before it.
+ * A missing HEAD (not a git repo) never stalls.
+ */
+export function stalls(root, win, head) {
+  const r = readRecord(root, win);
+  return Boolean(r) && strikes(r, head) >= STALL_LIMIT;
+}
+
+/**
+ * Spend one continue, recording the repo's HEAD as the new session starts so the
+ * next continue can tell whether it committed anything. Returns the budget after
+ * it, or null when none was left.
+ */
+export function takeOne(root, win, head = null) {
   const r = readRecord(root, win);
   if (!r || view(r).left <= 0) return null;
+  r.stalled = strikes(r, head);
+  r.lastHead = head || null;
   r.used = (Number(r.used) || 0) + 1;
   writeFileSync(file(root, win), JSON.stringify(r, null, 2), "utf8");
   return view(r);

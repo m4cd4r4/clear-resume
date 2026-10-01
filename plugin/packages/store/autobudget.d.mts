@@ -18,7 +18,8 @@ export function setBudget(root: string, win: HostWindow, budget: Budget, opts?: 
 export function readBudget(root: string, win: HostWindow): BudgetState | null;
 export function budgetLabel(state: BudgetState | null): string;
 export function nextBudget(state: BudgetState | null): Budget;
-export function takeOne(root: string, win: HostWindow): BudgetState | null;
+export function takeOne(root: string, win: HostWindow, head?: string | null): BudgetState | null;
+export function stalls(root: string, win: HostWindow, head: string | null): boolean;
 /** The file holding a window's budget, for a watcher. */
 export function budgetFile(root: string, win: HostWindow): string;
 export function autoContinueFor<T extends { status: string; auto?: unknown; window?: unknown; machine: string; createdAt: string }>(

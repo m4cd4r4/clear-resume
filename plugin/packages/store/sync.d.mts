@@ -16,3 +16,4 @@ export function sync(root?: string, opts?: { now?: Date; timeout?: number }): Sy
 export function pushInBackground(root?: string, env?: Record<string, string | undefined>, cli?: string | null): import("node:child_process").ChildProcess | null;
 /** pushInBackground, but a no-op on a store that was never set up to sync. */
 export function pushIfSynced(root?: string, env?: Record<string, string | undefined>, cli?: string | null): import("node:child_process").ChildProcess | null;
+export const GIT_EXE: string;
