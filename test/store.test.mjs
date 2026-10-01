@@ -231,4 +231,13 @@ describe("saveHandover auto stamp for an interactive window", () => {
     expect(byTitle.Z).not.toHaveProperty("surface");
     expect(findById(root, `${byTitle.T.createdAt}|T`).meta.surface).toBe("terminal");
   });
+
+  it("records the terminal id and hands it to the extension; a value that is not a plain id is dropped", () => {
+    saveHandover({ cwd: repo, title: "T", body: "x", root, owner: "", auto: { window: "16352@1000", terminal: "4f1c-9a" } });
+    saveHandover({ cwd: repo, title: "Z", body: "x", root, owner: "", auto: { window: "16352@1000", terminal: "a b;rm" } });
+    const byTitle = Object.fromEntries(listAll(root).map((r) => [r.title, r]));
+    expect(byTitle.T).toMatchObject({ terminal: "4f1c-9a" });
+    expect(byTitle.Z).not.toHaveProperty("terminal");
+    expect(findById(root, `${byTitle.T.createdAt}|T`).meta.terminal).toBe("4f1c-9a");
+  });
 });
