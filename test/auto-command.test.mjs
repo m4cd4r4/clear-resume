@@ -34,14 +34,26 @@ describe("interactiveAuto", () => {
 
   it("stamps the window only when nudged, in VS Code, with budget left", () => {
     setBudget(home, win, 2);
-    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: 2 });
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: 2, surface: "panel" });
     expect(interactiveAuto({ env: { ...vscodeEnv(), CLAUDE_CODE_SESSION_ID: "other" }, win })).toBeUndefined();
     expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli" }), win })).toBeUndefined();
     expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLEAR_RESUME_HEADLESS: "1" }), win })).toBeUndefined();
     setBudget(home, win, 0);
     expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toBeUndefined();
     setBudget(home, win, "unlimited");
-    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: -1 });
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win })).toEqual({ window: "16352@1000", budget: -1, surface: "panel" });
+  });
+
+  it("counts a terminal the extension opened (CLEAR_RESUME_WINDOW set) as inside VS Code", () => {
+    setBudget(home, win, 2);
+    const terminal = nudged({ ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" });
+    expect(interactiveAuto({ env: terminal, win })).toMatchObject({ window: "16352@1000", budget: 2 });
+  });
+
+  it("records the surface the session ran on, so the extension can continue on the same one", () => {
+    setBudget(home, win, 2);
+    expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" }), win }).surface).toBe("terminal");
+    expect(interactiveAuto({ env: nudged(vscodeEnv()), win }).surface).toBe("panel");
   });
 });
 

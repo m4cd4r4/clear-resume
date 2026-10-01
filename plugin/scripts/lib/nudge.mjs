@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
 import { fileURLToPath } from "node:url";
 import { autoEnabled, headless, relayOn } from "./auto-flag.mjs";
-import { windowAuto } from "./auto.mjs";
+import { inVsCode, windowAuto } from "./auto.mjs";
 import { hostWindow } from "./owner.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
@@ -159,7 +159,7 @@ function headlessAsk(tokens, limit, midTurn) {
 // is now nudged. The window is looked up only here, once a session crosses the
 // threshold; `win` lets a test pass one in (null reads as no window).
 function windowState(env, win) {
-  if (env.CLAUDE_CODE_ENTRYPOINT !== "claude-vscode") return undefined;
+  if (!inVsCode(env)) return undefined;
   // No window has ever set a budget: skip the process-table read.
   if (win === undefined && !existsSync(join(storeRoot(env), ".nudged", "windows"))) return undefined;
   return windowAuto({ env, win: win === undefined ? hostWindow(env) : win });
