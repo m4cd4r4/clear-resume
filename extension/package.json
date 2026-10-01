@@ -115,6 +115,10 @@
       {
         "command": "clearResume.migrate",
         "title": "clear-resume: Import existing handovers"
+      },
+      {
+        "command": "clearResume.stepAuto",
+        "title": "clear-resume: Step auto-continue (off, 3, unlimited)"
       }
     ],
     "menus": {

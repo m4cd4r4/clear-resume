@@ -1,7 +1,8 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import * as vscode from "vscode";
+import { budgetFile, budgetLabel, nextBudget, readBudget, setBudget, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
 import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
@@ -57,6 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // A prune failure must never stop the view from opening.
   }
 
+  autoStatus(context, root);
   const status = loadedStatus(context, root);
   watchStore(context, root, () => {
     provider.refresh();
@@ -178,6 +180,69 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(update));
   update();
   return { update };
+}
+
+/**
+ * This window as the plugin's hooks see it: the extension host, which is the
+ * parent of every Claude process in the window. The start is estimated from
+ * uptime; plain node lands within 15ms of the process table's figure, well inside
+ * the 1s slack readBudget allows.
+ */
+const thisWindow = (): HostWindow => ({ pid: String(process.pid), start: Math.round(Date.now() - process.uptime() * 1000) });
+
+/**
+ * The auto-continue status-bar item: `auto: 2 of 4 left`, shown once a budget has
+ * been set in this window (by /clear-resume:auto or the command). Clicking it
+ * steps off, 3, unlimited.
+ */
+function autoStatus(context: vscode.ExtensionContext, root: () => string): void {
+  const item = vscode.window.createStatusBarItem("clearResume.auto", vscode.StatusBarAlignment.Left, 0);
+  item.name = "clear-resume: auto-continue";
+  item.command = "clearResume.stepAuto";
+  item.tooltip = "Auto-continue in this window: click to step off, 3, unlimited";
+  context.subscriptions.push(item);
+
+  const update = () => {
+    try {
+      const file = budgetFile(root(), thisWindow());
+      if (!existsSync(file)) return void item.hide();
+      item.text = `$(debug-continue) ${budgetLabel(readBudget(root(), thisWindow()))}`;
+      item.show();
+    } catch {
+      item.hide();
+    }
+  };
+
+  const watch = () => {
+    // A watcher outside the workspace on a folder that does not exist yet never fires.
+    const folder = dirname(budgetFile(root(), thisWindow()));
+    try {
+      mkdirSync(folder, { recursive: true });
+    } catch {
+      // Unwritable store: the item stays hidden and the command reports nothing.
+    }
+    const w = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(folder), `${process.pid}.json`));
+    w.onDidCreate(update);
+    w.onDidChange(update);
+    w.onDidDelete(update);
+    return w;
+  };
+  let watcher = watch();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("clearResume.stepAuto", () => {
+      setBudget(root(), thisWindow(), nextBudget(readBudget(root(), thisWindow())));
+      update();
+    }),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (!e.affectsConfiguration("clearResume.storePath")) return;
+      watcher.dispose();
+      watcher = watch();
+      update();
+    }),
+    { dispose: () => watcher.dispose() },
+  );
+  update();
 }
 
 /**

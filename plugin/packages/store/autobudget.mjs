@@ -17,6 +17,9 @@ const START_SLACK_MS = 1000;
 const dir = (root) => join(root, ".nudged", "windows");
 const file = (root, win) => join(dir(root), `${String(win.pid).replace(/\D/g, "")}.json`);
 
+/** The file holding a window's budget, for a watcher. */
+export const budgetFile = file;
+
 /** What `/auto on` and the status bar's middle step set. */
 export const DEFAULT_BUDGET = 3;
 const MAX_BUDGET = 99;
