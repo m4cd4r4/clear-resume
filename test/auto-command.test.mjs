@@ -55,6 +55,13 @@ describe("interactiveAuto", () => {
     expect(interactiveAuto({ env: nudged({ ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" }), win }).surface).toBe("terminal");
     expect(interactiveAuto({ env: nudged(vscodeEnv()), win }).surface).toBe("panel");
   });
+
+  it("records the terminal id the extension gave the session, so it closes that terminal and no other", () => {
+    setBudget(home, win, 2);
+    const env = { ...vscodeEnv(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" };
+    expect(interactiveAuto({ env: nudged({ ...env, CLEAR_RESUME_TERMINAL: "t-1" }), win }).terminal).toBe("t-1");
+    expect(interactiveAuto({ env: nudged(env), win })).not.toHaveProperty("terminal");
+  });
 });
 
 describe("runAuto", () => {

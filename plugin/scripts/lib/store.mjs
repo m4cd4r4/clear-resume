@@ -129,7 +129,7 @@ function asHandover(record) {
       ...(record.takenAt ? { takenAt: record.takenAt } : {}),
       // Auto-continue (docs/AUTO-CONTINUE.md): saved in response to the nudge,
       // which segment wrote it, and how many continues are left (-1 unlimited).
-      ...(record.auto === true ? { auto: true, chain: record.chain ?? null, budget: record.budget ?? null, window: record.window ?? null, surface: record.surface ?? null } : {}),
+      ...(record.auto === true ? { auto: true, chain: record.chain ?? null, budget: record.budget ?? null, window: record.window ?? null, surface: record.surface ?? null, terminal: record.terminal ?? null } : {}),
     },
     body: record.body,
     // What archived it, if anything. The twin check needs it to tell its own
@@ -263,7 +263,10 @@ function autoFields(auto) {
   // Where the session ran ("panel" or "terminal"), for the extension's "same" mode.
   // A record without it reads as panel.
   const surface = auto.surface === "panel" || auto.surface === "terminal" ? auto.surface : undefined;
-  return { auto: true, ...(chain != null ? { chain } : {}), ...(budget != null ? { budget } : {}), ...(window ? { window } : {}), ...(surface ? { surface } : {}) };
+  // The id the extension gave the terminal it opened for this session
+  // (CLEAR_RESUME_TERMINAL), so it closes exactly that terminal after a continue.
+  const terminal = /^[A-Za-z0-9-]{1,64}$/.test(String(auto.terminal ?? "")) ? String(auto.terminal) : undefined;
+  return { auto: true, ...(chain != null ? { chain } : {}), ...(budget != null ? { budget } : {}), ...(window ? { window } : {}), ...(surface ? { surface } : {}), ...(terminal ? { terminal } : {}) };
 }
 
 // Save a handover. A newer save from the same window supersedes that window's
