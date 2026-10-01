@@ -95,6 +95,16 @@ describe("Stop nudge", () => {
     expect(plain.hookSpecificOutput.additionalContext).toContain("tell the user to type /clear");
   });
 
+  it("in a terminal the extension opened (cli, CLEAR_RESUME_WINDOW set), asks for a handover, never a /clear", () => {
+    write(call(200_000));
+    const win = { pid: "16352", start: 1000 };
+    setBudget(root, win, 2);
+    const terminal = { ...env(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" };
+    const out = runStop(input(), { env: terminal, win });
+    expect(out.systemMessage).toMatch(/2 left/);
+    expect(out.hookSpecificOutput.additionalContext).not.toMatch(/\/clear(?!-)/);
+  });
+
   it("nudges once past the threshold, then never again that session", () => {
     write(call(185_000));
     const out = runStop(input(), { env: env() });

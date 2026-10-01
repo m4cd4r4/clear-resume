@@ -285,4 +285,16 @@ describe("hostWindow", () => {
     expect(hostWindow({ CLAUDE_PID: "41460" }, { table: [] })).toBeNull();
     expect(hostWindow({}, { table })).toBeNull();
   });
+
+  it("takes the window from CLEAR_RESUME_WINDOW before any process walk", () => {
+    const readTable = () => { throw new Error("walked"); };
+    expect(hostWindow({ CLEAR_RESUME_WINDOW: "16352@1000", CLAUDE_PID: "41460" }, { readTable })).toEqual({ pid: "16352", start: 1000 });
+  });
+
+  it("ignores a malformed CLEAR_RESUME_WINDOW and walks as before", () => {
+    const table = [["41460", "16352", "claude.exe", 2000], ["16352", "5060", "Code.exe", 1000]];
+    for (const bad of ["16352", "abc@1", "16352@", " @ ", "1@2@3"]) {
+      expect(hostWindow({ CLEAR_RESUME_WINDOW: bad, CLAUDE_PID: "41460" }, { table })).toEqual({ pid: "16352", start: 1000 });
+    }
+  });
 });
