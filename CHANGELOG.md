@@ -16,6 +16,10 @@
   `/clear-resume:auto`.
   See [docs/AUTO-CONTINUE.md](docs/AUTO-CONTINUE.md) and
   [docs/findings-auto-continue-phase2.md](docs/findings-auto-continue-phase2.md).
+  If Claude Code has not yet been trusted in the folder from a terminal, the continue opens
+  in the panel instead and the toast says to run `claude` there once, rather than leaving
+  the trust question waiting in a terminal nobody is watching. What the first end-to-end
+  run found: [docs/findings-terminal-mode.md](docs/findings-terminal-mode.md).
 
 ## 0.3.0
 
