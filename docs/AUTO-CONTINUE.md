@@ -144,7 +144,7 @@ compare the review's blocker and should-fix counts. The earlier correlation (Spe
   matches on `process.pid` with no IPC. `VSCODE_PID` is the shared main process, so it
   is the same in every window and cannot be the key.
 
-## Phase 2b: terminal mode (designed 2026-10-01, built 2026-10-01, end to end not yet run)
+## Phase 2b: terminal mode (designed 2026-10-01, built 2026-10-01; first end-to-end run 2026-10-01/02 found two blockers, both fixed, re-run pending)
 
 Panel mode stops one keypress short. Probed in Claude Code 2.1.285: the panel's open
 command (`editor.open(sessionId, prompt, ...)`) and the `/open` URI only pre-fill the
@@ -227,6 +227,23 @@ checked before sending. If it holds a character any of the three shells would tr
 specially (`` " $ ` % ^ & | < > ! ``), the extension falls back to panel mode for that
 continue and says so in the toast.
 
+### Two things the terminal must not inherit or ask
+
+From the first end-to-end run ([findings-terminal-mode.md](findings-terminal-mode.md)):
+
+- **The folder must already be trusted.** The CLI asks "trust this folder?" unless
+  `~/.claude.json` has `projects[<git root>].hasTrustDialogAccepted === true`, keyed
+  exactly (no parent folder, no case folding). The panel never asks. In a terminal nobody
+  is watching, the prompt waits forever. So before opening a terminal the extension reads
+  that file (`$CLAUDE_CONFIG_DIR/.claude.json` when set) with the same rule, `cliTrusts`.
+  An untrusted folder, or a file it cannot read, continues in the panel instead, and the
+  toast says to run `claude` in that folder once.
+- **No nested-session markers.** With `CLAUDE_CODE_CHILD_SESSION` in its environment the
+  CLI turns its transcript off, and the nudge, which measures context from the
+  transcript, never fires. `terminalEnv` unsets (`null`) `CLAUDECODE`,
+  `CLAUDE_CODE_CHILD_SESSION`, `TRACEPARENT` and `TRACESTATE`: the four Claude Code's own
+  extension deletes before it starts the CLI.
+
 ### Closing the old session
 
 - **The old session ran in a terminal the extension created.** Each such terminal gets a
@@ -253,7 +270,8 @@ toast all stay as they are. Only the open step and the old-session close differ.
   set and stay off without it.
 - extension, as plain functions beside `oldtab.ts`: the launch line for a given path; the
   unsafe-path check (falls back to panel); which terminal to dispose (only one the
-  extension made for the previous record of this window).
+  extension made for the previous record of this window); the trust check (exact key
+  only); the terminal env (ids set, the four markers unset).
 - End to end: `/clear-resume:auto 2` in a panel session. Two continues chain into
   terminals with no keypress. Budget used is 2, both records are archived via
   `extension`, and the first terminal is disposed after the second opens.
