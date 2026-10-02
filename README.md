@@ -8,13 +8,13 @@
   <img alt="Needs Node 18 or later" src="https://img.shields.io/badge/node-18%2B-e5a743?style=flat-square&labelColor=221d16">
 </p>
 
-## The problem: long chats get slow and use up more of your plan or budget
+## The problem: in a long chat, the work gets buried
 
 <p align="center">
   <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
 </p>
 
-Claude rereads the whole context for every reply. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
+Claude rereads the whole context for every reply. In a long chat, the goal and the decisions sit under every file read and test run since the chat began, and each reply is slower and uses more of your plan or budget. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
 
 <details>
 <summary><b>How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code></b></summary>
@@ -55,7 +55,7 @@ Claude rereads the whole context for every reply. `/compact` shrinks it to Claud
 
 3. **Carry on.** Type `go`, or say what to do next. Claude carries on from the handover.
 
-Use it when a chat has grown long and you want to `/clear`. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
+Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
 
 <p align="center"><sub>The 75-second explainer: the problem, the three steps, the numbers, two windows, the VS Code sidebar and the nudge.</sub></p>
 
