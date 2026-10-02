@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
-import { hostname } from "node:os";
-import { dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir, hostname } from "node:os";
+import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { autoContinueFor, budgetFile, budgetLabel, nextBudget, readBudget, setBudget, stalls, takeOne, type HostWindow } from "../../plugin/packages/store/autobudget.mjs";
 import { listAll, type StoredHandover } from "../../plugin/packages/store/store.mjs";
@@ -9,7 +9,7 @@ import { GIT_EXE } from "../../plugin/packages/store/sync.mjs";
 import { writeLoadedCopy } from "../../plugin/packages/store/loaded.mjs";
 import { oldTabToClose } from "./oldtab";
 import { archived, resume } from "./resume";
-import { continueSurface, safeForShell, type Mode } from "./terminal";
+import { cliTrusts, continueSurface, safeForShell, type Mode } from "./terminal";
 import { closeOldTerminal, openSessionTerminal } from "./terminals";
 
 /**
@@ -75,16 +75,30 @@ export function autoStatus(context: vscode.ExtensionContext, root: () => string)
   update();
 }
 
+/** The CLI's config file, parsed, or null when it is missing or unreadable (read as untrusted). */
+function readClaudeJson(): unknown {
+  try {
+    return JSON.parse(readFileSync(join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Open the next conversation where `clearResume.autoContinue.mode` says, and
  * archive the record. Returns where it opened, for the toast, or null when
- * nothing opened. Terminal mode needs the handover as a file whose path every
- * shell reads as written; without that it opens in the panel and says why.
+ * nothing opened. Terminal mode needs the folder trusted by the CLI (or its
+ * prompt waits unseen) and the handover as a file whose path every shell reads
+ * as written; without those it opens in the panel and says why.
  */
 async function openNext(record: StoredHandover, root: string, win: HostWindow): Promise<string | null> {
   const mode = vscode.workspace.getConfiguration("clearResume").get<Mode>("autoContinue.mode");
   const surface = typeof record.surface === "string" ? record.surface : undefined;
   if (continueSurface(mode, { surface }) === "terminal") {
+    if (!cliTrusts(readClaudeJson(), record.repoPath)) {
+      const why = "Claude Code has not been trusted in this folder from a terminal: run claude there once";
+      return (await resume(record, root)) ? `in a new conversation, not a terminal: ${why}` : null;
+    }
     const path = writeLoadedCopy(root, record);
     if (path && safeForShell(path)) {
       openSessionTerminal({ cwd: record.repoPath, window: `${win.pid}@${win.start}`, path, title: record.title });

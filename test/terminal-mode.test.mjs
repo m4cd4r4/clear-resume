@@ -1,7 +1,34 @@
 // Terminal mode (docs/AUTO-CONTINUE.md, "Phase 2b"): the extension continues a
 // session in a terminal it opens, as `claude "<prompt>"`, which submits at once.
 import { describe, expect, it } from "vitest";
-import { continueSurface, launchLine, safeForShell, terminalToClose } from "../extension/src/terminal.ts";
+import { cliTrusts, continueSurface, launchLine, safeForShell, terminalEnv, terminalToClose } from "../extension/src/terminal.ts";
+
+describe("terminalEnv", () => {
+  // E2E 2026-10-01: an inherited CLAUDE_CODE_CHILD_SESSION turned off the terminal
+  // session's transcript, so the nudge never fired. null unsets a variable in
+  // createTerminal; the four are the ones Claude Code's own extension deletes.
+  it("carries the window and terminal ids and unsets the nested-session markers", () => {
+    expect(terminalEnv("123@456", "t-1")).toEqual({
+      CLEAR_RESUME_WINDOW: "123@456",
+      CLEAR_RESUME_TERMINAL: "t-1",
+      CLAUDECODE: null,
+      CLAUDE_CODE_CHILD_SESSION: null,
+      TRACEPARENT: null,
+      TRACESTATE: null,
+    });
+  });
+});
+
+describe("cliTrusts", () => {
+  // The CLI's own check (2.1.286): projects[<git root>].hasTrustDialogAccepted === true,
+  // keyed exactly, no parent walk, no case folding. Untrusted means a prompt nobody sees.
+  it("trusts only the exact folder key, written with forward slashes", () => {
+    const json = { projects: { "I:/Scratch": { hasTrustDialogAccepted: true }, "I:/Scratch/repo": { hasTrustDialogAccepted: true } } };
+    expect(cliTrusts(json, "I:\\Scratch\\repo")).toBe(true);
+    expect(cliTrusts(json, "I:/Scratch/other")).toBe(false);
+    expect(cliTrusts(json, "i:/Scratch/repo")).toBe(false);
+  });
+});
 
 describe("launchLine", () => {
   it("starts claude with a one-line prompt that points at the handover file", () => {
