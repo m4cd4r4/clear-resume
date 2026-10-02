@@ -22,8 +22,8 @@ panel`, the extension archived it (`via: "extension"`) and started `claude "Cont
 
 ## 1. The CLI's trust prompt waits in a terminal nobody is watching
 
-The terminal session started, then sat idle for ten hours: no transcript, no commits, no
-hook processes. It was waiting on "Do you trust the files in this folder?".
+The terminal session started, then sat idle for nine hours (22:13 to 07:17, when the prompt
+was accepted by hand; link 517 is committed at 07:17:44): no commits, no hook processes. It was waiting on "Do you trust the files in this folder?".
 
 The CLI's check, read from `claude.exe` 2.1.286: `projects?.[key]?.hasTrustDialogAccepted
 === true` in `~/.claude.json`, where `key` is the git root of the cwd (forward slashes).
