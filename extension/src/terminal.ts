@@ -39,6 +39,36 @@ export function safeForShell(path: string): boolean {
 }
 
 /**
+ * The env for a terminal the extension opens. The ids let the session's hooks
+ * see this window and name this terminal. The rest unset (null) the markers that
+ * make the CLI think it is a nested session, which turns its transcript off, and
+ * with it the nudge. They are the ones Claude Code's own extension deletes before
+ * it starts the CLI; where the terminal inherited one is in findings-terminal-mode.md.
+ */
+export function terminalEnv(window: string, terminal: string): Record<string, string | null> {
+  return {
+    CLEAR_RESUME_WINDOW: window,
+    CLEAR_RESUME_TERMINAL: terminal,
+    CLAUDECODE: null,
+    CLAUDE_CODE_CHILD_SESSION: null,
+    TRACEPARENT: null,
+    TRACESTATE: null,
+  };
+}
+
+/**
+ * Whether the CLI will start in `repoPath` without its "trust this folder?"
+ * prompt, given the parsed ~/.claude.json. A terminal session that prompts sits
+ * unseen until someone opens the terminal (findings-terminal-mode.md). Mirrors the
+ * CLI's check (2.1.286): exact key, no parent walk, no case folding. Erring
+ * towards untrusted only costs a panel continue; erring the other way hangs.
+ */
+export function cliTrusts(claudeJson: unknown, repoPath: string): boolean {
+  const projects = (claudeJson as { projects?: Record<string, { hasTrustDialogAccepted?: unknown }> } | null)?.projects;
+  return projects?.[repoPath.replace(/\\/g, "/")]?.hasTrustDialogAccepted === true;
+}
+
+/**
  * The one line sent to the terminal. The handover itself is multi-line, which
  * cmd cannot carry in an argument, so the prompt points at a file instead.
  */

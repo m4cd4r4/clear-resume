@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
-import { launchLine, terminalToClose } from "./terminal";
+import { launchLine, terminalEnv, terminalToClose } from "./terminal";
 
 /**
  * Terminal mode's vscode side (docs/AUTO-CONTINUE.md, "Phase 2b"). The decisions
@@ -25,7 +25,7 @@ export function openSessionTerminal(opts: { cwd: string; window: string; path: s
   const terminal = vscode.window.createTerminal({
     name: `clear-resume: ${opts.title}`.slice(0, 60),
     cwd: opts.cwd,
-    env: { CLEAR_RESUME_WINDOW: opts.window, CLEAR_RESUME_TERMINAL: id },
+    env: terminalEnv(opts.window, id),
   });
   opened.set(id, terminal);
   terminal.show();
