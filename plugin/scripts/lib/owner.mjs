@@ -349,6 +349,35 @@ export function ownerId(env = process.env, { table, readTable, timeout } = {}) {
 }
 
 /**
+ * The window a terminal the clear-resume extension opened was given in
+ * CLEAR_RESUME_WINDOW, `{ pid, start }`, or null when unset or malformed.
+ */
+export function givenWindow(env = process.env) {
+  const m = /^(\d+)@(\d+)$/.exec(String(env.CLEAR_RESUME_WINDOW ?? "").trim());
+  return m ? { pid: m[1], start: Number(m[2]) } : null;
+}
+
+/**
+ * The VS Code window this session runs in, `{ pid, start }`: the parent of the
+ * Claude process, which is that window's extension host (measured with Claude
+ * Code 2.1.284). The clear-resume extension runs in the same host, so its
+ * process.pid names the same window. null when it cannot be read; in a terminal
+ * the parent is a shell, which no extension will ever match. A terminal the
+ * extension opened names its window in CLEAR_RESUME_WINDOW (`<pid>@<start>`),
+ * which wins over the walk.
+ */
+export function hostWindow(env = process.env, { table, readTable, timeout } = {}) {
+  const given = givenWindow(env);
+  if (given) return given;
+  const lookup = lookupFrom({ table, readTable, tree: true, left: budget(env, timeout) });
+  if (!lookup) return null;
+  const claude = String(env.CLAUDE_PID ?? "").trim() || String(ancestorRow(process.pid, lookup)?.[0] ?? "");
+  const ppid = String(lookup(claude)?.[1] ?? "");
+  if (!claude || !ppid) return null;
+  return { pid: ppid, start: startOf(lookup(ppid)) };
+}
+
+/**
  * Whether another Claude window that is still open owns a handover.
  *
  * - A dead pid, or this window's own pid, is not another open window. A bare

@@ -6,7 +6,7 @@
 // Claude window takes - including a native install named after its version.
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
+import { findClaudeAncestor, hostWindow, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
@@ -258,4 +258,26 @@ describe("on this machine's real process table", () => {
     expect(ownerOpen(me, { env: elsewhere, timeout })).toBe(true);
     expect(ownerOpen(`${LIVE}@${Number(me.split("@")[1]) - 60_000}`, { env: elsewhere, timeout })).toBe(false);
   }, 60_000);
+});
+
+describe("hostWindow", () => {
+  it("names the window by the parent of the Claude process, with its start", () => {
+    const table = [["41460", "16352", "claude.exe", 2000], ["16352", "5060", "Code.exe", 1000]];
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table })).toEqual({ pid: "16352", start: 1000 });
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table: [table[0]] })).toEqual({ pid: "16352", start: null });
+    expect(hostWindow({ CLAUDE_PID: "41460" }, { table: [] })).toBeNull();
+    expect(hostWindow({}, { table })).toBeNull();
+  });
+
+  it("takes the window from CLEAR_RESUME_WINDOW before any process walk", () => {
+    const readTable = () => { throw new Error("walked"); };
+    expect(hostWindow({ CLEAR_RESUME_WINDOW: "16352@1000", CLAUDE_PID: "41460" }, { readTable })).toEqual({ pid: "16352", start: 1000 });
+  });
+
+  it("ignores a malformed CLEAR_RESUME_WINDOW and walks as before", () => {
+    const table = [["41460", "16352", "claude.exe", 2000], ["16352", "5060", "Code.exe", 1000]];
+    for (const bad of ["16352", "abc@1", "16352@", " @ ", "1@2@3"]) {
+      expect(hostWindow({ CLEAR_RESUME_WINDOW: bad, CLAUDE_PID: "41460" }, { table })).toEqual({ pid: "16352", start: 1000 });
+    }
+  });
 });

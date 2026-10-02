@@ -115,6 +115,10 @@
       {
         "command": "clearResume.migrate",
         "title": "clear-resume: Import existing handovers"
+      },
+      {
+        "command": "clearResume.stepAuto",
+        "title": "clear-resume: Step auto-continue (off, 3, unlimited)"
       }
     ],
     "menus": {
@@ -195,6 +199,17 @@
           "type": "boolean",
           "default": false,
           "description": "Show archived handovers in the tree."
+        },
+        "clearResume.autoContinue.mode": {
+          "type": "string",
+          "enum": ["same", "panel", "terminal"],
+          "enumDescriptions": [
+            "Continue where the session ran: a panel session in the panel (one Enter per continue), a terminal session in a terminal (no keypress).",
+            "Always continue in the Claude Code panel. The prompt is filled in and waits for Enter.",
+            "Always continue in a new terminal, where the session starts with no keypress."
+          ],
+          "default": "same",
+          "description": "Where auto-continue opens the next session."
         }
       }
     }

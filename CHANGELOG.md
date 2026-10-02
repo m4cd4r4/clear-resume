@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Interactive auto-continue in VS Code** (phase 2, in progress). `/clear-resume:auto <off|on|unlimited|n>`
+  sets how many times a window may continue by itself; a status-bar item shows and steps it.
+  When the nudge fires in a window with budget left, Claude commits, saves a handover and ends
+  its turn, and the extension opens the next conversation from it. The old tab closes when it
+  can be named. Two continued sessions in a row with no commit stop the chain.
+- **Terminal mode for auto-continue.** New setting `clearResume.autoContinue.mode`: `same`
+  (default) continues on the surface the session ran on, `panel` or `terminal` force one. In
+  terminal mode the next session starts in a new VS Code terminal with no keypress, and the
+  old terminal closes. A `claude` started in any terminal of the window can now use
+  `/clear-resume:auto`.
+  See [docs/AUTO-CONTINUE.md](docs/AUTO-CONTINUE.md) and
+  [docs/findings-auto-continue-phase2.md](docs/findings-auto-continue-phase2.md).
+  If Claude Code has not yet been trusted in the folder from a terminal, the continue opens
+  in the panel instead and the toast says to run `claude` there once, rather than leaving
+  the trust question waiting in a terminal nobody is watching. What the first end-to-end
+  run found: [docs/findings-terminal-mode.md](docs/findings-terminal-mode.md).
+
 ## 0.3.0
 
 ### Added

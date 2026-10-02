@@ -2,40 +2,19 @@ import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
-import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
+import { autoContinuer, autoStatus, thisWindow } from "./auto";
+import { pushed, resume, setSyncCli } from "./resume";
 import { HistoryProvider, type HandoverNode } from "./tree";
 
 const VIEW = "clearResume.history";
-const CLAUDE_OPEN = "claude-vscode.editor.open";
-
-/**
- * Run a store mutation and send it to the other machine.
- *
- * The sidebar writes to the same store the hooks do, so it owes the same push. A
- * pin or a delete that stays local is not a slower sync, it is a change the other
- * machine will undo: it still holds the record, so its next push restores it.
- * Failing to push must never break the command - the next save picks the change up.
- */
-/** The extension's own copy of the sync CLI (dist/sync.js), set on activate. */
-let syncCli: string | undefined;
-
-function pushed<T>(root: string, mutate: () => T): T {
-  const result = mutate();
-  try {
-    pushIfSynced(root, process.env, syncCli);
-  } catch {
-    // Offline, mid-rebase, no remote. All normal; the change is on disk.
-  }
-  return result;
-}
 
 export function activate(context: vscode.ExtensionContext): void {
-  syncCli = context.asAbsolutePath(join("dist", "sync.js"));
+  setSyncCli(context.asAbsolutePath(join("dist", "sync.js")));
   const config = () => vscode.workspace.getConfiguration("clearResume");
   const root = () => config().get<string>("storePath")?.trim() || storeRoot();
   const showArchived = () => config().get<boolean>("showArchived") === true;
@@ -57,10 +36,20 @@ export function activate(context: vscode.ExtensionContext): void {
     // A prune failure must never stop the view from opening.
   }
 
+  // Every terminal in this window carries the window key, so a `claude` the user
+  // starts in one can join an auto-continue chain (/clear-resume:auto). Not
+  // persisted: a reload gives the window a new key, set here again.
+  const win = thisWindow();
+  context.environmentVariableCollection.persistent = false;
+  context.environmentVariableCollection.replace("CLEAR_RESUME_WINDOW", `${win.pid}@${win.start}`);
+
+  autoStatus(context, root);
   const status = loadedStatus(context, root);
+  const continuer = autoContinuer(root, () => provider.refresh());
   watchStore(context, root, () => {
     provider.refresh();
     status.update();
+    continuer();
   });
   // "loaded 3h ago" has to stay true with nothing written to the store.
   const minute = setInterval(() => {
@@ -180,31 +169,6 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
   return { update };
 }
 
-/**
- * Open a new Claude Code conversation with the handover's prompt pre-filled, then
- * archive the record so the same handover cannot be loaded twice.
- *
- * The command is called in-process. The `vscode://anthropic.claude-code/open` URI
- * reaches the same code but shows a confirmation dialog and, on Windows, routes to
- * an arbitrary window - during the spike it landed in an unrelated workspace.
- */
-async function resume(record: StoredHandover, root: string): Promise<void> {
-  try {
-    await vscode.commands.executeCommand(CLAUDE_OPEN, undefined, record.resumePrompt);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const copy = "Copy prompt";
-    const choice = await vscode.window.showErrorMessage(
-      `Could not open a Claude Code conversation: ${message}`,
-      copy,
-    );
-    if (choice === copy) await vscode.env.clipboard.writeText(record.resumePrompt);
-    // Nothing was resumed, so the record stays waiting.
-    return;
-  }
-  // The extension host is not a Claude window, so there is no owner to record.
-  pushed(root, () => archiveRecord(record.id, { root, by: { owner: "", pid: String(process.pid), via: "extension" } }));
-}
 
 /**
  * Watch the store for writes from anywhere - another window, the plugin's hooks, a

@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
 import { fileURLToPath } from "node:url";
 import { autoEnabled, headless } from "./auto-flag.mjs";
+import { inVsCode, windowAuto } from "./auto.mjs";
+import { hostWindow } from "./owner.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
 // A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
@@ -87,7 +89,7 @@ function claimNudge(env, sessionId) {
   return true;
 }
 
-export function runStop(input, { env = process.env } = {}) {
+export function runStop(input, { env = process.env, win } = {}) {
   if (!autoEnabled(env)) return null;
   if (input.stop_hook_active) return null; // Claude is already continuing from a Stop hook
   const sessionId = slugify(input.session_id ?? "");
@@ -103,6 +105,14 @@ export function runStop(input, { env = process.env } = {}) {
     return {
       systemMessage: `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover; the runner resumes it.`,
       hookSpecificOutput: { hookEventName: "Stop", additionalContext: headlessAsk(tokens, limit, "") },
+    };
+  }
+
+  const auto = windowState(env, win);
+  if (auto) {
+    return {
+      systemMessage: continueLine(tokens, limit, auto, "Claude is asked to commit and save a handover"),
+      hookSpecificOutput: { hookEventName: "Stop", additionalContext: continueAsk(tokens, limit, "") },
     };
   }
 
@@ -141,6 +151,34 @@ function headlessAsk(tokens, limit, midTurn) {
   );
 }
 
+// A VS Code window with an auto-continue budget left (/clear-resume:auto): the
+// clear-resume extension opens the next conversation from the handover, so
+// nobody types /clear. save.mjs stamps the handover auto because this session
+// is now nudged. The window is looked up only here, once a session crosses the
+// threshold; `win` lets a test pass one in (null reads as no window).
+function windowState(env, win) {
+  if (!inVsCode(env)) return undefined;
+  // No window has ever set a budget: skip the process-table read.
+  if (win === undefined && !existsSync(join(storeRoot(env), ".nudged", "windows"))) return undefined;
+  return windowAuto({ env, win: win === undefined ? hostWindow(env) : win });
+}
+
+function continueAsk(tokens, limit, midTurn) {
+  return (
+    `clear-resume auto-continue: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}).${midTurn} ` +
+    `If your task is finished, do not save a handover: just end. ` +
+    `Otherwise: commit your work now, then write a handover with the /clear-resume:handover skill. ` +
+    `It must name the single next action, and copy any open question for the user verbatim. ` +
+    `Then end your turn: the clear-resume extension opens a new conversation that resumes from it, ` +
+    `so do not ask the user to clear or type anything. This reminder fires once per session.`
+  );
+}
+
+function continueLine(tokens, limit, auto, ask) {
+  const left = auto.budget < 0 ? "unlimited" : `${auto.budget} left`;
+  return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}; it continues in a new conversation (${left}).`;
+}
+
 // The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
 function userLine(tokens, limit, ask) {
   return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, then you can type /clear.`;
@@ -151,7 +189,7 @@ function userLine(tokens, limit, ask) {
 // getting a chance. This one warns mid-turn instead. It never blocks - a tool
 // result is the wrong place to interrupt work - and it never asks for the turn
 // to be abandoned, only for a handover at the next clean point.
-export function runMidTurn(input, { env = process.env } = {}) {
+export function runMidTurn(input, { env = process.env, win } = {}) {
   if (!autoEnabled(env)) return null;
   const sessionId = slugify(input.session_id ?? "");
   if (!sessionId) return null;
@@ -167,6 +205,17 @@ export function runMidTurn(input, { env = process.env } = {}) {
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext: headlessAsk(tokens, limit, " This turn is still running: finish the current step first, but do not start new work."),
+      },
+    };
+  }
+
+  const auto = windowState(env, win);
+  if (auto) {
+    return {
+      systemMessage: continueLine(tokens, limit, auto, "Claude is asked to commit and save a handover when this step is done"),
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: continueAsk(tokens, limit, " This turn is still running: finish the current step first, but do not start new work."),
       },
     };
   }

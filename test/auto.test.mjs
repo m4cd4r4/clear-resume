@@ -8,6 +8,7 @@ import { run } from "../plugin/scripts/lib/hook.mjs";
 import { lastContextTokens, runMidTurn, runStop, threshold } from "../plugin/scripts/lib/nudge.mjs";
 import { saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
+import { setBudget } from "../plugin/packages/store/autobudget.mjs";
 
 const call = (ctx, extra = {}) =>
   JSON.stringify({
@@ -70,6 +71,38 @@ describe("Stop nudge", () => {
     // The command, not the plugin's own path (".../clear-resume/...").
     expect(text).not.toMatch(/\/clear(?!-)/);
     expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
+  });
+
+  // A VS Code window with an auto-continue budget: the extension opens the next
+  // conversation, so the user is never asked to /clear.
+  it("in a VS Code window with budget left, asks for a commit and a handover, never a /clear", () => {
+    write(call(200_000));
+    const win = { pid: "16352", start: 1000 };
+    setBudget(root, win, 2);
+    const vscode = { ...env(), CLAUDE_CODE_ENTRYPOINT: "claude-vscode" };
+    const out = runStop(input(), { env: vscode, win });
+    const text = out.hookSpecificOutput.additionalContext;
+    expect(text).toMatch(/finished.*do not save/i);
+    expect(text).toMatch(/commit/i);
+    expect(text).toContain("/clear-resume:handover");
+    expect(text).toMatch(/new conversation/i);
+    expect(text).not.toMatch(/\/clear(?!-)/);
+    expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
+    expect(out.systemMessage).toMatch(/2 left/);
+    // No budget in this window: the 0.2.1 text, word for word.
+    write(call(200_000));
+    const plain = runStop(input({ session_id: "s2" }), { env: vscode, win: { pid: "999", start: 5 } });
+    expect(plain.hookSpecificOutput.additionalContext).toContain("tell the user to type /clear");
+  });
+
+  it("in a terminal the extension opened (cli, CLEAR_RESUME_WINDOW set), asks for a handover, never a /clear", () => {
+    write(call(200_000));
+    const win = { pid: "16352", start: 1000 };
+    setBudget(root, win, 2);
+    const terminal = { ...env(), CLAUDE_CODE_ENTRYPOINT: "cli", CLEAR_RESUME_WINDOW: "16352@1000" };
+    const out = runStop(input(), { env: terminal, win });
+    expect(out.systemMessage).toMatch(/2 left/);
+    expect(out.hookSpecificOutput.additionalContext).not.toMatch(/\/clear(?!-)/);
   });
 
   it("nudges once past the threshold, then never again that session", () => {

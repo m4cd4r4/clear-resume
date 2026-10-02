@@ -4,7 +4,7 @@ import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listAll } from "../plugin/packages/store/store.mjs";
-import { handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../plugin/scripts/lib/store.mjs";
+import { findById, handoverMarkdown, listWaiting, parseHandover, repoInfo, repoKey, saveHandover, slugify } from "../plugin/scripts/lib/store.mjs";
 import { startFromEpochMs } from "../plugin/scripts/lib/owner.mjs";
 
 let root, repo;
@@ -210,5 +210,34 @@ describe("save.mjs CLI", () => {
         stdio: "pipe",
       }),
     ).toThrow();
+  });
+});
+
+describe("saveHandover auto stamp for an interactive window", () => {
+  it("records which window may continue, and nothing extra for an ordinary save", () => {
+    saveHandover({ cwd: repo, title: "A", body: "x", root, owner: "", auto: { window: "16352@1000", budget: 2 } });
+    saveHandover({ cwd: repo, title: "B", body: "x", root, owner: "1@1" });
+    const byTitle = Object.fromEntries(listAll(root).map((r) => [r.title, r]));
+    expect(byTitle.A).toMatchObject({ auto: true, window: "16352@1000", budget: 2 });
+    expect(byTitle.B).not.toHaveProperty("auto");
+    expect(byTitle.B).not.toHaveProperty("window");
+  });
+
+  it("records the surface and hands it to the extension; a bad value is dropped", () => {
+    saveHandover({ cwd: repo, title: "T", body: "x", root, owner: "", auto: { window: "16352@1000", budget: 2, surface: "terminal" } });
+    saveHandover({ cwd: repo, title: "Z", body: "x", root, owner: "", auto: { window: "16352@1000", budget: 2, surface: "zz" } });
+    const byTitle = Object.fromEntries(listAll(root).map((r) => [r.title, r]));
+    expect(byTitle.T).toMatchObject({ surface: "terminal" });
+    expect(byTitle.Z).not.toHaveProperty("surface");
+    expect(findById(root, `${byTitle.T.createdAt}|T`).meta.surface).toBe("terminal");
+  });
+
+  it("records the terminal id and hands it to the extension; a value that is not a plain id is dropped", () => {
+    saveHandover({ cwd: repo, title: "T", body: "x", root, owner: "", auto: { window: "16352@1000", terminal: "4f1c-9a" } });
+    saveHandover({ cwd: repo, title: "Z", body: "x", root, owner: "", auto: { window: "16352@1000", terminal: "a b;rm" } });
+    const byTitle = Object.fromEntries(listAll(root).map((r) => [r.title, r]));
+    expect(byTitle.T).toMatchObject({ terminal: "4f1c-9a" });
+    expect(byTitle.Z).not.toHaveProperty("terminal");
+    expect(findById(root, `${byTitle.T.createdAt}|T`).meta.terminal).toBe("4f1c-9a");
   });
 });
