@@ -8,6 +8,20 @@ import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { findClaudeAncestor, isOwnHandover, ownerId, ownerOpen, sameOwner, startEpochMs, startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 
+// Lets one test make the real process-table read time out, instead of hoping
+// PowerShell is slower than a short timeout (a fast CI runner answered in 250ms).
+const failReads = vi.hoisted(() => ({ on: false }));
+vi.mock("node:child_process", async (importOriginal) => {
+  const real = await importOriginal();
+  return {
+    ...real,
+    execFileSync: (...args) => {
+      if (failReads.on) throw Object.assign(new Error("spawnSync powershell.exe ETIMEDOUT"), { code: "ETIMEDOUT" });
+      return real.execFileSync(...args);
+    },
+  };
+});
+
 const LIVE = String(process.pid);
 const row = (name) => [[LIVE, "1", name]];
 
@@ -208,13 +222,16 @@ describe("the hook's lookup deadline", () => {
   it.runIf(process.platform === "win32")("forgets an earlier run's failed read when the clock restarts", () => {
     vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
     try {
-      // PowerShell cannot start in 250ms, so this read fails and is remembered.
+      // This read times out and is remembered.
+      failReads.on = true;
       expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "250" })).toBe(LIVE);
+      failReads.on = false;
 
       startHookClock();
 
       expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" })).toMatch(new RegExp(`^${LIVE}@\\d+$`));
     } finally {
+      failReads.on = false;
       vi.unstubAllEnvs();
     }
   }, 30_000);
