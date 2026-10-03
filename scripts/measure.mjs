@@ -156,6 +156,11 @@
 //                                             # never printed to stdout.
 //   node scripts/measure.mjs --root <dir>    # override the projects root
 //                                             # (testing only)
+//   node scripts/measure.mjs --exclude <s>   # skip projects whose slug
+//                                             # contains <s> (case-insensitive,
+//                                             # repeatable) - e.g. a test
+//                                             # project whose automated /clear
+//                                             # chain would swamp real use
 //
 // NEVER reads or writes ~/.clear-resume (the live handover store) -
 // transcripts only.
@@ -213,10 +218,11 @@ async function resolveHandoverBodyChars(candidate) {
 }
 
 function parseArgs(argv) {
-  const args = { root: DEFAULT_ROOT, rows: null };
+  const args = { root: DEFAULT_ROOT, rows: null, exclude: [] };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--rows") args.rows = argv[++i];
     else if (argv[i] === "--root") args.root = argv[++i];
+    else if (argv[i] === "--exclude") args.exclude.push(String(argv[++i]).toLowerCase());
   }
   return args;
 }
@@ -383,9 +389,12 @@ async function main() {
     console.error(`Could not read projects root ${args.root}: ${err.message}`);
     process.exit(1);
   }
-  const projectDirs = projectDirEntries
-    .filter((e) => e.isDirectory())
+  const allProjectDirs = projectDirEntries.filter((e) => e.isDirectory());
+  const isExcluded = (slug) => args.exclude.some((s) => slug.toLowerCase().includes(s));
+  const projectDirs = allProjectDirs
+    .filter((e) => !isExcluded(e.name))
     .map((e) => ({ slug: e.name, dir: path.join(args.root, e.name) }));
+  const excludedCount = allProjectDirs.length - projectDirs.length;
 
   // Pass 1: scan every top-level *.jsonl in every project directory. Cheap to
   // hold in memory - only a handful of numbers per file - so pairing and
@@ -544,6 +553,7 @@ async function main() {
 
   console.log("=== clear-resume context savings (SessionStart:clear loads only) ===");
   console.log(`Projects scanned:        ${projectDirs.length}`);
+  if (args.exclude.length) console.log(`Projects excluded:       ${excludedCount} (--exclude ${args.exclude.join(", ")})`);
   console.log(`Session files scanned:   ${filesScanned}`);
   console.log(`Real loads (clear):      ${totalRealLoads}`);
   console.log(`  Paired:                ${paired}`);
