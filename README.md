@@ -64,6 +64,30 @@ https://github.com/user-attachments/assets/32846470-8fd4-4f25-9467-1f64a08c7efc
 > [!NOTE]
 > Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
 
+## Or let it run by itself: the relay
+
+The three steps above are the manual way. Turn on two settings and clear-resume does all three: Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on. After your first prompt, nobody types anything.
+
+| How you run it | What you do | Settings |
+|:--|:--|:--|
+| **Relay (recommended)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
+| Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true` |
+| Manual | `/clear-resume:handover`, `/clear`, `go` | None. This is the default |
+
+```bash
+claude plugin install clear-resume@clear-resume --config auto_nudge=true --config relay=10
+```
+
+The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue. The relay works in a terminal and needs Claude Code 2.1.275 or later. From the VS Code chat panel it is not proven yet.
+
+**Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
+
+<p align="center">
+  <img src="docs/media/relay-run.png" width="100%" alt="The last frame of a replay of a relay run. On the left, the final tool calls of session 7, ending in done. On the right, a chart of context per call: the relay's line climbs to the 180k nudge and drops six times, ending at 123k; a dashed line for the same work with no clears climbs to an estimated 823k. Below: relay 38.1M tokens sent, measured; no clears 101.3M, estimated; session 7 of 7, plan 26 of 26.">
+</p>
+
+<p align="center"><sub>A real run, 3 Oct 2026: from one prompt, the relay built a three-page site for this plugin in 7 sessions, 6 automatic clears, 26 commits and 48 minutes. Opus, nudge at 180k, relay=10. It sent 38.1M tokens. The same calls with no clears would have sent about 101.3M (an estimate: each session's work stacked on the last, with no auto-compaction), so treat 2.7× as an upper bound. Each session started at 77k to 93k tokens, mostly the author's own rules and tool schemas.</sub></p>
+
 ## The handover is under 1% of what `/clear` removes
 
 Claude counts context in tokens. A token is a small piece of text, roughly a word.
@@ -72,7 +96,7 @@ Claude counts context in tokens. A token is a small piece of text, roughly a wor
   <img src="docs/media/numbers.png" width="640" alt="Two bars drawn to scale. 102,088 tokens a typical /clear frees: a full-width bar. About 780 tokens in the handover, an estimate: a sliver under 1% as wide. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.">
 </p>
 
-<p align="center"><sub>The bars are drawn to scale: 780 / 102,088 = 0.76%. The handover's size is an estimate, its characters divided by 4.</sub></p>
+<p align="center"><sub>The bars are drawn to scale: 780 / 102,088 = 0.76%. The handover's size is an estimate, its characters divided by 4. The author's sessions start at about 77k to 99k tokens. With a leaner setup, a <code>/clear</code> at the same size frees more.</sub></p>
 
 ## Install: two commands in your terminal
 
@@ -86,9 +110,9 @@ claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
 claude plugin install clear-resume@clear-resume
 ```
 
-Claude Code then says, or asks about, two options that are not set yet. Both belong to the optional nudge described below, which is off by default.
+Claude Code then says, or asks about, three options that are not set yet. They belong to the nudge and the relay, which are both off by default.
 
-Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`.
+Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#or-let-it-run-by-itself-the-relay) and let it do both.
 
 The author built it on Windows 11 and uses it there every day. CI runs the tests on Windows, macOS and Linux, but macOS and Linux have not been tested by hand yet.
 
@@ -185,7 +209,7 @@ The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If 
 claude plugin install clear-resume@clear-resume --config auto_nudge=true
 ```
 
-Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. You still type `/clear` yourself: a plugin cannot run it. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
+Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. With the [relay](#or-let-it-run-by-itself-the-relay) off, you type `/clear` yourself. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
 
 > [!TIP]
 > **[How it works](docs/HOW-IT-WORKS.md)** has the rest.
