@@ -12,7 +12,7 @@
     "auto_nudge": {
       "type": "boolean",
       "title": "Nudge to save a handover",
-      "description": "When the chat's context passes the size in Nudge at, Claude is asked once per session to save a handover. You still type /clear. A CLEAR_RESUME_AUTO line in settings.json wins over this.",
+      "description": "When the chat's context passes the size in Nudge at, Claude is asked once per session to save a handover. With Relay off, you type /clear yourself. A CLEAR_RESUME_AUTO line in settings.json wins over this.",
       "default": false
     },
     "nudge_at": {

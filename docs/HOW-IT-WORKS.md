@@ -138,12 +138,17 @@ Sessions started after that use the new values. Claude Code keeps `nudge_at` bet
 1000000. `CLEAR_RESUME_AUTO` wins over `auto_nudge` whenever it is set. `CLEAR_RESUME_NUDGE_AT` wins
 over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 180000.
 
+The third plugin option, `relay`, is `off` (the default), a number of clears per Claude Code
+window, or `unlimited`. Set it the same way, for example `--config relay=10`. See
+[The relay](#the-relay-clear-and-continue-with-no-keypress) below.
+
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
 sidebar's `clearResume.storePath` to the same folder.
 
 ## Auto mode (opt-in)
 
-Claude Code cannot run `/clear` from a hook, so the plugin can only get close to automatic.
+The nudge gets Claude to save a handover. The relay, below, then runs `/clear` and continues, so
+with both on the session carries itself. With the relay off, you type `/clear`.
 
 With the nudge on (`auto_nudge`, or `CLEAR_RESUME_AUTO=1`), once the session's context passes the
 threshold (`nudge_at`, or `CLEAR_RESUME_NUDGE_AT`), Claude
@@ -162,6 +167,18 @@ turn end, the instruction to Claude also shows, labelled `Stop hook feedback`.
 
 After any compaction the plugin tells the new context to re-check git and file state. That part
 is always on.
+
+### The relay: clear and continue with no keypress
+
+Set `relay` to a number of clears per Claude Code window, or `unlimited`. After Claude saves a
+handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from
+it. It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless
+runs. It stops, and says so, at its count, or when two continued sessions in a row make no new
+commit (outside a git repo, only the count applies). With the relay on, the nudge tells Claude to
+end without a handover when the task is finished, so a finished job is not resumed.
+
+It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works
+as before. It is proven in a terminal; the trigger from the VS Code chat panel is not proven yet.
 
 ### Headless runs: no clear at all
 
