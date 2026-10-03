@@ -24,13 +24,18 @@ before acting on it.
   - Known limit: auto mode's permission classifier stops long unattended chains. A local
     test chain stopped at link 861. Do not work around it: a bypass would fail the
     directory's safety scan.
-- [ ] **Hands-off relay through a Claude Code mod.** On branch feat/relay-mod: plugin/hooks/relay.ts, option `relay` (off / N / unlimited), nudge text, 9 mod tests (`npm run test:mod`, each guard mutation-checked). Validates on 2.1.275+. On 2.1.250-2.1.274 the module is rejected but the classic hooks still load (measured 2026-10-03 with the modules flag on). PR #58. Live terminal end-to-end test passed 2026-10-03 (relay=1: save, /clear, continue prompt, handover loaded, next action run).
-  On 2026-10-03 it cleared a VS Code session and submitted the next prompt with no keypress.
-  Proven: the mod can run the built-in `clear`; `prompt.submit` lands in the new
-  conversation; the SessionStart hook still loads the handover first. Still open:
-  - [ ] Confirm the trigger works from the VS Code chat panel specifically.
-  - [ ] Type-check and tests.
-  - [ ] Move it into `plugin/`.
+- [ ] **Relay stall guard** (feat/relay-stall-guard). The relay stops after two continued
+  sessions in a row make no new commit, the same rule as `run.mjs`; with no git it stands
+  aside and only the budget applies. With the relay on, the nudge tells a finished task to
+  end without a handover. 12 mod tests, 33 nudge tests.
+- Relay (shipped in 0.3.1, #58). Validates on 2.1.275+; on 2.1.250-2.1.274 the module is
+  rejected but the classic hooks still load. Live runs on 2026-10-03:
+  - relay=1, terminal: save, /clear, continue prompt, handover loaded, next action run.
+  - relay=8, terminal `claude` 2.1.288, Sonnet, nudge 180k, in I:/Scratch/cr-e2e, task
+    "link.sh to link 2500". 17:47-19:55 AWST, 4 segments (links 864-1320, 1321-1718,
+    1719-2116, 2117-2500), 3 automatic handovers, each /clear and continue in about 3 s.
+    The final reply was RELAY-6HOP-DONE with no handover and no further clear.
+  - [ ] Not yet proven: 6 hops in one run, and the trigger from the VS Code chat panel.
 - [ ] **Demo v2** (#38). Conflicts with main; needs a rebase or closing.
 - [ ] **Context-savings measurement** (#57). `scripts/measure.mjs`. 2026-10-03 run: 191
   real `/clear` loads, median context 195k before and 97k after, a median drop of 101k.

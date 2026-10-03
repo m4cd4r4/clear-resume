@@ -25,12 +25,28 @@ export function budget(raw: unknown): number {
   return Number.isInteger(n) && n > 0 ? n : 0
 }
 
+// HEAD of the session's repo, or undefined with no git (or no $.process, which
+// is CLI only). Unknown counts as progress: the stall guard stands aside and the
+// budget still holds.
+async function headOf($: Parameters<Parameters<Parameters<Register>[0]>[2]>[0]): Promise<string | undefined> {
+  try {
+    const r = await $.process.run(['git', 'rev-parse', 'HEAD'], { timeoutMs: 5000 })
+    return r.exitCode === 0 ? r.stdout.trim() || undefined : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export const register: Register = (on, options) => {
   const limit = budget(options.relay)
   if (limit === 0) return
 
   let used = 0
   let pending = false
+  // The stall guard, as in the headless runner (scripts/lib/run.mjs): HEAD at the
+  // last relay, and how many continued sessions in a row ended without a commit.
+  let lastHead: string | undefined
+  let stalled = 0
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
@@ -64,6 +80,17 @@ export const register: Register = (on, options) => {
       $.ui.toast(`clear-resume relay: budget of ${limit} used. Type /clear to continue from the handover.`, {
         timeoutMs: 15000,
       })
+      return result
+    }
+    const head = await headOf($)
+    stalled = head !== undefined && head === lastHead ? stalled + 1 : 0
+    lastHead = head
+    if (stalled >= 2) {
+      pending = false
+      $.ui.toast(
+        'clear-resume relay: stopped. Two continued sessions in a row made no new commit. Type /clear to continue from the handover.',
+        { timeoutMs: 15000 },
+      )
       return result
     }
     used++

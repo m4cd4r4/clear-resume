@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The relay stops when work stalls.** With `relay` set (including `unlimited`), it stops after
+  two continued sessions in a row make no new commit, and says so, the same rule the headless
+  runner uses. Outside a git repo only the budget applies.
+- With the relay on, the context nudge tells Claude to end without a handover when the task is
+  finished, so the relay does not resume a finished job.
+
 ## 0.3.1
 
 ### Added

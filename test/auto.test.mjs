@@ -113,6 +113,18 @@ describe("Stop nudge", () => {
     expect(mid.systemMessage).not.toContain("type /clear");
   });
 
+  // A saved handover is what makes the relay clear and continue, so a finished
+  // task must end without one or the relay resumes a done job.
+  it("with the relay on, a finished task is told not to save a handover", () => {
+    write(call(185_000));
+    const relay = { ...env(), CLAUDE_PLUGIN_OPTION_RELAY: "unlimited" };
+    const text = runStop(input(), { env: relay }).hookSpecificOutput.additionalContext;
+    expect(text).toMatch(/finished.*do not save/i);
+    expect(text).not.toMatch(/finished or at a clean stopping point, write a handover/);
+    const mid = runMidTurn(input({ session_id: "s2" }), { env: relay }).hookSpecificOutput.additionalContext;
+    expect(mid).toMatch(/finished.*do not save/i);
+  });
+
   it("never nudges while already continuing from a Stop hook", () => {
     write(call(300_000));
     expect(runStop(input({ stop_hook_active: true }), { env: env() })).toBeNull();

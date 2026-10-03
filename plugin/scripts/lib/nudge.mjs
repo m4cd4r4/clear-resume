@@ -116,7 +116,9 @@ export function runStop(input, { env = process.env } = {}) {
       hookEventName: "Stop",
       additionalContext:
         `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
-        `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, ` +
+        (relayOn(env)
+          ? `${RELAY_FINISHED}Otherwise, at a clean stopping point, write a handover now with the /clear-resume:handover skill, `
+          : `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, `) +
         `${afterSave(env)} ` +
         `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
         `This reminder fires once per session.`,
@@ -146,6 +148,11 @@ function userLine(env, tokens, limit, ask) {
   const then = relayOn(env) ? "and the relay then clears and continues by itself" : "then you can type /clear";
   return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, ${then}.`;
 }
+
+// With the relay on, a saved handover is what makes it clear and continue, so a
+// finished task must end without one or the relay resumes a done job (same rule
+// as headlessAsk).
+const RELAY_FINISHED = `If the current task is finished, do not save a handover: just end your turn, and the relay stops. `;
 
 // What Claude does once the handover is saved. With the relay on (hooks/relay.ts)
 // the mod runs /clear when the turn ends, so Claude must end the turn rather than
@@ -189,6 +196,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
         `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
         `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
         `then write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
+        (relayOn(env) ? RELAY_FINISHED : "") +
         `Do not abandon work in progress to do it. This warning fires once per session.`,
     },
   };
