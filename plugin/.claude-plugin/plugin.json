@@ -22,6 +22,12 @@
       "default": 180000,
       "min": 50000,
       "max": 1000000
+    },
+    "relay": {
+      "type": "string",
+      "title": "Relay: clear and continue by itself",
+      "description": "After Claude saves a handover, clear-resume runs /clear and submits the prompt that continues from it, with no keypress. off (the default), a number of clears per Claude Code window (1, 3, 10), or unlimited. Anything else is off. Needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works as before.",
+      "default": "off"
     }
   }
 }

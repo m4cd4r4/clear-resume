@@ -7,15 +7,16 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AUTO_OPTION, autoEnabled } from "../plugin/scripts/lib/auto-flag.mjs";
+import { AUTO_OPTION, RELAY_OPTION, autoEnabled, relayOn } from "../plugin/scripts/lib/auto-flag.mjs";
 import { DEFAULT_THRESHOLD, NUDGE_AT_OPTION, threshold } from "../plugin/scripts/lib/nudge.mjs";
 
 const manifest = JSON.parse(readFileSync(join(import.meta.dirname, "../plugin/.claude-plugin/plugin.json"), "utf8"));
 const envName = (key) => `CLAUDE_PLUGIN_OPTION_${key.toUpperCase()}`;
 
 describe("plugin options (userConfig)", () => {
-  it("declares the two options the hooks read, under the names Claude Code exports", () => {
-    expect(Object.keys(manifest.userConfig).sort()).toEqual(["auto_nudge", "nudge_at"]);
+  it("declares the options the hooks read, under the names Claude Code exports", () => {
+    expect(Object.keys(manifest.userConfig).sort()).toEqual(["auto_nudge", "nudge_at", "relay"]);
+    expect(envName("relay")).toBe(RELAY_OPTION);
     expect(envName("auto_nudge")).toBe(AUTO_OPTION);
     expect(envName("nudge_at")).toBe(NUDGE_AT_OPTION);
   });
@@ -25,6 +26,13 @@ describe("plugin options (userConfig)", () => {
     expect(manifest.userConfig.nudge_at.default).toBe(DEFAULT_THRESHOLD);
     expect(threshold({})).toBe(DEFAULT_THRESHOLD);
     expect(autoEnabled({})).toBe(false);
+    expect(manifest.userConfig.relay.default).toBe("off");
+    expect(relayOn({})).toBe(false);
+  });
+
+  it("relay: on for a positive whole number or unlimited, off for anything else", () => {
+    for (const v of ["1", "3", "10", "unlimited", " Unlimited "]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(true);
+    for (const v of ["", "off", "0", "-1", "2.5", "on", "yes"]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(false);
   });
 
   // Each option is validated strictly: an unknown field stops the plugin loading,
