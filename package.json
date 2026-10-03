@@ -6,6 +6,6 @@
   "description": "Claude Code plugin: write a handover, clear, and resume in a fresh context.",
   "license": "MIT",
   "engines": { "node": ">=18" },
-  "scripts": { "test": "vitest run" },
+  "scripts": { "test": "vitest run", "test:mod": "node scripts/test-mod.mjs" },
   "devDependencies": { "vitest": "^3.2.0" }
 }

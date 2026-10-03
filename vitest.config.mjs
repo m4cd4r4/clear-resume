@@ -11,6 +11,9 @@ export default defineConfig({
     // and costs about 30s: the sync file is 80s of the run on its own, so there was
     // never much left to overlap.
     fileParallelism: false,
+    // test/mod/ holds the relay mod's tests, which run under `claude plugin test`
+    // (npm run test:mod), not vitest: they import claude-code/testing.
+    exclude: ["**/node_modules/**", "test/mod/**"],
     // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
     // launched the tests would make every save in every test one owner's.
     env: { CLAUDE_PID: "", CLEAR_RESUME_NO_PROCESS_WALK: "1" },

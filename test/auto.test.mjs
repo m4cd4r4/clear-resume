@@ -98,6 +98,21 @@ describe("Stop nudge", () => {
     expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
   });
 
+  // With the relay on, the mod runs /clear when the turn ends: Claude must end
+  // the turn, and nobody should be told to type /clear.
+  it("with the relay on, asks Claude to end the turn instead of telling the user to /clear", () => {
+    write(call(185_000));
+    const relay = { ...env(), CLAUDE_PLUGIN_OPTION_RELAY: "3" };
+    const out = runStop(input(), { env: relay });
+    expect(out.hookSpecificOutput.additionalContext).toContain("end your turn");
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("tell the user to type /clear");
+    expect(out.systemMessage).toContain("the relay then clears and continues");
+    expect(out.systemMessage).not.toContain("type /clear");
+    const mid = runMidTurn(input({ session_id: "s2" }), { env: relay });
+    expect(mid.hookSpecificOutput.additionalContext).toContain("end your turn");
+    expect(mid.systemMessage).not.toContain("type /clear");
+  });
+
   it("never nudges while already continuing from a Stop hook", () => {
     write(call(300_000));
     expect(runStop(input({ stop_hook_active: true }), { env: env() })).toBeNull();

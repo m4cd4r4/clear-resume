@@ -96,6 +96,8 @@ session will not see it.
 ## 4. Tell the user
 
 One line: the handover's title, and that running `/clear` now will load it in the fresh session.
+If a clear-resume nudge this session said the relay is on, say instead that the relay clears
+and continues when this turn ends, and end the turn with no further tool calls.
 
 To read a waiting handover without taking it from its window, use
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/load.mjs" --peek <file>`; `--take` moves it here.

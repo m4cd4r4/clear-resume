@@ -6,7 +6,7 @@ import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readSync, writeF
 import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
 import { fileURLToPath } from "node:url";
-import { autoEnabled, headless } from "./auto-flag.mjs";
+import { autoEnabled, headless, relayOn } from "./auto-flag.mjs";
 
 export const DEFAULT_THRESHOLD = 180_000;
 // A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
@@ -111,13 +111,13 @@ export function runStop(input, { env = process.env } = {}) {
   // the turn going so Claude can act, with the same stop_hook_active loop guard,
   // but is labelled "Stop hook feedback". systemMessage is the user's own line.
   return {
-    systemMessage: userLine(tokens, limit, "Claude is asked to save a handover"),
+    systemMessage: userLine(env, tokens, limit, "Claude is asked to save a handover"),
     hookSpecificOutput: {
       hookEventName: "Stop",
       additionalContext:
         `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
         `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, ` +
-        `then tell the user to type /clear: the handover loads by itself in the fresh session. ` +
+        `${afterSave(env)} ` +
         `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
         `This reminder fires once per session.`,
     },
@@ -142,8 +142,18 @@ function headlessAsk(tokens, limit, midTurn) {
 }
 
 // The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
-function userLine(tokens, limit, ask) {
-  return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, then you can type /clear.`;
+function userLine(env, tokens, limit, ask) {
+  const then = relayOn(env) ? "and the relay then clears and continues by itself" : "then you can type /clear";
+  return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, ${then}.`;
+}
+
+// What Claude does once the handover is saved. With the relay on (hooks/relay.ts)
+// the mod runs /clear when the turn ends, so Claude must end the turn rather than
+// hand the user a /clear to type.
+function afterSave(env) {
+  return relayOn(env)
+    ? `then end your turn with no further tool calls: the relay clears the session and continues from the handover by itself.`
+    : `then tell the user to type /clear: the handover loads by itself in the fresh session.`;
 }
 
 // PostToolUse: the Stop hook only runs when a turn ends, so a single long
@@ -172,14 +182,14 @@ export function runMidTurn(input, { env = process.env } = {}) {
   }
 
   return {
-    systemMessage: userLine(tokens, limit, "Claude is asked to save a handover when this step is done"),
+    systemMessage: userLine(env, tokens, limit, "Claude is asked to save a handover when this step is done"),
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext:
         `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
         `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
-        `then write a handover with the /clear-resume:handover skill and tell the user to type /clear: the handover loads by ` +
-        `itself in the fresh session. Do not abandon work in progress to do it. This warning fires once per session.`,
+        `then write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
+        `Do not abandon work in progress to do it. This warning fires once per session.`,
     },
   };
 }

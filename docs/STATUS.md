@@ -24,7 +24,7 @@ before acting on it.
   - Known limit: auto mode's permission classifier stops long unattended chains. A local
     test chain stopped at link 861. Do not work around it: a bypass would fail the
     directory's safety scan.
-- [ ] **Hands-off relay through a Claude Code mod.** A local spike, not in this repo yet.
+- [ ] **Hands-off relay through a Claude Code mod.** On branch feat/relay-mod: plugin/hooks/relay.ts, option `relay` (off / N / unlimited), nudge text, 9 mod tests (`npm run test:mod`, each guard mutation-checked). Validates on 2.1.275+. On 2.1.250-2.1.274 the module is rejected but the classic hooks still load (measured 2026-10-03 with the modules flag on). PR #58. Live terminal end-to-end test passed 2026-10-03 (relay=1: save, /clear, continue prompt, handover loaded, next action run).
   On 2026-10-03 it cleared a VS Code session and submitted the next prompt with no keypress.
   Proven: the mod can run the built-in `clear`; `prompt.submit` lands in the new
   conversation; the SessionStart hook still loads the handover first. Still open:
