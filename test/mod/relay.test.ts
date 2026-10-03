@@ -176,6 +176,25 @@ describe('relay', () => {
     expect(w.toasts.some(t => t.includes('no new commit'))).toBe(true)
   })
 
+  test('a commit between relays resets the stall count', { options: { relay: 'unlimited' } }, async ($, on) => {
+    const { w, clock, commit } = world(on)
+    await relayOnce($, clock)
+    await relayOnce($, clock) // one stall
+    commit('c1')
+    await relayOnce($, clock) // new commit: stall count back to zero
+    await relayOnce($, clock) // one stall again, not two
+    expect(w.commands).toEqual(['clear', 'clear', 'clear', 'clear'])
+  })
+
+  test('with no git the stall guard stands aside and the budget still holds', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, commit } = world(on)
+    commit(null)
+    for (let i = 0; i < 4; i++) await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear', 'clear', 'clear'])
+    expect(w.toasts.some(t => t.includes('budget of 3 used'))).toBe(true)
+    expect(w.toasts.some(t => t.includes('no new commit'))).toBe(false)
+  })
+
   test('a /clear the user types with nothing pending submits nothing', { options: { relay: '3' } }, async ($, on) => {
     const { w, clock } = world(on)
     await $.session.end(cleared)
