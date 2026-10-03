@@ -32,7 +32,8 @@ before acting on it.
   - [ ] Type-check and tests.
   - [ ] Move it into `plugin/`.
 - [ ] **Demo v2** (#38). Conflicts with main; needs a rebase or closing.
-- [ ] **Context-savings measurement** (`feat/measure-context`). 2 commits, not pushed, no PR.
+- [ ] **Context-savings measurement** (#57). `scripts/measure.mjs`. 2026-10-03 run: 191
+  real `/clear` loads, median context 195k before and 97k after, a median drop of 101k.
 
 ## Not started
 
@@ -53,14 +54,12 @@ From `docs/CLAUDE-TODO.md`, re-checked 2026-10-03:
 
 ## Worktree cleanup
 
+Removed 2026-10-03: the worktrees for #49, #51, #52, #53 and #55 (each local head matched
+its merged PR head), plus a clean detached build checkout. Remaining:
+
 | Branch | PR | Action |
 |---|---|---|
-| `feat/auto-continue` | #52 merged | remove |
-| `fix/extension-sync-cli` | #49 merged | remove |
-| `feat/loaded-row-buttons` | #53 merged | remove |
-| `feat/nudge-settings` | #51 merged | remove |
-| `docs/readme-lead-quality` | #55 merged | remove |
 | `feat/auto-continue-vscode` | #54 draft | keep |
 | `feat/demo-v2` | #38 conflicting | decide: rebase or close |
-| `feat/measure-context` | none, unpushed | decide: push and PR, or drop |
-| detached at da043e4 | none | remove (clean build checkout) |
+| `feat/measure-context` | #57 open | keep |
+| `docs/status` | #56 merged | remove |
