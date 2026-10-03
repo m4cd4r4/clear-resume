@@ -1,13 +1,17 @@
 # Status
 
-Checked against `origin/main` at 347d749 on 2026-10-03. A claim here is a snapshot: re-check
+Checked against `origin/main` at b7c9b73 on 2026-10-03. A claim here is a snapshot: re-check
 before acting on it.
 
 ## Shipped
 
-- [x] Plugin 0.3.1: handover skill, SessionStart load, auto-mode nudge, git-synced store,
-  hands-off relay (#58). `package.json`, `plugin/.claude-plugin/plugin.json` and
-  `.claude-plugin/marketplace.json` all agree on 0.3.1.
+- [x] Plugin 0.3.2: handover skill, SessionStart load, auto-mode nudge, git-synced store,
+  hands-off relay (#58) and its stall guard (#60). `package.json`,
+  `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` all agree on 0.3.2.
+- [x] Relay stall guard (#60): stops after two continued sessions in a row make no new commit;
+  with no git only the budget applies. With the relay on, the nudge tells a finished task to
+  end without a handover.
+- [x] Windows CI flake in `test/owner.test.mjs` fixed (#61).
 - [x] Auto-continue phase 1: headless runs continue themselves (`run.mjs`, #52).
 - [x] Nudge settings in `/config` and `/plugin configure` (#51).
 - [x] VS Code extension 0.2.2: sidebar, Loaded rows keep play, pin and delete (#53).
@@ -24,10 +28,6 @@ before acting on it.
   - Known limit: auto mode's permission classifier stops long unattended chains. A local
     test chain stopped at link 861. Do not work around it: a bypass would fail the
     directory's safety scan.
-- [ ] **Relay stall guard** (feat/relay-stall-guard). The relay stops after two continued
-  sessions in a row make no new commit, the same rule as `run.mjs`; with no git it stands
-  aside and only the budget applies. With the relay on, the nudge tells a finished task to
-  end without a handover. 12 mod tests, 33 nudge tests.
 - Relay (shipped in 0.3.1, #58). Validates on 2.1.275+; on 2.1.250-2.1.274 the module is
   rejected but the classic hooks still load. Live runs on 2026-10-03:
   - relay=1, terminal: save, /clear, continue prompt, handover loaded, next action run.
