@@ -1,0 +1,66 @@
+# Status
+
+Checked against `origin/main` at 347d749 on 2026-10-03. A claim here is a snapshot: re-check
+before acting on it.
+
+## Shipped
+
+- [x] Plugin 0.3.0: handover skill, SessionStart load, auto-mode nudge, git-synced store.
+  `package.json`, `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
+  all agree on 0.3.0.
+- [x] Auto-continue phase 1: headless runs continue themselves (`run.mjs`, #52).
+- [x] Nudge settings in `/config` and `/plugin configure` (#51).
+- [x] VS Code extension 0.2.2: sidebar, Loaded rows keep play, pin and delete (#53).
+- [x] README leads with the work getting buried (#55). 208 lines.
+
+## In flight
+
+- [ ] **Auto-continue phase 2, VS Code** (#54, draft). Panel mode passed end to end on
+  2026-10-01. Terminal mode: the trust-prompt hang and the missing transcript are both fixed
+  on the branch. Still to do:
+  - [ ] Re-run the terminal end to end: 2 continues, no keypress.
+  - [ ] README auto-continue section.
+  - [ ] Version bump and release notes.
+  - Known limit: auto mode's permission classifier stops long unattended chains. A local
+    test chain stopped at link 861. Do not work around it: a bypass would fail the
+    directory's safety scan.
+- [ ] **Hands-off relay through a Claude Code mod.** A local spike, not in this repo yet.
+  On 2026-10-03 it cleared a VS Code session and submitted the next prompt with no keypress.
+  Proven: the mod can run the built-in `clear`; `prompt.submit` lands in the new
+  conversation; the SessionStart hook still loads the handover first. Still open:
+  - [ ] Confirm the trigger works from the VS Code chat panel specifically.
+  - [ ] Type-check and tests.
+  - [ ] Move it into `plugin/`.
+- [ ] **Demo v2** (#38). Conflicts with main; needs a rebase or closing.
+- [ ] **Context-savings measurement** (`feat/measure-context`). 2 commits, not pushed, no PR.
+
+## Not started
+
+- [ ] Publish the plugin to the Claude directory.
+- [ ] Simplify the README (after the directory listing settles what it needs to say).
+
+## Known issues
+
+From `docs/CLAUDE-TODO.md`, re-checked 2026-10-03:
+
+| # | Issue | State |
+|---|---|---|
+| 1 | Flaky `web.test.mjs` / `sync.test.mjs` on Windows | Open. Not re-run today. |
+| 2 | Version numbers disagree across manifests | **Fixed** (all 0.3.0). |
+| 3 | `save.mjs` prints one directory three ways | Not re-checked. |
+| 4 | The auto-mode nudge explains itself twice | Open. `plugin/scripts/lib/nudge.mjs`, still 5 sentences. |
+| 5 | Extension README says the store never syncs | **Fixed**. The wording is now scoped to syncing. |
+
+## Worktree cleanup
+
+| Branch | PR | Action |
+|---|---|---|
+| `feat/auto-continue` | #52 merged | remove |
+| `fix/extension-sync-cli` | #49 merged | remove |
+| `feat/loaded-row-buttons` | #53 merged | remove |
+| `feat/nudge-settings` | #51 merged | remove |
+| `docs/readme-lead-quality` | #55 merged | remove |
+| `feat/auto-continue-vscode` | #54 draft | keep |
+| `feat/demo-v2` | #38 conflicting | decide: rebase or close |
+| `feat/measure-context` | none, unpushed | decide: push and PR, or drop |
+| detached at da043e4 | none | remove (clean build checkout) |
