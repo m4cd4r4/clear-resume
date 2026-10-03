@@ -157,17 +157,18 @@
 //   node scripts/measure.mjs --root <dir>    # override the projects root
 //                                             # (testing only)
 //
-// NEVER reads or writes C:/Users/Hard-Worker/.clear-resume (the live handover
-// store) - transcripts only.
+// NEVER reads or writes ~/.clear-resume (the live handover store) -
+// transcripts only.
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 
-const DEFAULT_ROOT = "C:/Users/Hard-Worker/.claude/projects";
+const DEFAULT_ROOT = path.join(os.homedir(), ".claude", "projects");
 const LOAD_PREFIX = "clear-resume: loaded handover";
 const GAP_MAX_MS = 120_000; // see PAIRING RULE step 4 above
-// Exact template opener from scripts/lib/hook.mjs (the `parts.push(...)` line
+// Exact template opener from plugin/scripts/lib/hook.mjs (the `parts.push(...)` line
 // that fires when `load` is truthy and `compact` is false - i.e. every
 // SessionStart:clear load): "clear-resume: this session continues earlier
 // work. Handover "<title>", saved <age>[, written on branch <b>]. Its branch,
