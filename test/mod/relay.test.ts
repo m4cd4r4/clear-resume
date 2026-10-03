@@ -23,6 +23,14 @@ function world(on: On, env: Record<string, string> = {}) {
   mock.env(on, env)
   let out = SAVED
   let isError = false
+  // git rev-parse HEAD: a fixed commit unless a test moves it; null stands for no git.
+  let head: string | null = 'c0'
+  on('process.run', async () => ({
+    value:
+      head === null
+        ? { exitCode: 128, stdout: '', stderr: 'fatal: not a git repository' }
+        : { exitCode: 0, stdout: `${head}\n`, stderr: '' },
+  }))
   on('tool.call', { tool: 'Bash' }, async () =>
     isError
       ? { result: { stdout: '', stderr: out, interrupted: false }, text: out, isError: true }
@@ -50,7 +58,19 @@ function world(on: On, env: Record<string, string> = {}) {
       out = text
       isError = error
     },
+    commit: (sha: string | null) => {
+      head = sha
+    },
   }
+}
+
+// One relayed segment: save, end the turn, /clear, continue.
+async function relayOnce($: Parameters<Parameters<typeof test>[1]>[0], clock: { advance: (ms: number) => Promise<void> }) {
+  await $.tool.call({ tool: 'Bash', command: SAVE })
+  await $.turn.complete(turn)
+  await clock.advance(300)
+  await $.session.end(cleared)
+  await clock.advance(1000)
 }
 
 const turn = { answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as const
@@ -144,6 +164,35 @@ describe('relay', () => {
     await clock.advance(5000)
     expect(w.commands).toEqual(['clear'])
     expect(w.toasts.some(t => t.includes('budget of 1 used'))).toBe(true)
+  })
+
+  test('stops after two continued sessions in a row make no new commit', { options: { relay: 'unlimited' } }, async ($, on) => {
+    const { w, clock } = world(on)
+    await relayOnce($, clock) // segment 1 ends: no earlier HEAD to compare with
+    await relayOnce($, clock) // segment 2 made no commit: one stall
+    expect(w.commands).toEqual(['clear', 'clear'])
+    await relayOnce($, clock) // segment 3 made no commit: two stalls, stop
+    expect(w.commands).toEqual(['clear', 'clear'])
+    expect(w.toasts.some(t => t.includes('no new commit'))).toBe(true)
+  })
+
+  test('a commit between relays resets the stall count', { options: { relay: 'unlimited' } }, async ($, on) => {
+    const { w, clock, commit } = world(on)
+    await relayOnce($, clock)
+    await relayOnce($, clock) // one stall
+    commit('c1')
+    await relayOnce($, clock) // new commit: stall count back to zero
+    await relayOnce($, clock) // one stall again, not two
+    expect(w.commands).toEqual(['clear', 'clear', 'clear', 'clear'])
+  })
+
+  test('with no git the stall guard stands aside and the budget still holds', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, commit } = world(on)
+    commit(null)
+    for (let i = 0; i < 4; i++) await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear', 'clear', 'clear'])
+    expect(w.toasts.some(t => t.includes('budget of 3 used'))).toBe(true)
+    expect(w.toasts.some(t => t.includes('no new commit'))).toBe(false)
   })
 
   test('a /clear the user types with nothing pending submits nothing', { options: { relay: '3' } }, async ($, on) => {
