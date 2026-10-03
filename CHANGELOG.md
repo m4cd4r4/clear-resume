@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+### Added
+
+- **The relay: clear and continue with no keypress.** Set the `relay` option (in `/config` or
+  `/plugin configure`) to a number of clears per Claude Code window, or `unlimited`. After Claude
+  saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that
+  continues from it. It stays out of the way for a subagent's save, a failed save, an interrupted
+  turn and headless runs, and it stops at its budget and says so. Off by default. Needs Claude Code
+  2.1.275 or later; an older build ignores it and the rest of clear-resume works as before.
+
 ## 0.3.0
 
 ### Added

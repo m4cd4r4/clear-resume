@@ -5,9 +5,9 @@ before acting on it.
 
 ## Shipped
 
-- [x] Plugin 0.3.0: handover skill, SessionStart load, auto-mode nudge, git-synced store.
-  `package.json`, `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
-  all agree on 0.3.0.
+- [x] Plugin 0.3.1: handover skill, SessionStart load, auto-mode nudge, git-synced store,
+  hands-off relay (#58). `package.json`, `plugin/.claude-plugin/plugin.json` and
+  `.claude-plugin/marketplace.json` all agree on 0.3.1.
 - [x] Auto-continue phase 1: headless runs continue themselves (`run.mjs`, #52).
 - [x] Nudge settings in `/config` and `/plugin configure` (#51).
 - [x] VS Code extension 0.2.2: sidebar, Loaded rows keep play, pin and delete (#53).
