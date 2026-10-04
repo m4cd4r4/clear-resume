@@ -43,6 +43,12 @@ extension closes nothing, because a wrong guess closes a live session
 - **Clicking the status bar during a test rewrites the budget.** Each click steps
   off -> 3 -> unlimited and writes a fresh record (`used: 0`), so a click can leave the window
   at off just before a save, and the save is then correctly not stamped auto.
+- **Uninstalling the plugin wipes its userConfig.** `claude plugin uninstall` followed by
+  `install` (2026-10-04) left `pluginConfigs` as `{}` in `~/.claude/settings.json`, dropping
+  `auto_nudge` and `nudge_at` silently; install only prints "3 userConfig options not yet
+  set". Re-add them by hand after any reinstall. A same-version reinstall is also the only way
+  to move `installed_plugins.json`'s `gitCommitSha` after a rebase, though per the point above
+  the cache copy is not what runs.
 
 ## The window key
 
