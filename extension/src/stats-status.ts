@@ -4,18 +4,21 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import * as vscode from "vscode";
+import { ownedProcess } from "./window-owner";
 import { storeRoot } from "../../plugin/packages/store/store.mjs";
 import {
   chainTotals,
   effective,
   feedUsage,
   hoverText,
+  liveSessions,
   newUsage,
   pickWindow,
   picks,
   pie,
   projectDirName,
   relayText,
+  type LiveSession,
   type RelayFile,
   type RelaySet,
   type Usage,
@@ -57,6 +60,24 @@ function relayFiles(): RelayFile[] {
       .filter((n) => n.endsWith(".json") && !n.endsWith(".set.json"))
       .map((n) => readJson<RelayFile>(join(relayDir(), n)))
       .filter((f): f is RelayFile => f !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Claude Code's record of each running Claude process, ~/.claude/sessions/<pid>.json,
+ * naming the session it holds now (it changes on /clear). Not a documented file:
+ * when it is missing or changes shape, nothing here is known and the pie falls
+ * back to the newest relay file and transcript, as before.
+ */
+function claudeProcesses(): LiveSession[] {
+  const dir = join(homedir(), ".claude", "sessions");
+  try {
+    return readdirSync(dir)
+      .filter((n) => /^\d+\.json$/.test(n))
+      .map((n) => readJson<LiveSession>(join(dir, n)))
+      .filter((r): r is LiveSession => !!r && Number.isInteger(r.pid) && typeof r.sessionId === "string");
   } catch {
     return [];
   }
@@ -147,6 +168,9 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
   let busy = false;
+  // Two windows on one folder each show their own session: a Claude process is
+  // this window's when its parent is this extension host.
+  const owned = ownedProcess(() => void update());
 
   const folders = () => (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
   const setPath = (key: string) => join(relayDir(), `${key}.set.json`);
@@ -156,8 +180,10 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
     busy = true;
     try {
       const roots = folders();
-      window = roots.length ? pickWindow(relayFiles(), roots) : null;
-      const sessions = window?.sessions.length ? window.sessions : [newestSession(roots[0] ?? "")].filter((s): s is string => !!s);
+      const live = liveSessions(claudeProcesses(), (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`));
+      window = roots.length ? pickWindow(relayFiles(), roots, live) : null;
+      const own = live.mine[0] ?? newestSession(roots[0] ?? "");
+      const sessions = window?.sessions.length ? window.sessions : [own].filter((s): s is string => !!s);
       const usages: Usage[] = [];
       for (const id of sessions) {
         const u = await transcripts.usage(id, window?.cwd ?? roots[0]);

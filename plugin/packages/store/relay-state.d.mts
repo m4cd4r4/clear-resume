@@ -41,7 +41,24 @@ export interface ChainTotals {
   saved: number;
 }
 
-export function pickWindow(files: RelayFile[], roots: string[]): RelayFile | null;
+/** One of Claude Code's ~/.claude/sessions/<pid>.json records, the fields read here. */
+export interface LiveSession {
+  pid: number;
+  sessionId: string;
+  cwd?: string;
+  procStart?: string;
+  updatedAt?: number;
+}
+
+export interface WindowSessions {
+  /** This window's live session ids, newest first. */
+  mine: string[];
+  /** Live session ids another window holds. */
+  theirs: string[];
+}
+
+export function liveSessions(records: LiveSession[], owned: (record: LiveSession) => boolean | null): WindowSessions;
+export function pickWindow(files: RelayFile[], roots: string[], sessions?: Partial<WindowSessions>): RelayFile | null;
 export function projectDirName(cwd: string): string;
 export function newUsage(): Usage;
 export function feedUsage(u: Usage, text: string): Usage;
