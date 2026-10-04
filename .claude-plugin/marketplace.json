@@ -3,7 +3,7 @@
   "owner": { "name": "Macdara Ó Murchú" },
   "metadata": {
     "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
-    "version": "0.3.2"
+    "version": "0.4.0-dev.1"
   },
   "plugins": [
     {
