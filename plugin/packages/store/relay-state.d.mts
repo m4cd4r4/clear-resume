@@ -35,6 +35,8 @@ export interface Usage {
 
 export interface ChainTotals {
   sessions: number;
+  /** Main-thread assistant calls across the chain. */
+  replies: number;
   tokens: number;
   saved: number;
 }

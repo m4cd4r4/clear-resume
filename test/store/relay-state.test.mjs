@@ -75,7 +75,7 @@ describe("chainTotals", () => {
       s(2, 80_000, 25_000, 60_000), // and both drops so far, 120k + 115k, off each of 2 calls
       s(0, 0, null, null), // a session with no calls yet adds nothing
     ]);
-    expect(totals).toEqual({ sessions: 4, tokens: 720_000, saved: 4 * 120_000 + 2 * 235_000 });
+    expect(totals).toEqual({ sessions: 4, replies: 9, tokens: 720_000, saved: 4 * 120_000 + 2 * 235_000 });
   });
 });
 
@@ -113,19 +113,19 @@ describe("hoverText", () => {
       context: 144_000,
       threshold: 180_000,
       relay: { limit: 15, used: 3, pending: false },
-      totals: { sessions: 4, tokens: 1_234_000, saved: 950_000 },
+      totals: { sessions: 4, replies: 31, tokens: 1_234_000, saved: 950_000 },
       links: { handover: "command:clearResume.openLoaded", log: "command:clearResume.relayLog" },
     });
     expect(md.split("\n\n")).toEqual([
       "`▰▰▰▰▱` 144k of 180k nudge",
       "Relay: 3 clears used, 12 left in this window",
-      "This chain: 1234k tokens across 4 sessions, saved up to ~950k (an upper bound)",
+      "This chain: 1234k tokens read over 31 replies in 4 sessions, saved up to ~950k (an upper bound)",
       "[Open handover](command:clearResume.openLoaded) · [Relay log](command:clearResume.relayLog)",
     ]);
   });
 
   it("says when the relay is off, unlimited or waiting for the next turn, and drops a link it was not given", () => {
-    const base = { context: 0, threshold: 180_000, totals: { sessions: 1, tokens: 0, saved: 0 }, links: {} };
+    const base = { context: 0, threshold: 180_000, totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 }, links: {} };
     expect(hoverText({ ...base, relay: { limit: 0, used: 0, pending: false } })).toContain("Relay: off in this window");
     expect(hoverText({ ...base, relay: { limit: Infinity, used: 2, pending: false } })).toContain("Relay: 2 clears used, no cap");
     expect(hoverText({ ...base, relay: { limit: 5, used: 0, pending: true } })).toContain("(takes effect after the next reply)");

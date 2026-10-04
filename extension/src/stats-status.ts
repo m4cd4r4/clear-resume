@@ -224,10 +224,25 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
       label: p.current ? `$(check) ${p.label}` : `$(blank) ${p.label}`,
       description: p.limit === "off" ? "no clears by itself" : p.limit === "unlimited" ? "no cap" : `${p.label} clears`,
       limit: p.limit,
+      current: p.current,
     }));
-    const chosen = await vscode.window.showQuickPick(items, {
-      title: "Relay for this window",
-      placeHolder: `Now: ${relayText(now)}. The count starts over from the next reply.`,
+    // Opened on the current budget, so Enter alone changes nothing.
+    const qp = vscode.window.createQuickPick<(typeof items)[number]>();
+    qp.title = "Relay for this window";
+    qp.placeholder = `Now: ${relayText(now)}. The count starts over from the next reply.`;
+    qp.items = items;
+    const cur = items.find((i) => i.current);
+    if (cur) qp.activeItems = [cur];
+    const chosen = await new Promise<(typeof items)[number] | undefined>((resolve) => {
+      qp.onDidAccept(() => {
+        resolve(qp.selectedItems[0]);
+        qp.hide();
+      });
+      qp.onDidHide(() => {
+        resolve(undefined);
+        qp.dispose();
+      });
+      qp.show();
     });
     if (!chosen) return;
     const target = window;

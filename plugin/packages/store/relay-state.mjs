@@ -68,17 +68,19 @@ export function feedUsage(u, text) {
 // have compacted or ended sooner.
 export function chainTotals(sessions) {
   let tokens = 0;
+  let replies = 0;
   let saved = 0;
   let drop = 0;
   let prevLast = null;
   for (const s of sessions) {
     tokens += s.sum;
+    replies += s.calls;
     if (!s.calls) continue;
     if (prevLast !== null) drop += Math.max(0, prevLast - s.first);
     saved += s.calls * drop;
     prevLast = s.last;
   }
-  return { sessions: sessions.length, tokens, saved };
+  return { sessions: sessions.length, replies, tokens, saved };
 }
 
 export const k = (n) => `${Math.round(n / 1000)}k`;
@@ -129,7 +131,7 @@ export function hoverText({ context, threshold, relay, totals, links }) {
   const r = relayLine(relay);
   if (r) out.push(r);
   out.push(
-    `This chain: ${k(totals.tokens)} tokens across ${totals.sessions} session${totals.sessions === 1 ? "" : "s"}` +
+    `This chain: ${k(totals.tokens)} tokens read over ${totals.replies} repl${totals.replies === 1 ? "y" : "ies"} in ${totals.sessions} session${totals.sessions === 1 ? "" : "s"}` +
       (totals.saved > 0 ? `, saved up to ~${k(totals.saved)} (an upper bound)` : ""),
   );
   const l = [];
