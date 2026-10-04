@@ -33,12 +33,14 @@ export function loadedAge(record: StoredHandover, now?: Date): string;
 /** The newest handover loaded within the window in the open repo or its worktrees. */
 export function loadedHere(
   records: StoredHandover[],
-  opts?: { repoPath?: string; roots?: string[]; now?: Date; withinMs?: number },
+  opts?: { repoPath?: string; roots?: string[]; now?: Date; withinMs?: number; owned?: Owned },
 ): StoredHandover | null;
+/** Whether this window's session loaded a record: true, false (another live window), or null (unknown). */
+export type Owned = (record: StoredHandover) => boolean | null;
 /** `loadedHere` across every workspace folder: the newest load any of them names. */
 export function loadedInFolders(
   records: StoredHandover[],
   folders: { repoPath: string; roots?: string[] }[],
-  opts?: { now?: Date; withinMs?: number },
+  opts?: { now?: Date; withinMs?: number; owned?: Owned },
 ): StoredHandover | null;
 export function statusText(record: StoredHandover, now?: Date, max?: number): string;

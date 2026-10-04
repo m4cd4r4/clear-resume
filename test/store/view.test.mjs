@@ -176,4 +176,22 @@ describe("the status bar's handover", () => {
     expect(loadedHere(records, { repoPath: "", now: NOW })).toBeNull();
     expect(loadedHere(records.slice(0, 1), { repoPath: "I:/code/acme", now: new Date("2026-09-20T22:00:00.000Z") })).toBeNull();
   });
+
+  it("names the load this window's session made, never another window's on the same repo", () => {
+    // Two windows on one repo, each loading its own handover a minute apart. The
+    // label named the later load in both windows (2026-10-04).
+    const mine = loaded({ pid: 1, title: "mine", archivedBy: { owner: "100@5", pid: "7", via: "hook" }, archivedAt: "2026-09-19T23:58:00.000Z" });
+    const theirs = loaded({ pid: 2, title: "theirs", archivedBy: { owner: "200", pid: "8", via: "hook" }, archivedAt: "2026-09-19T23:59:00.000Z" });
+    const older = loaded({ pid: 3, title: "owner gone", archivedBy: { owner: "300", pid: "9", via: "load" }, archivedAt: "2026-09-19T20:00:00.000Z" });
+    const owned = (r) => ({ 100: true, 200: false })[String(r.archivedBy.owner).split("@")[0]] ?? null;
+    const folder = [{ repoPath: "I:/code/acme", roots }];
+
+    expect(loadedInFolders([mine, theirs, older], folder, { now: NOW, owned })?.title).toBe("mine");
+    expect(loadedHere([mine, theirs, older], { repoPath: "I:/code/acme", roots, now: NOW, owned })?.title).toBe("mine");
+    // This window loaded nothing: an unknown owner still shows, another window's never.
+    expect(loadedInFolders([theirs, older], folder, { now: NOW, owned })?.title).toBe("owner gone");
+    expect(loadedInFolders([theirs], folder, { now: NOW, owned })).toBeNull();
+    // Without a classifier nothing changes.
+    expect(loadedInFolders([mine, theirs, older], folder, { now: NOW })?.title).toBe("theirs");
+  });
 });

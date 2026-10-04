@@ -131,29 +131,34 @@ function shorten(s, max) {
  * The open folder comes first. Two windows on two worktrees of one repo each load
  * their own handover, and counting the worktrees alike named whichever loaded
  * last in both status bars (2026-09-28).
+ *
+ * Two windows on the SAME folder are told apart by `owned(record)`: true when this
+ * window's session loaded it, false when another window's live session did, null
+ * when nobody can say. This window's load wins, another window's never shows, and
+ * an unknown one is the fallback (2026-10-04).
  */
-export function loadedHere(records, { repoPath = "", roots = [], now = new Date(), withinMs } = {}) {
+export function loadedHere(records, { repoPath = "", roots = [], now = new Date(), withinMs, owned } = {}) {
   const here = normalisePath(repoPath);
   const mine = [...new Set([here, ...roots.map(normalisePath)].filter(Boolean))];
   if (!repoPath || !mine.length) return null;
-  const recent = recentlyLoaded(records, { now, withinMs });
-  return (
-    recent.find((r) => isUnder(normalisePath(r.repoPath), [here])) ??
-    recent.find((r) => isUnder(normalisePath(r.repoPath), mine)) ??
-    null
-  );
+  const recent = recentlyLoaded(records, { now, withinMs }).filter((r) => owned?.(r) !== false);
+  const first = (rs) =>
+    rs.find((r) => isUnder(normalisePath(r.repoPath), [here])) ?? rs.find((r) => isUnder(normalisePath(r.repoPath), mine)) ?? null;
+  return first(recent.filter((r) => owned?.(r) === true)) ?? first(recent);
 }
 
 /**
  * `loadedHere` across every folder of a workspace (`{ repoPath, roots }` each):
- * the newest load any of them names. A multi-root workspace whose handover was
- * loaded in its second folder otherwise showed no status item at all.
+ * the newest load any of them names, this window's own before an unknown one. A
+ * multi-root workspace whose handover was loaded in its second folder otherwise
+ * showed no status item at all.
  */
-export function loadedInFolders(records, folders = [], { now = new Date(), withinMs } = {}) {
+export function loadedInFolders(records, folders = [], { now = new Date(), withinMs, owned } = {}) {
+  const rank = (r) => (owned?.(r) === true ? 1 : 0);
   let best = null;
   for (const { repoPath, roots = [] } of folders) {
-    const r = loadedHere(records, { repoPath, roots, now, withinMs });
-    if (r && (!best || loadedAt(r) > loadedAt(best))) best = r;
+    const r = loadedHere(records, { repoPath, roots, now, withinMs, owned });
+    if (r && (!best || rank(r) - rank(best) || loadedAt(r) - loadedAt(best)) > 0) best = r;
   }
   return best;
 }
