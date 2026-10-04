@@ -15,10 +15,10 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const SAVE = 'node "C:/Users/me/.claude/plugins/cache/clear-resume/scripts/save.mjs" --title "x" <<\'EOF\''
 const SAVED = 'Saved handover "x" (id abc123).'
 
-type World = { commands: string[]; prompts: string[]; toasts: string[] }
+type World = { commands: string[]; prompts: string[]; toasts: string[]; status: (string | undefined)[]; registered: string[] }
 
 function world(on: On, env: Record<string, string> = {}) {
-  const w: World = { commands: [], prompts: [], toasts: [] }
+  const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [] }
   const clock = mock.clock(on)
   mock.env(on, env)
   let out = SAVED
@@ -38,6 +38,7 @@ function world(on: On, env: Record<string, string> = {}) {
   )
   on('turn.complete', async ($, e) => ({ text: e.answer }))
   on('session.end', async ($, e) => ({ sessionId: e.sessionId }))
+  on('session.start', async ($, e) => ({ cwd: e.cwd }))
   on('command.run', async ($, e) => {
     w.commands.push(e.command)
     return { text: '' }
@@ -46,7 +47,14 @@ function world(on: On, env: Record<string, string> = {}) {
     w.prompts.push(e.text)
     return { text: e.text }
   })
-  on('ui.status', async () => ({ value: undefined }))
+  on('ui.status', async ($, e) => {
+    w.status.push(e.text)
+    return { value: undefined }
+  })
+  on('command.register', async ($, e) => {
+    w.registered.push(e.name)
+    return { value: undefined }
+  })
   on('ui.toast', async ($, e) => {
     w.toasts.push(e.text)
     return { value: undefined }
@@ -200,5 +208,95 @@ describe('relay', () => {
     await $.session.end(cleared)
     await clock.advance(5000)
     expect(w.prompts).toEqual([])
+  })
+})
+
+const start = { cwd: 'I:/repo', surface: 'terminal', isInteractive: true } as const
+const relayCmd = (args: string) => ({ command: 'relay', args })
+
+describe('/relay and the status line', () => {
+  test('registers /relay and shows what is left at start', { options: { relay: '3' } }, async ($, on) => {
+    const { w } = world(on)
+    await $.session.start(start)
+    expect(w.registered).toEqual(['relay'])
+    expect(w.status.at(-1)).toBe('relay: 3 of 3 left')
+  })
+
+  test('off by option: no status entry, and bare /relay says off', async ($, on) => {
+    const { w } = world(on)
+    await $.session.start(start)
+    expect(w.status.at(-1)).toBeUndefined()
+    const r = await $.command.run(relayCmd(''))
+    expect(r.text).toBe('relay: off')
+  })
+
+  test('/relay 2 turns it on for this window when the option is off', async ($, on) => {
+    const { w, clock } = world(on)
+    await $.session.start(start)
+    const r = await $.command.run(relayCmd('2'))
+    expect(r.text).toBe('relay: 2 of 2 left')
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.prompts.length).toBe(1)
+    expect(w.status.at(-1)).toBe('relay: 1 of 2 left')
+  })
+
+  test('/relay off stops a relay the option turned on, and clears the status', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock } = world(on)
+    await $.session.start(start)
+    await $.command.run(relayCmd('off'))
+    expect(w.status.at(-1)).toBeUndefined()
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(5000)
+    expect(w.commands).toEqual([])
+    expect(w.toasts).toEqual([])
+  })
+
+  test('/relay off between the save and the turn end cancels that clear', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock } = world(on)
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.command.run(relayCmd('off'))
+    await $.turn.complete(turn)
+    await clock.advance(5000)
+    expect(w.commands).toEqual([])
+  })
+
+  test('/relay on uses the option budget, or 3 when the option is off', { options: { relay: '5' } }, async ($, on) => {
+    world(on)
+    await $.command.run(relayCmd('off'))
+    expect((await $.command.run(relayCmd('on'))).text).toBe('relay: 5 of 5 left')
+  })
+
+  test('/relay on with the option off means 3', async ($, on) => {
+    world(on)
+    expect((await $.command.run(relayCmd('on'))).text).toBe('relay: 3 of 3 left')
+  })
+
+  test('/relay unlimited', async ($, on) => {
+    world(on)
+    expect((await $.command.run(relayCmd('unlimited'))).text).toBe('relay: on, unlimited (0 used)')
+  })
+
+  test('an argument it does not understand changes nothing', { options: { relay: '3' } }, async ($, on) => {
+    world(on)
+    const r = await $.command.run(relayCmd('lots'))
+    expect(r.text).toContain('not understood')
+    expect((await $.command.run(relayCmd(''))).text).toBe('relay: 3 of 3 left')
+  })
+
+  test('setting a budget starts the count over after it ran out', { options: { relay: '1' } }, async ($, on) => {
+    const { w, clock } = world(on)
+    await relayOnce($, clock)
+    expect((await $.command.run(relayCmd(''))).text).toBe('relay: 0 of 1 left')
+    await $.command.run(relayCmd('1'))
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear', 'clear'])
+  })
+
+  test('under the headless runner there is no status entry', { options: { relay: '3' } }, async ($, on) => {
+    const { w } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    await $.session.start(start)
+    expect(w.status.every(t => t === undefined)).toBe(true)
   })
 })
