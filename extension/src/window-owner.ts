@@ -40,28 +40,36 @@ function lookup(pid: string): Promise<Parent> {
 }
 
 /**
- * The `owned` classifier for loadedInFolders. An owner not yet looked up reads as
- * unknown, and the lookup runs in the background and calls `onLearn` when it ends,
- * once per owner: a process's parent does not change while it lives.
+ * Whether a Claude process is this window's: true when its parent is this
+ * extension host, false when it is another window's extension host, null when
+ * not known. A pid not yet looked up reads as null, and the lookup runs in the
+ * background and calls `onLearn` when it ends, once per `key` (the pid, or the
+ * pid plus its start time where that is known, so a reused pid is looked up
+ * again): a process's parent does not change while it lives.
  */
-export function ownedByThisWindow(onLearn: () => void): (record: StoredHandover) => boolean | null {
-  return (record) => {
-    const pid = String(record.archivedBy?.owner ?? "").split("@")[0];
+export function ownedProcess(onLearn: () => void): (pid: string, key?: string) => boolean | null {
+  return (pid, key = pid) => {
     if (!/^\d+$/.test(pid)) return null;
-    if (!parents.has(pid)) {
-      if (!pending.has(pid)) {
-        pending.add(pid);
+    if (!parents.has(key)) {
+      if (!pending.has(key)) {
+        pending.add(key);
         void lookup(pid).then((parent) => {
-          parents.set(pid, parent);
-          pending.delete(pid);
+          parents.set(key, parent);
+          pending.delete(key);
           onLearn();
         });
       }
       return null;
     }
-    const parent = parents.get(pid);
+    const parent = parents.get(key);
     if (!parent) return null;
     if (parent.pid === process.pid) return true;
     return parent.exe === host ? false : null;
   };
+}
+
+/** The `owned` classifier for loadedInFolders: a record is this window's when the process that loaded it is. */
+export function ownedByThisWindow(onLearn: () => void): (record: StoredHandover) => boolean | null {
+  const owned = ownedProcess(onLearn);
+  return (record) => owned(String(record.archivedBy?.owner ?? "").split("@")[0]);
 }

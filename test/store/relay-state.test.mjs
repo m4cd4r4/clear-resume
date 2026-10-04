@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainTotals, effective, feedUsage, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
+import { chainTotals, effective, feedUsage, liveSessions, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
 
 const state = (over) => ({
   v: 1,
@@ -23,6 +23,32 @@ describe("pickWindow", () => {
       state({ key: "sibling", cwd: "I:/code/acme-two", updatedAt: 9000 }),
     ];
     expect(pickWindow(files, ["I:/code/acme"])?.key).toBe("new");
+  });
+
+  it("with two windows on one folder, takes the one holding this window's session, not the newest", () => {
+    const files = [
+      state({ key: "mine", sessions: ["a1", "a2"], updatedAt: 1000 }),
+      state({ key: "theirs", sessions: ["b1"], updatedAt: 5000 }),
+    ];
+    expect(pickWindow(files, ["I:/code/acme"], { mine: ["a2"], theirs: ["b1"] })?.key).toBe("mine");
+  });
+
+  it("never shows another live window's file; unknown ownership falls back to the newest", () => {
+    const files = [state({ key: "old", sessions: ["x"], updatedAt: 1000 }), state({ key: "theirs", sessions: ["b1"], updatedAt: 5000 })];
+    expect(pickWindow(files, ["I:/code/acme"], { theirs: ["b1"] })?.key).toBe("old");
+    expect(pickWindow([files[1]], ["I:/code/acme"], { theirs: ["b1"] })).toBeNull();
+    expect(pickWindow(files, ["I:/code/acme"], {})?.key).toBe("theirs");
+  });
+});
+
+describe("liveSessions", () => {
+  it("splits Claude's live sessions by window, this window's newest first, unknown left out", () => {
+    const rec = (pid, sessionId, updatedAt) => ({ pid, sessionId, updatedAt });
+    const owned = (r) => (r.pid === 1 || r.pid === 3 ? true : r.pid === 2 ? false : null);
+    expect(liveSessions([rec(1, "a", 100), rec(2, "b", 300), rec(3, "c", 200), rec(4, "d", 400)], owned)).toEqual({
+      mine: ["c", "a"],
+      theirs: ["b"],
+    });
   });
 });
 

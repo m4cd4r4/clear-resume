@@ -8,16 +8,42 @@ function isUnder(path, roots) {
   return roots.some((root) => path === root || path.startsWith(root + "/"));
 }
 
-// This window's relay: the newest state file whose cwd is in one of the
-// workspace folders. A reload writes a new file, so the newest is the live one.
-export function pickWindow(files, roots) {
-  const mine = roots.map(normalisePath);
+// Which of Claude Code's live sessions (~/.claude/sessions/<pid>.json, one per
+// running Claude process, naming the session it holds now) are this window's.
+// `owned(record)` is true for a process this window started, false for one
+// another window started, null when that is not known (yet). `mine` is newest
+// first.
+export function liveSessions(records, owned) {
+  const mine = [];
+  const theirs = [];
+  for (const r of [...records].sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0))) {
+    if (!r || typeof r.sessionId !== "string") continue;
+    const o = owned(r);
+    if (o === true) mine.push(r.sessionId);
+    else if (o === false) theirs.push(r.sessionId);
+  }
+  return { mine, theirs };
+}
+
+// This window's relay. A state file holding one of this window's live sessions
+// wins, wherever its cwd is. Otherwise the newest file whose cwd is in one of the
+// workspace folders, leaving out any that holds another window's live session.
+// A reload writes a new file, so the newest is the live one.
+export function pickWindow(files, roots, { mine = [], theirs = [] } = {}) {
+  const under = roots.map(normalisePath);
+  const has = (f, ids) => ids.some((id) => f.sessions?.includes(id));
+  let own = null;
   let best = null;
   for (const f of files) {
-    if (!f || typeof f.cwd !== "string" || !isUnder(normalisePath(f.cwd), mine)) continue;
+    if (!f || typeof f.cwd !== "string") continue;
+    if (has(f, mine)) {
+      if (!own || f.updatedAt > own.updatedAt) own = f;
+      continue;
+    }
+    if (has(f, theirs) || !isUnder(normalisePath(f.cwd), under)) continue;
     if (!best || f.updatedAt > best.updatedAt) best = f;
   }
-  return best;
+  return own ?? best;
 }
 
 // Claude Code's folder for a cwd's transcripts, under ~/.claude/projects.
