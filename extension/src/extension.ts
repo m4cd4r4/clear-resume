@@ -11,6 +11,7 @@ import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 import { LanesProvider } from "./lanes-tree";
 import { statsStatus } from "./stats-status";
+import { ownedByThisWindow } from "./window-owner";
 
 const VIEW = "clearResume.history";
 const LANES_VIEW = "clearResume.lanes";
@@ -177,6 +178,8 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
   item.name = "clear-resume: loaded handover";
   context.subscriptions.push(item);
   let current: StoredHandover | null = null;
+  // Two windows on one repo each name the load their own session made.
+  const owned = ownedByThisWindow(() => update());
 
   const update = () => {
     try {
@@ -185,7 +188,7 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
       const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
       const now = new Date();
       const record = folders.length
-        ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now })
+        ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now, owned })
         : null;
       current = record;
       if (!record) {
