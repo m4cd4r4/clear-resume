@@ -3,7 +3,9 @@ import type { Register } from 'claude-code'
 // The relay: after Claude saves a handover, run /clear and submit the prompt
 // that continues from it, so nobody has to type anything. Opt-in through the
 // `relay` option, which is also the budget: how many clears this process may
-// run before it stops and leaves the next one to the user.
+// run before it stops and leaves the next one to the user. /relay overrides
+// the option for this window (this process) only, and the status line shows
+// what is left while it is on.
 //
 // The module lives in the process and /clear keeps the process, so `pending`
 // and `used` survive the clear. A reload (a config change, an update) starts
@@ -37,9 +39,25 @@ async function headOf($: Parameters<Parameters<Parameters<Register>[0]>[2]>[0]):
   }
 }
 
+// What /relay takes: off, on, unlimited or a number. "on" is the option's own
+// budget when that is on, else 3. Anything else is undefined: not understood.
+export function parseRelay(args: string, fallback: number): number | undefined {
+  const s = args.trim().toLowerCase()
+  if (s === 'on') return fallback > 0 ? fallback : 3
+  if (s === 'off') return 0
+  const n = budget(s)
+  return n === 0 ? undefined : n
+}
+
+export function relayStatus(limit: number, used: number): string {
+  if (limit === 0) return 'relay: off'
+  if (limit === Infinity) return `relay: on, unlimited (${used} used)`
+  return `relay: ${Math.max(0, limit - used)} of ${limit} left`
+}
+
 export const register: Register = (on, options) => {
-  const limit = budget(options.relay)
-  if (limit === 0) return
+  const configured = budget(options.relay)
+  let limit = configured
 
   let used = 0
   let pending = false
@@ -47,6 +65,38 @@ export const register: Register = (on, options) => {
   // last relay, and how many continued sessions in a row ended without a commit.
   let lastHead: string | undefined
   let stalled = 0
+  let headlessRun = false
+
+  // The standing status entry: what is left while the relay is on, nothing while off.
+  const shown = () => (limit === 0 || headlessRun ? undefined : relayStatus(limit, used))
+
+  on('session.start', async ($, e, next) => {
+    const result = await next(e)
+    headlessRun = /^(1|true|on|yes)$/i.test((await $.env.get('CLEAR_RESUME_HEADLESS')) ?? '')
+    await $.command.register({
+      name: 'relay',
+      description: 'Clear and continue by itself in this window: off, on, unlimited or a number',
+      argumentHint: '[off|on|unlimited|<n>]',
+      immediate: true,
+    })
+    $.ui.status(shown())
+    return result
+  })
+
+  // Bare /relay reports; with an argument it sets this window's budget and starts
+  // the count and the stall guard over.
+  on('command.run', { command: 'relay' }, async ($, e) => {
+    if (e.args.trim() === '') return { text: relayStatus(limit, used) }
+    const set = parseRelay(e.args, configured)
+    if (set === undefined) return { text: `relay: "${e.args.trim()}" not understood. Use off, on, unlimited or a number.` }
+    limit = set
+    used = 0
+    stalled = 0
+    lastHead = undefined
+    if (limit === 0) pending = false
+    $.ui.status(shown())
+    return { text: relayStatus(limit, used) }
+  })
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
@@ -65,6 +115,11 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (!pending || e.agentId !== undefined) return result
+    // Turned off for this window: drop the save quietly.
+    if (limit === 0) {
+      pending = false
+      return result
+    }
     // The headless runner (run.mjs) ends the process instead; it has its own budget.
     if ((await $.env.get('CLEAR_RESUME_HEADLESS'))?.match(/^(1|true|on|yes)$/i)) {
       pending = false
@@ -100,7 +155,7 @@ export const register: Register = (on, options) => {
     $.clock.after(300, () => {
       $.command.run({ command: 'clear' }).catch(err => {
         pending = false
-        $.ui.status(undefined)
+        $.ui.status(shown())
         $.ui.toast(`clear-resume relay: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
       })
     })
@@ -115,9 +170,9 @@ export const register: Register = (on, options) => {
     $.clock.after(1000, () => {
       $.prompt
         .submit({ text: RESUME_TEXT, asUser: true })
-        .then(() => $.ui.status(undefined))
+        .then(() => $.ui.status(shown()))
         .catch(err => {
-          $.ui.status(undefined)
+          $.ui.status(shown())
           $.ui.toast(`clear-resume relay: submit refused: ${String(err)}`, { timeoutMs: 15000 })
         })
     })
