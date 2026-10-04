@@ -33,12 +33,38 @@ The plugin handles the usual case: you write a handover, type `/clear`, and the 
 session in that folder loads it automatically. The sidebar is for the rest: an older
 handover, one from another repo, or one you want to read before resuming.
 
+## Worktrees view
+
+When a repo has several git worktrees open at once, the **Worktrees** view lists them
+oldest first, one row per checkout: its branch, when it was created, and the state of
+its newest handover. Click a row to open that worktree in its own window.
+
+```
+main · started 05-30 10:33 · handover waiting
+35. U3 · ux-study-mode · ux-plan #5/5 · wave 2 · from 10-04 11:50
+```
+
+It works with no setup. If you keep a registry of planned worktrees, point
+`clearResume.registryPath` at it and each row also names its plan row, its position in
+the plan and its wave, and entries not yet started appear under **Next up**. The
+registry is a JSON file of `{ "entries": [...] }`, each entry carrying `slug`, `branch`,
+`status` and optionally `plan`, `wave`, `label` and `why`.
+
+Scripts that create worktrees can use the same labels:
+
+- `node plugin/scripts/label.mjs <slug> --registry <registry.json>` prints the label
+  for one entry as JSON, so a window title matches the sidebar.
+- `node plugin/scripts/save.mjs --unowned ...` writes a kickoff handover for a session
+  that has not started yet. Without `--unowned` it would be marked as held by the
+  window that ran the script.
+
 ## Settings
 
 | Setting | Default | What it does |
 |---|---|---|
 | `clearResume.storePath` | `~/.clear-resume` | Folder holding the handover store. |
 | `clearResume.showArchived` | `false` | Show archived handovers (loaded, resumed or replaced by a newer save) in the tree. |
+| `clearResume.registryPath` | (empty) | Optional worktree registry. When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up. |
 
 The extension does not read Claude Code's settings. If you moved the store with
 `CLEAR_RESUME_HOME` there, set `clearResume.storePath` to the same folder.

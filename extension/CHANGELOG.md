@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- A **Worktrees** view lists the open repo's git worktrees oldest first, each with its
+  branch, start time and newest handover's state. Click one to open it in its own
+  window (`clear-resume: Open worktree window`).
+- New setting `clearResume.registryPath`: point it at a worktree registry and each row
+  names its plan row, plan position and wave, with queued entries under Next up
+  (folded past 8).
+- Plugin: `scripts/label.mjs <slug> --registry <file>` prints the same label as JSON,
+  for scripts that name windows or kickoff handovers.
+- Plugin: `save.mjs --unowned` writes a handover for a session that has not started
+  yet, so it is not marked as held by the window that wrote it.
+
 ## 0.2.2
 
 - The store listing shows two screenshots: the sidebar with a loaded handover open, and Resume
