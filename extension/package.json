@@ -125,6 +125,11 @@
         "command": "clearResume.openLane",
         "title": "Open worktree window",
         "category": "clear-resume"
+      },
+      {
+        "command": "clearResume.pickRelay",
+        "title": "Set relay for this window",
+        "category": "clear-resume"
       }
     ],
     "menus": {
