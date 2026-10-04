@@ -15,12 +15,36 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const SAVE = 'node "C:/Users/me/.claude/plugins/cache/clear-resume/scripts/save.mjs" --title "x" <<\'EOF\''
 const SAVED = 'Saved handover "x" (id abc123).'
 
-type World = { commands: string[]; prompts: string[]; toasts: string[]; status: (string | undefined)[]; registered: string[] }
+type World = {
+  commands: string[]
+  prompts: string[]
+  toasts: string[]
+  status: (string | undefined)[]
+  registered: string[]
+  files: Map<string, string>
+}
+
+// The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json override.
+// The engine resolves the path before a hook sees it, so on Windows it is C:\home\me\...
+const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set)\.json$/
 
 function world(on: On, env: Record<string, string> = {}) {
-  const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [] }
+  const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [], files: new Map() }
   const clock = mock.clock(on)
-  mock.env(on, env)
+  mock.env(on, { HOME: '/home/me', ...env })
+  // The state file and the status bar's override, in memory.
+  on('fs.write', async ($, e) => {
+    w.files.set(e.path, e.text)
+    return { value: undefined }
+  })
+  on('fs.read', async ($, e) => {
+    const text = w.files.get(e.path)
+    if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
+    return { value: text }
+  })
+  let sessionId = 's1'
+  on('session.id', async () => ({ value: sessionId }))
+  on('session.cwd', async () => ({ value: '/repo' }))
   let out = SAVED
   let isError = false
   // git rev-parse HEAD: a fixed commit unless a test moves it; null stands for no git.
@@ -68,6 +92,15 @@ function world(on: On, env: Record<string, string> = {}) {
     },
     commit: (sha: string | null) => {
       head = sha
+    },
+    nextSession: (id: string) => {
+      sessionId = id
+    },
+    // The one state file the mod wrote, parsed.
+    state: () => {
+      const found = [...w.files].filter(([k]) => STATE.test(k))
+      expect(found.length).toBe(1)
+      return { path: found[0][0], file: JSON.parse(found[0][1]) }
     },
   }
 }
@@ -209,6 +242,58 @@ describe('relay', () => {
     await clock.advance(5000)
     expect(w.prompts).toEqual([])
   })
+
+  // tdd-guard:allow - the state file and override cases below were written beside
+  // the code; each was then seen to fail by breaking the line of relay.ts it guards.
+  test("publishes this window's state for the status bar", { options: { relay: '3' } }, async ($, on) => {
+    const { clock, state, nextSession } = world(on)
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(300)
+    nextSession('s2')
+    await $.session.end(cleared)
+    await clock.advance(1000)
+    const { path, file } = state()
+    expect(path.replace(/\\/g, '/')).toMatch(/\/home\/me\/\.clear-resume\/relay\/[^/]+\.json$/)
+    expect(file).toMatchObject({ v: 1, cwd: '/repo', limit: 3, configured: 3, used: 1, stalled: 0, sessions: ['s1', 's2'] })
+  })
+
+  test('off still publishes, so the status bar can turn it on', async ($, on) => {
+    const { state } = world(on)
+    await $.turn.complete(turn)
+    expect(state().file).toMatchObject({ limit: 0, configured: 0, used: 0 })
+  })
+
+  test('a budget set from the status bar turns the relay on for this window', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    const { path } = state()
+    w.files.set(path.replace(/\.json$/, '.set.json'), JSON.stringify({ limit: 'unlimited', at: 5 }))
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(300)
+    expect(w.commands).toEqual(['clear'])
+    expect(state().file).toMatchObject({ limit: 'unlimited', configured: 0, used: 1, applied: 5 })
+  })
+
+  test('an override already taken is not taken again', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    w.files.set(state().path.replace(/\.json$/, '.set.json'), JSON.stringify({ limit: '1', at: 5 }))
+    await relayOnce($, clock)
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(5000)
+    // The second save meets the budget of 1 instead of starting the count over.
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.some(t => t.includes('budget of 1 used'))).toBe(true)
+  })
+
+  test('under the headless runner no state is written', { options: { relay: '3' } }, async ($, on) => {
+    const { w } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    await $.turn.complete(turn)
+    expect(w.files.size).toBe(0)
+  })
 })
 
 const start = { cwd: 'I:/repo', surface: 'terminal', isInteractive: true } as const
@@ -306,5 +391,22 @@ describe('/relay and the status line', () => {
     expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left'])
     await relayOnce($, clock)
     expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left', 'clear-resume relay: 0 of 2 left'])
+  })
+
+  test('/relay typed after a status-bar choice not yet taken wins over it', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    w.files.set(state().path.replace(/\.json$/, '.set.json'), JSON.stringify({ limit: 'off', at: Date.now() }))
+    await clock.advance(10)
+    await $.command.run(relayCmd('2'))
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(state().file).toMatchObject({ limit: 2, used: 1 })
+  })
+
+  test('/relay publishes at once, so the status bar follows it', async ($, on) => {
+    const { state } = world(on)
+    await $.command.run(relayCmd('2'))
+    expect(state().file).toMatchObject({ limit: 2, used: 0 })
   })
 })

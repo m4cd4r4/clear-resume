@@ -10,6 +10,7 @@ import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mj
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 import { LanesProvider } from "./lanes-tree";
+import { statsStatus } from "./stats-status";
 
 const VIEW = "clearResume.history";
 const LANES_VIEW = "clearResume.lanes";
@@ -65,6 +66,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(lanesTree);
 
   const status = loadedStatus(context, root);
+  statsStatus(context, () => {
+    const record = status.current();
+    if (record) void openLoaded(record, root());
+    else void vscode.window.showInformationMessage("clear-resume: no handover loaded in this window in the last day.");
+  });
   watchStore(context, root, () => {
     provider.refresh();
     lanesProvider.refresh();
@@ -166,10 +172,11 @@ async function openLoaded(record: StoredHandover | undefined, root: string): Pro
  * loaded in the last day in any open workspace folder, hidden when there is none. Clicking it
  * opens the same readable copy as the Loaded group.
  */
-function loadedStatus(context: vscode.ExtensionContext, root: () => string): { update: () => void } {
+function loadedStatus(context: vscode.ExtensionContext, root: () => string): { update: () => void; current: () => StoredHandover | null } {
   const item = vscode.window.createStatusBarItem("clearResume.loaded", vscode.StatusBarAlignment.Left, 0);
   item.name = "clear-resume: loaded handover";
   context.subscriptions.push(item);
+  let current: StoredHandover | null = null;
 
   const update = () => {
     try {
@@ -180,6 +187,7 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
       const record = folders.length
         ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now })
         : null;
+      current = record;
       if (!record) {
         item.hide();
         return;
@@ -196,7 +204,7 @@ function loadedStatus(context: vscode.ExtensionContext, root: () => string): { u
 
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(update));
   update();
-  return { update };
+  return { update, current: () => current };
 }
 
 /**
