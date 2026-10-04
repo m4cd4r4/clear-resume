@@ -85,6 +85,16 @@ describe("lanes", () => {
     ]);
   });
 
+  it("never lends a queued entry's branch to the main checkout or a stray worktree", () => {
+    const more = [
+      ...entries,
+      entry({ slug: "queued-on-main", branch: "main", status: "later" }),
+      entry({ slug: "queued-late", branch: "feat/late", status: "later" }),
+    ];
+    const { lanes: rows } = lanes({ worktrees, entries: more, now: NOW });
+    expect(rows.map((r) => r.title)).toEqual(["main", "U1 · early", "feat/late"]);
+  });
+
   it("files handovers under the lane they were written in", () => {
     const records = [rec({ repoPath: "I:/code/acme-late", title: "late one" }), rec({ pid: 2, title: "main one" })];
     const { lanes: rows } = lanes({ worktrees, entries, records, now: NOW });

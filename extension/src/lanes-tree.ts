@@ -54,7 +54,9 @@ export class LanesProvider implements vscode.TreeDataProvider<Node> {
   getTreeItem(node: Node): vscode.TreeItem {
     if (node.kind === "lane") return laneItem(node.lane, this.registryPath());
     if (node.kind === "nextGroup") {
-      const item = new vscode.TreeItem("Next up", vscode.TreeItemCollapsibleState.Expanded);
+      // A long queue is mostly old intentions; start it folded so the lanes stay in view.
+      const state = node.next.length > 8 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.Expanded;
+      const item = new vscode.TreeItem("Next up", state);
       item.description = String(node.next.length);
       item.contextValue = "lanes:next";
       return item;
@@ -81,7 +83,8 @@ export class LanesProvider implements vscode.TreeDataProvider<Node> {
 }
 
 function laneItem(lane: Lane, registryPath: string): vscode.TreeItem {
-  const label = lane.main ? `main · ${lane.title}` : `${lane.seq}. ${lane.title}`;
+  // The home icon marks the main checkout; its label is just the branch it holds.
+  const label = lane.main ? lane.title : `${lane.seq}. ${lane.title}`;
   const item = new vscode.TreeItem(label, lane.handovers.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
   item.description = [lane.startedAt && `started ${stamp(lane.startedAt)}`, lane.state, lane.context].filter(Boolean).join(" · ");
   const md = new vscode.MarkdownString();

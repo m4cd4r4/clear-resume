@@ -81,12 +81,18 @@ export function parseWorktreeList(out) {
   return list.map((w, i) => ({ ...w, main: i === 0 }));
 }
 
+// Entries that never had a worktree of their own. Their `branch` is often the
+// default branch they were planned against, so a branch match would misname a lane.
+const UNMINTED = new Set(["later", "archived"]);
+
 function findEntry(wt, entries, mainPath) {
   const p = normalisePath(wt.path);
+  const byPath = entries.find((e) => e.worktree_path && normalisePath(e.worktree_path) === p);
+  if (byPath || wt.main || !wt.branch) return byPath ?? null;
   return (
-    entries.find((e) => e.worktree_path && normalisePath(e.worktree_path) === p) ??
-    entries.find((e) => wt.branch && e.branch === wt.branch && e.repo_path && normalisePath(e.repo_path) === mainPath) ??
-    null
+    entries.find(
+      (e) => !UNMINTED.has(e.status) && e.branch === wt.branch && e.repo_path && normalisePath(e.repo_path) === mainPath,
+    ) ?? null
   );
 }
 
