@@ -40,7 +40,12 @@ before acting on it.
     "link.sh to link 2500". 17:47-19:55 AWST, 4 segments (links 864-1320, 1321-1718,
     1719-2116, 2117-2500), 3 automatic handovers, each /clear and continue in about 3 s.
     The final reply was RELAY-6HOP-DONE with no handover and no further clear.
-  - [ ] Not yet proven: 6 hops in one run, and the trigger from the VS Code chat panel.
+  - Site build v1, 2026-10-03 evening, in I:/Scratch/cr-e2e: 7 sessions, 6 automatic
+    hops, 26/26 plan items, 48 min (counted from the transcripts by `replay/extract.mjs`).
+  - Site build v4, 2026-10-04: 9 sessions, 8 clears, 52.8 min (`site-v4` tag, commit 5656b11).
+  - VS Code chat panel (2.1.288), 2026-10-04 20:03 AWST: /clear then the continue prompt in
+    the same tab, no Enter (scratch repo I:/Scratch/relay-panel-test).
+  - [x] 6+ hops in one run, and the trigger from the VS Code chat panel: both proven above.
 - [ ] **Demo v2** (#38). Conflicts with main; needs a rebase or closing.
 - [ ] **Context-savings measurement** (#57). `scripts/measure.mjs`. 2026-10-03 run: 191
   real `/clear` loads, median context 195k before and 97k after, a median drop of 101k.
