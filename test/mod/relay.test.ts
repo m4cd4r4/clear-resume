@@ -299,4 +299,12 @@ describe('/relay and the status line', () => {
     await $.session.start(start)
     expect(w.status.every(t => t === undefined)).toBe(true)
   })
+
+  test('each continue toasts what is left, for the VS Code panel which draws no status line', { options: { relay: '2' } }, async ($, on) => {
+    const { w, clock } = world(on)
+    await relayOnce($, clock)
+    expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left'])
+    await relayOnce($, clock)
+    expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left', 'clear-resume relay: 0 of 2 left'])
+  })
 })

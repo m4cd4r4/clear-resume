@@ -170,7 +170,11 @@ export const register: Register = (on, options) => {
     $.clock.after(1000, () => {
       $.prompt
         .submit({ text: RESUME_TEXT, asUser: true })
-        .then(() => $.ui.status(shown()))
+        .then(() => {
+          $.ui.status(shown())
+          // The VS Code panel draws no status line; a toast is the count it can show.
+          $.ui.toast(`clear-resume ${relayStatus(limit, used)}`, { timeoutMs: 8000 })
+        })
         .catch(err => {
           $.ui.status(shown())
           $.ui.toast(`clear-resume relay: submit refused: ${String(err)}`, { timeoutMs: 15000 })
