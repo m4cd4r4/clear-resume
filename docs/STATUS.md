@@ -11,6 +11,10 @@ before acting on it.
 - [x] Relay stall guard (#60): stops after two continued sessions in a row make no new commit;
   with no git only the budget applies. With the relay on, the nudge tells a finished task to
   end without a handover.
+- [x] Per-window relay: `/relay off|on|unlimited|<n>` overrides the `relay` option for one
+  window, and the status line shows the clears left (`relay: 2 of 3 left`). The classic
+  nudge still reads the option, so in a window turned on by `/relay` alone its wording says
+  to type /clear.
 - [x] Windows CI flake in `test/owner.test.mjs` fixed (#61).
 - [x] Auto-continue phase 1: headless runs continue themselves (`run.mjs`, #52).
 - [x] Nudge settings in `/config` and `/plugin configure` (#51).
@@ -19,7 +23,8 @@ before acting on it.
 
 ## In flight
 
-- [ ] **Auto-continue phase 2, VS Code** (#54, draft). Panel mode passed end to end on
+- [ ] **Auto-continue phase 2, VS Code** (#54). CLOSED 2026-10-04, superseded by the relay
+  and `/relay`; branch kept. Notes below are history. Panel mode passed end to end on
   2026-10-01. Terminal mode: the trust-prompt hang and the missing transcript are both fixed
   on the branch. Still to do:
   - [ ] Re-run the terminal end to end: 2 continues, no keypress.
