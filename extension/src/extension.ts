@@ -9,8 +9,10 @@ import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders, statusText } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
+import { LanesProvider } from "./lanes-tree";
 
 const VIEW = "clearResume.history";
+const LANES_VIEW = "clearResume.lanes";
 const CLAUDE_OPEN = "claude-vscode.editor.open";
 
 /**
@@ -57,20 +59,37 @@ export function activate(context: vscode.ExtensionContext): void {
     // A prune failure must never stop the view from opening.
   }
 
+  const registry = () => config().get<string>("registryPath")?.trim() ?? "";
+  const lanesProvider = new LanesProvider(root, registry);
+  const lanesTree = vscode.window.createTreeView(LANES_VIEW, { treeDataProvider: lanesProvider, showCollapseAll: true });
+  context.subscriptions.push(lanesTree);
+
   const status = loadedStatus(context, root);
   watchStore(context, root, () => {
     provider.refresh();
+    lanesProvider.refresh();
     status.update();
   });
   // "loaded 3h ago" has to stay true with nothing written to the store.
   const minute = setInterval(() => {
     status.update();
     if (tree.visible) provider.refresh();
+    // Worktrees come and go without a store write, so this view re-reads git.
+    if (lanesTree.visible) lanesProvider.refresh();
   }, 60_000);
   context.subscriptions.push({ dispose: () => clearInterval(minute) });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("clearResume.refresh", () => provider.refresh()),
+    vscode.commands.registerCommand("clearResume.refresh", () => {
+      provider.refresh();
+      lanesProvider.refresh();
+    }),
+
+    // A worktree row opens its window: the minting script's .code-workspace when
+    // there is one (it keeps the title and colour), else the folder.
+    vscode.commands.registerCommand("clearResume.openLane", (target?: string) => {
+      if (target) void vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(target), { forceNewWindow: true });
+    }),
 
     vscode.commands.registerCommand("clearResume.openLoaded", (record?: StoredHandover) => openLoaded(record, root())),
 

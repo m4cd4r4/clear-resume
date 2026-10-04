@@ -36,7 +36,10 @@ const startedIn = arg("--cwd") || sessionRoot() || process.cwd();
 try {
   // The owner's start time is what tells this window from a later process that
   // gets its pid, so a save waits for the lookup rather than use the hook budget.
-  const owner = ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
+  // --unowned: a kickoff written for a session that does not exist yet (a script
+  // minting a new worktree). Owning it by the caller's window would mark it as
+  // held by a live window in the new one.
+  const owner = process.argv.includes("--unowned") ? "" : ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
   // Under the headless runner every save is an auto one: the store is the
   // runner's own, and the runner sets which segment this is and what is left.
   const auto = headless() ? { chain: process.env.CLEAR_RESUME_CHAIN, budget: process.env.CLEAR_RESUME_BUDGET } : undefined;
