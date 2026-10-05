@@ -8,3 +8,5 @@ extension/dist/
 # site screenshots (site/shot.sh)
 site/shots/
 site/.brave-shot/
+docs/media/src/.brave-render/
+docs/media/src/.frames/
