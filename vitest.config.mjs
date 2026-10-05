@@ -13,7 +13,9 @@ export default defineConfig({
     fileParallelism: false,
     // test/mod/ holds the relay mod's tests, which run under `claude plugin test`
     // (npm run test:mod), not vitest: they import claude-code/testing.
-    exclude: ["**/node_modules/**", "test/mod/**"],
+    // site/*.test.mjs are plain node scripts that exit with their result; the Pages
+    // workflow runs them.
+    exclude: ["**/node_modules/**", "test/mod/**", "site/**"],
     // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
     // launched the tests would make every save in every test one owner's.
     env: { CLAUDE_PID: "", CLEAR_RESUME_NO_PROCESS_WALK: "1" },
