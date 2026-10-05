@@ -424,6 +424,54 @@ had loaded. Press ctrl+o to see it.
 8. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
    to run `node --version`: the hooks need `node` on the PATH Claude Code sees.
 
+## What's inside
+
+The plugin is the `plugin/` folder: one skill, three hooks, one Claude Code mod and a shared
+store. The VS Code extension and the headless runner sit on top of the same store.
+
+| Part | Where | What it does |
+|---|---|---|
+| Skill | [`plugin/skills/handover/SKILL.md`](../plugin/skills/handover/SKILL.md) | `/clear-resume:handover`. Claude writes the handover and pipes it to `scripts/save.mjs`. `scripts/load.mjs` lists what is waiting, or loads one with `--peek` or `--take`. |
+| SessionStart hook | [`plugin/scripts/session-start.mjs`](../plugin/scripts/session-start.mjs) | Runs at startup, `/clear` and compaction. Loads the waiting handover, then archives it so it loads once. |
+| PostToolUse hook | [`plugin/scripts/post-tool.mjs`](../plugin/scripts/post-tool.mjs) | With the nudge on, warns once mid-turn past the Nudge at size. Compaction does not wait for a turn to end, so the Stop hook alone would miss it. |
+| Stop hook | [`plugin/scripts/stop.mjs`](../plugin/scripts/stop.mjs) | With the nudge on, asks Claude once per session, at a turn end, to save a handover. |
+| Claude Code mod | [`plugin/hooks/relay.ts`](../plugin/hooks/relay.ts) | The relay. Runs `/clear` after a save, then submits the prompt that continues from the handover. |
+| Store | [`plugin/packages/store/`](../plugin/packages/store/) | The one record schema and the one reader and writer every part goes through. |
+| VS Code extension | [`extension/src/`](../extension/src/) | The sidebar and status bar. Reads the same store. |
+| Headless runner | [`plugin/scripts/run.mjs`](../plugin/scripts/run.mjs) | A `claude -p` loop that hands over and resumes itself. Design: [AUTO-CONTINUE.md](AUTO-CONTINUE.md). |
+
+### The hooks
+
+All three are listed in [`plugin/hooks/hooks.json`](../plugin/hooks/hooks.json) and start
+through `scripts/hook-entry.cjs`. Each command checks for `node` first. Any failure exits 0
+with no output, because a broken plugin must never block a session.
+
+### The Claude Code mod
+
+A mod is a function-hooks module that runs inside Claude Code, listed under `modules` in
+`hooks.json`. clear-resume has one, the relay. It does nothing until Relay is on. Then, after
+Claude saves a handover, it runs `/clear` when the turn ends and submits "Continue from the
+clear-resume handover that was just loaded." The one program it starts is `git rev-parse HEAD`,
+for the stall guard. It writes one status file, `~/.clear-resume/relay/<key>.json`, which the
+VS Code status bar reads to show the clears left. Everything it runs, reads and writes is listed
+in the [plugin README](../plugin/README.md#the-relay-mod-hooksrelayts).
+
+### The store
+
+Every part reads and writes handovers through `plugin/packages/store`, so the files on disk are
+defined in one place:
+
+- `schema.mjs`: the handover record, shared by the plugin and the extension.
+- `store.mjs`: the reader and writer. Hooks, the extension and the migration all go through it.
+- `sync.mjs`: the git transport for [sync](#syncing-two-machines-optional), off unless you set it up.
+- `loaded.mjs`: the readable markdown copy in `~/.clear-resume/loaded/`.
+- `view.mjs`, `lanes.mjs`, `worktree.mjs`: grouping and labels, so the sidebar and the CLI
+  picker agree.
+- `relay-state.mjs`: what the status bar shows, worked out from the relay mod's status file.
+
+An install copies `plugin/` only, and it has no `package.json`, so nothing runs `npm` on your
+machine (see [Running the tests](#running-the-tests)).
+
 ## Updating and contributing
 
 ### Updating

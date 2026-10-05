@@ -283,6 +283,8 @@ section > .wrap > h2 + * { margin-top: 16px; }
 .set-key, .set-def { font: 400 13px/1.6 var(--mono); color: var(--text-2); }
 .set-key code { font-size: 13px; color: var(--text); }
 #settings .ss-body code { font-size: 0.9em; color: var(--text); }
+#inside .ss-body code { font-size: 0.9em; color: var(--text); }
+#inside .ss-body p + p { margin-top: 10px; }
 .set-notes { margin-top: 16px; }
 .set-notes p { max-width: 72ch; overflow-wrap: anywhere; }
 .set-notes p + p { margin-top: 10px; }

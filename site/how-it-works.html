@@ -20,6 +20,7 @@
         <li><a href="#model">The model</a></li>
         <li><a href="#start">Start size</a></li>
         <li><a href="#settings">Settings</a></li>
+        <li><a href="#inside">What's inside</a></li>
         <li class="sep" aria-hidden="true"></li>
         <li><a href="index.html">Home</a></li>
         <li><a href="how-it-works.html" aria-current="page">How it works</a></li>
@@ -327,6 +328,57 @@
         <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
         <p data-fact="F222">Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web).</p>
         <p class="src" data-fact="F223">Source: the README.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="inside" aria-labelledby="h-inside">
+    <div class="wrap">
+      <h2 id="h-inside" data-fact="F257">What's inside</h2>
+      <div class="ss set">
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F258">One skill</p>
+            <p class="set-key"><code class="nw">/clear-resume:handover</code></p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F259">Claude writes the handover and saves it with <code>save.mjs</code>, which reads it on stdin.</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F260">Three hooks</p>
+            <p class="set-key"><code>hooks.json</code></p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F261">SessionStart loads the waiting handover at startup, <code>/clear</code> and compaction, then archives it so it loads once. PostToolUse and Stop check the context size for the nudge and the relay.</p>
+            <p data-fact="F262">Any failure exits 0 with no output: a broken plugin must never block a session.</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F263">One Claude Code mod</p>
+            <p class="set-key"><code>relay.ts</code></p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F264">A mod is a function-hooks module that runs inside Claude Code. This one is the relay: after Claude saves a handover, it runs <code>/clear</code> and submits the prompt that continues from it.</p>
+            <p data-fact="F265">The one program it starts is <code class="nw">git rev-parse HEAD</code>, for the stall guard. It sends nothing anywhere.</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F266">One store</p>
+            <p class="set-key"><code>packages/store</code></p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F267">One record schema, shared by the plugin and the VS Code extension. Every reader and writer goes through it, so the files on disk are defined in one place.</p>
+            <p data-fact="F268">Sync, when you turn it on, is a git transport on top of it.</p>
+          </div>
+        </div>
+      </div>
+      <div class="prose set-notes">
+        <p data-fact="F269">An install copies <code>plugin/</code> and nothing else. It has no <code>package.json</code>, so an install runs no <code>npm</code>.</p>
+        <p class="src" data-fact="F270">Source: the source files, the plugin README and How it works.</p>
       </div>
     </div>
   </section>
