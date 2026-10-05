@@ -35,17 +35,17 @@ F97 | page: "{date}" | source: "date: commits ? awstDate(lines[0]) : "n/a"" | si
 
 ## index.html: what it does (the README's example output)
 
-F10 | page: "Claude writes a short note, called a handover: the goal, the next action, where things stand, the decisions made and what already failed." | source: "Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed." | README.md:41
-F11 | page: "Saved handover "Cart totals rounding" (id 31c9af7)." | source: "Saved handover "Cart totals rounding" (id 31c9af7)." | README.md:44
-F12 | page: "After /clear, the next session in ~/code/widget-shop loads it automatically." | source: "After /clear, the next session in ~/code/widget-shop loads it automatically." | README.md:45
-F14 | page: "clear-resume: loaded handover "Cart totals rounding" (saved just now)." | source: "clear-resume: loaded handover "Cart totals rounding" (saved just now)." | README.md:51
-F15 | page: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | source: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | README.md:52
-F16 | page: "# the README's example, in a widget-shop repo" | source: "A long chat in the widget-shop project" | README.md:36
-F17 | page: "# Claude carries on from the handover." | source: "Claude carries on from the handover." | README.md:57
-F19 | page: "/clear-resume:handover" | source: "Type `/clear-resume:handover`." | README.md:41
-F6 | page: "/clear" | source: "Type `/clear`." | README.md:48
-F7 | page: "go" | source: "Type `go`, or say what to do next." | README.md:57
-F18 | page: "Three steps: save a handover, /clear, carry on." | source: "**Save a handover.**" | README.md:41 | source: "**Clear.** Type `/clear`." | README.md:48 | source: "**Carry on.**" | README.md:57
+F10 | page: "Claude writes a short note, called a handover: the goal, the next action, where things stand, the decisions made and what already failed." | source: "Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed." | README.md:42
+F11 | page: "Saved handover "Cart totals rounding" (id 31c9af7)." | source: "Saved handover "Cart totals rounding" (id 31c9af7)." | README.md:45
+F12 | page: "After /clear, the next session in ~/code/widget-shop loads it automatically." | source: "After /clear, the next session in ~/code/widget-shop loads it automatically." | README.md:46
+F14 | page: "clear-resume: loaded handover "Cart totals rounding" (saved just now)." | source: "clear-resume: loaded handover "Cart totals rounding" (saved just now)." | README.md:52
+F15 | page: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | source: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | README.md:53
+F16 | page: "# the README's example, in a widget-shop repo" | source: "A long chat in the widget-shop project" | README.md:37
+F17 | page: "# Claude carries on from the handover." | source: "Claude carries on from the handover." | README.md:58
+F19 | page: "/clear-resume:handover" | source: "Type `/clear-resume:handover`." | README.md:42
+F6 | page: "/clear" | source: "Type `/clear`." | README.md:49
+F7 | page: "go" | source: "Type `go`, or say what to do next." | README.md:58
+F18 | page: "Three steps: save a handover, /clear, carry on." | source: "**Save a handover.**" | README.md:42 | source: "**Clear.** Type `/clear`." | README.md:49 | source: "**Carry on.**" | README.md:58
 
 ## index.html: fallback feed in the media box (with the relay on)
 
@@ -94,18 +94,18 @@ F24 | page: "The nudge is off by default. Past 180k tokens of context (the defau
 
 ## Comparison (README.md:24 to 28)
 
-F101 | page: "Its own summary of the chat" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:26
-F102 | page: "What the summary leaves out" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:26
-F103 | page: "The whole chat" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:27
-F104 | page: "Nothing" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:27
-F105 | page: "Everything, including where you were" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:28
-F106 | page: "A short handover it wrote on purpose" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:29
+F101 | page: "Its own summary of the chat" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:27
+F102 | page: "What the summary leaves out" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:27
+F103 | page: "The whole chat" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:28
+F104 | page: "Nothing" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:28
+F105 | page: "Everything, including where you were" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:29
+F106 | page: "A short handover it wrote on purpose" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:30
 
 ## how-it-works.html: the handover
 
-F110 | page: "Claude reads your branch, your changes and your last few commits." | source: "Claude reads your branch, your changes and your last few commits." | README.md:41
+F110 | page: "Claude reads your branch, your changes and your last few commits." | source: "Claude reads your branch, your changes and your last few commits." | README.md:42
 F111 | page: "Each loaded handover is also saved as markdown in ~/.clear-resume/loaded/ for 30 days." | source: "Each loaded handover is also saved as markdown in `~/.clear-resume/loaded/` for 30 days." | README.md:183
-F112 | page: "The plugin checks for a waiting handover when a session starts, after /clear and after compaction (when /compact, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | source: "The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | README.md:59
+F112 | page: "The plugin checks for a waiting handover when a session starts, after /clear and after compaction (when /compact, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | source: "The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | README.md:60
 F113 | page: "Known limitation: the loop runs on /clear. A session started with --resume or /resume loads nothing." | source: "### Known limitations" | CHANGELOG.md:141 | source: "The loop runs on `/clear`. A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:146
 F114 | page: "Each handover belongs to the Claude Code window that wrote it. While that window is open, it is the only one that loads the handover after /clear." | source: "**Each handover belongs to the Claude Code window that wrote it.** While that window is open, it is the only one that loads the handover after `/clear`." | README.md:156
 F115 | page: "Other windows on the same project list it when they start, and load it only if you ask." | source: "Other windows on the same project list it when they start, and load it only if you ask." | README.md:156
@@ -116,63 +116,63 @@ F119 | page: "After compaction, only this window's own handover loads." | source
 F120 | page: "A handover loads in the checkout it was saved in." | source: "A handover loads in the checkout it was saved in;" | CHANGELOG.md:117
 F121 | page: "These are the common cases." | source: "These are the common cases." | README.md:175
 F122 | page: "Where it is kept" | source: "Handovers are plain text files on your disk, in `~/.clear-resume`." | README.md:66
-F123 | page: "When it loads" | source: "The plugin checks for a waiting handover when a session starts" | README.md:59
+F123 | page: "When it loads" | source: "The plugin checks for a waiting handover when a session starts" | README.md:60
 F124 | page: "What does not load it" | source: "A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:146
 F125 | page: "Which handover loads" | source: "Which handover loads when a session starts" | README.md:159
-F126 | page: "What it holds" | source: "Then it writes a short note about the work, called a handover" | README.md:41
+F126 | page: "What it holds" | source: "Then it writes a short note about the work, called a handover" | README.md:42
 
 ## how-it-works.html: loop diagram
 
-F130 | page: "work" | source: "Claude carries on from the handover." | README.md:57
-F131 | page: "the chat grows" | source: "when a chat has grown long" | README.md:59
+F130 | page: "work" | source: "Claude carries on from the handover." | README.md:58
+F131 | page: "the chat grows" | source: "when a chat has grown long" | README.md:60
 F132 | page: "nudge" | source: "**The nudge** (auto mode) is off by default." | README.md:207
 F133 | page: "with the nudge on" | source: "To turn it on" | README.md:207
 F134 | page: "asks Claude to save" | source: "the plugin asks Claude once per session to save a handover" | README.md:219
-F135 | page: "save" | source: "**Save a handover.**" | README.md:41
-F136 | page: "Claude writes a handover" | source: "Then it writes a short note about the work, called a handover" | README.md:41
-F137 | page: "you ask, or the nudge does" | source: "Type `/clear-resume:handover`." | README.md:41 | source: "the plugin asks Claude once per session to save a handover" | README.md:219
-F138 | page: "you type it" | source: "Type `/clear`." | README.md:48
+F135 | page: "save" | source: "**Save a handover.**" | README.md:42
+F136 | page: "Claude writes a handover" | source: "Then it writes a short note about the work, called a handover" | README.md:42
+F137 | page: "you ask, or the nudge does" | source: "Type `/clear-resume:handover`." | README.md:42 | source: "the plugin asks Claude once per session to save a handover" | README.md:219
+F138 | page: "you type it" | source: "Type `/clear`." | README.md:49
 F139 | page: "or the plugin, with the relay on" | source: "the plugin runs `/clear` when the turn ends" | README.md:70
-F140 | page: "load" | source: "The fresh session starts with the handover already loaded." | README.md:48
-F141 | page: "the fresh session loads it" | source: "The fresh session starts with the handover already loaded." | README.md:48
-F142 | page: "carry on" | source: "**Carry on.**" | README.md:57
-F143 | page: "Claude works and the chat grows." | source: "when a chat has grown long" | README.md:59
+F140 | page: "load" | source: "The fresh session starts with the handover already loaded." | README.md:49
+F141 | page: "the fresh session loads it" | source: "The fresh session starts with the handover already loaded." | README.md:49
+F142 | page: "carry on" | source: "**Carry on.**" | README.md:58
+F143 | page: "Claude works and the chat grows." | source: "when a chat has grown long" | README.md:60
 F144 | page: "With the nudge on, past the size you set, the plugin asks Claude to save a handover." | source: "Claude saves a handover at the size you set." | README.md:75 | source: "the plugin asks Claude once per session to save a handover" | README.md:219
-F145 | page: "Claude saves a handover: you type /clear-resume:handover, or the nudge asks." | source: "Type `/clear-resume:handover`." | README.md:41 | source: "Claude is asked to save a handover" | README.md:204
-F146 | page: "/clear: you type it, or the plugin runs it when the turn ends, with the relay on." | source: "Type `/clear`." | README.md:48 | source: "the plugin runs `/clear` when the turn ends" | README.md:70
-F147 | page: "The fresh session loads the handover, and Claude carries on." | source: "The fresh session starts with the handover already loaded." | README.md:48 | source: "Claude carries on from the handover." | README.md:57
+F145 | page: "Claude saves a handover: you type /clear-resume:handover, or the nudge asks." | source: "Type `/clear-resume:handover`." | README.md:42 | source: "Claude is asked to save a handover" | README.md:204
+F146 | page: "/clear: you type it, or the plugin runs it when the turn ends, with the relay on." | source: "Type `/clear`." | README.md:49 | source: "the plugin runs `/clear` when the turn ends" | README.md:70
+F147 | page: "The fresh session loads the handover, and Claude carries on." | source: "The fresh session starts with the handover already loaded." | README.md:49 | source: "Claude carries on from the handover." | README.md:58
 F148 | page: "The loop" | source: "The loop runs on `/clear`." | CHANGELOG.md:146
 
 ## how-it-works.html: worked example (README's example, never called real)
 
-F150 | page: "The README's example: a handover in a widget-shop repo, saved, loaded after /clear, and the copy it leaves." | source: "A long chat in the widget-shop project" | README.md:36 | source: "Claude writes a handover titled Cart totals rounding" | README.md:36 | source: "After /clear, the next session in ~/code/widget-shop loads it automatically." | README.md:36 | source: "the path of a copy to read or share" | README.md:36
+F150 | page: "The README's example: a handover in a widget-shop repo, saved, loaded after /clear, and the copy it leaves." | source: "A long chat in the widget-shop project" | README.md:37 | source: "Claude writes a handover titled Cart totals rounding" | README.md:37 | source: "After /clear, the next session in ~/code/widget-shop loads it automatically." | README.md:37 | source: "the path of a copy to read or share" | README.md:37
 F151 | page: "The copy in ~/.clear-resume/loaded/ stays for 30 days: reread what a session started from, or @-mention it in another session." | source: "Each loaded handover is also saved as markdown in `~/.clear-resume/loaded/` for 30 days." | README.md:183 | source: "Reread what a session started from, or @-mention it in another session." | README.md:183
-F152 | page: "~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | source: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | README.md:52
+F152 | page: "~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | source: "A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md" | README.md:53
 F153 | page: "# the copy, as the README's screenshot of it reads" | source: "An editor tab titled widget-shop-cart-totals-rounding-31c9af7.md, in ~/.clear-resume/loaded. The file reads:" | README.md:180
 F154 | page: "# Cart totals rounding" | source: "The file reads: # Cart totals rounding." | README.md:180
 F155 | page: "Repo: widget-shop. Branch: fix/cart-rounding." | source: "Repo: widget-shop. Branch: fix/cart-rounding." | README.md:180
 F156 | page: "Goal: Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match." | source: "Goal: Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match." | README.md:180
 F157 | page: "Next action: Run npm test -- cart and fix src/cart.js:2 so cartTotal rounds once at the end, half-up, to 2 decimal places." | source: "Next action: Run npm test -- cart and fix src/cart.js:2 so cartTotal rounds once at the end, half-up, to 2 decimal places." | README.md:180
-F159 | page: "Claude keeps" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:24
-F160 | page: "You lose" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:24
-F161 | page: "Chat size after" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:24
-F162 | page: "Smaller" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:26
-F163 | page: "Same as before" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:27
-F164 | page: "Nothing" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:28
-F165 | page: "Empty" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:28
-F166 | page: "The rest of the chat" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:29
-F167 | page: "Just the handover" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:29
-F168 | page: "/compact" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:26
-F169 | page: "--resume" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:27
-F170 | page: "clear-resume" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:29
-F171 | page: "Compared with /compact, --resume and /clear" | source: "How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code>" | README.md:21
-F172 | page: "Source: the comparison table in the README." | source: "| | Claude keeps | You lose | Chat size after |" | README.md:24
+F159 | page: "Claude keeps" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:25
+F160 | page: "You lose" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:25
+F161 | page: "Chat size after" | source: "| | Claude keeps | You lose | Chat size after |" | README.md:25
+F162 | page: "Smaller" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:27
+F163 | page: "Same as before" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:28
+F164 | page: "Nothing" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:29
+F165 | page: "Empty" | source: "| `/clear` | Nothing | Everything, including where you were | Empty |" | README.md:29
+F166 | page: "The rest of the chat" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:30
+F167 | page: "Just the handover" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:30
+F168 | page: "/compact" | source: "| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |" | README.md:27
+F169 | page: "--resume" | source: "| `--resume` | The whole chat | Nothing | Same as before |" | README.md:28
+F170 | page: "clear-resume" | source: "| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |" | README.md:30
+F171 | page: "Compared with /compact, --resume and /clear" | source: "How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code>" | README.md:22
+F172 | page: "Source: the comparison table in the README." | source: "| | Claude keeps | You lose | Chat size after |" | README.md:25
 F158 | page: "Decisions already made: Round once, at the total, never per line: the payment provider does the same." | source: "Decisions already made: Round once, at the total, never per line: the payment provider does the same." | README.md:180
 
 ## how-it-works.html: the model (slot values written by app.js)
 
 F173 | page: "The model" | source: "clear-resume cost model." | site/model.js:1
-F174 | page: "A model, not a measurement. Claude rereads the whole context for every reply: set a task and see how much it rereads with clear-resume and without it." | source: "A model, not a measurement." | site/model.js:1 | source: "Claude rereads the whole context for every reply." | README.md:18
+F174 | page: "A model, not a measurement. Claude rereads the whole context for every reply: set a task and see how much it rereads with clear-resume and without it." | source: "A model, not a measurement." | site/model.js:1 | source: "Claude rereads the whole context for every reply." | README.md:19
 F175 | page: "Context window" | source: "1M-token context window" | README.md:88
 F176 | page: "1M" | source: "is what the author uses on a 1M-token context window" | README.md:88
 F177 | page: "200k" | source: "On a 200k window" | README.md:88
@@ -181,11 +181,11 @@ F179 | page: "Typical values: see Start size below" | source: "keep it well abov
 F180 | page: "Clear at {mClearAt}" | source: "Claude saves a handover at the size you set." | README.md:75 | source: "mClearAt: tok(clearAt)" | site/app.js:213
 F181 | page: "Task size {mWork}" | source: "mWork: tok(work)" | site/app.js:213 | source: "var add = Math.min(STEP, work - done);" | site/model.js:19
 F182 | page: "On a 200k window, the run without clear-resume compacts on its own at {mCompact} (assumed)." | source: "If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own" | README.md:219 | source: "mCompact: tok(M.compactAt(win))" | site/app.js:213
-F183 | page: "Reread over the task: {mClearReread} with clear-resume, {mBaseReread} without it." | source: "Claude rereads the whole context for every reply." | README.md:18 | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:214 | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:215
+F183 | page: "Reread over the task: {mClearReread} with clear-resume, {mBaseReread} without it." | source: "Claude rereads the whole context for every reply." | README.md:19 | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:214 | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:215
 F184 | page: "without it: Claude Code compacts on its own" | source: "the size where Claude Code compacts on its own" | README.md:88
 F185 | page: "Resets" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32
 F186 | page: "Peak context" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32
-F187 | page: "Context reread" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32 | source: "Claude rereads the whole context for every reply." | README.md:18
+F187 | page: "Context reread" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32 | source: "Claude rereads the whole context for every reply." | README.md:19
 F188 | page: "{mClearResets}" | source: "vals.mClearResets = String(r.clear.resets);" | site/app.js:214
 F189 | page: "{mClearPeak}" | source: "vals.mClearPeak = tok(r.clear.peak);" | site/app.js:214
 F190 | page: "{mClearReread}" | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:214
@@ -195,7 +195,7 @@ F193 | page: "{mBasePeak}" | source: "vals.mBasePeak = tok(r.base.peak);" | site
 F194 | page: "{mBaseReread}" | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:215
 F195 | page: "Source: site/model.js, a model, not a measurement." | source: "A model, not a measurement." | site/model.js:1
 F196 | page: "Each reply adds 5000 new tokens to the context: assumed." | source: "var STEP = 5000;" | site/model.js:3
-F197 | page: "Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply." | source: "Claude rereads the whole context for every reply." | README.md:18 | source: "reread += ctx;" | site/model.js:27
+F197 | page: "Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply." | source: "Claude rereads the whole context for every reply." | README.md:19 | source: "reread += ctx;" | site/model.js:27
 F198 | page: "After a clear, the run restarts at the start size plus the handover: about 780 tokens in the handover, an estimate. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians." | source: "clear: walk(opts.start, opts.work, opts.clearAt, opts.start + HANDOVER)," | site/model.js:37 | source: "About 780 tokens in the handover, an estimate" | README.md:101 | source: "Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians." | README.md:101
 F199 | page: "Without clear-resume, the run compacts at nine tenths of the window and keeps an 8000-token summary: both assumed." | source: "var SUMMARY = 8000;" | site/model.js:5 | source: "var COMPACT_AT = 0.9;" | site/model.js:6
 F200 | page: "The model clears at or below the clear-at size. The plugin asks Claude to save once context is past the size you set, and Claude then saves, so in use, peaks pass it." | source: "if (ctx + add > limit) {" | site/model.js:20 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover" | README.md:219
