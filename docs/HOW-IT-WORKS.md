@@ -400,7 +400,7 @@ Handovers are plain text. Do not put secrets in them.
 - On Windows, Claude Code runs plugin hooks through Git Bash, which comes with Git for Windows.
 - Web mode was run live on Claude Code on the web once, on 2026-09-19, before it changed to
   listing handovers instead of loading them. It has not been tested there since.
-- macOS and Linux have not been tested by hand. The test suite runs on both in CI.
+- macOS has not been tested by hand; the test suite runs on it in CI. Linux was tested by hand on 5 Oct 2026 (Ubuntu under WSL, clean install from GitHub, a handover saved and loaded across two sessions).
 
 ## Troubleshooting: my handover did not load
 
