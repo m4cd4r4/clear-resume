@@ -19,111 +19,21 @@ That run took 15 sessions and sent Claude 91.0M tokens. The same work as one lon
 
 <sub>The 91.0M is measured: the context of every reply in the run, added up. The 565.6M is an estimate: each session's tool calls stacked on the last, with no auto-compaction. It also counts the files Claude re-read after each clear, which one long chat would not need, so treat 6.2× as an upper bound.</sub>
 
-## Why: in a long chat, the work gets buried
-
-<p align="center">
-  <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
-</p>
-
-Claude rereads the whole context for every reply. In a long chat, the goal and the decisions sit under every file read and test run since the chat began, and each reply is slower and uses more of your plan or budget. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
-
-<details>
-<summary><b>How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code></b></summary>
-<br>
-
-| | Claude keeps | You lose | Chat size after |
-|:--|:--|:--|:--|
-| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |
-| `--resume` | The whole chat | Nothing | Same as before |
-| `/clear` | Nothing | Everything, including where you were | Empty |
-| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
-
-</details>
-
-## The fix: one command before `/clear`
-
-<p align="center">
-  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /clear-resume:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
-</p>
-
-<p align="center"><sub>Watch the context bar, top right: full before <code>/clear</code>, almost empty after.</sub></p>
-
-1. **Save a handover.** Type `/clear-resume:handover`. Claude reads your branch, your changes and your last few commits. Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it and prints:
-
-   ```text
-   Saved handover "Cart totals rounding" (id 31c9af7).
-   After /clear, the next session in ~/code/widget-shop loads it automatically.
-   ```
-
-2. **Clear.** Type `/clear`. The fresh session starts with the handover already loaded. The plugin's load message reads:
-
-   ```text
-   clear-resume: loaded handover "Cart totals rounding" (saved just now).
-   A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md
-   ```
-
-   Claude Code puts `SessionStart:clear says:` in front of the first line. If you do not see the message, press <kbd>ctrl</kbd>+<kbd>o</kbd> to show it. The handover loads either way.
-
-3. **Carry on.** Type `go`, or say what to do next. Claude carries on from the handover.
-
-Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
-
-> [!NOTE]
-> Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
-
-## Or let it run by itself: the relay
-
-The three steps above are the manual way. Turn on two settings and clear-resume does all three: Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on. After your first prompt, nobody types anything.
-
-| How you run it | What you do | Settings |
-|:--|:--|:--|
-| **Relay (recommended)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
-| Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true` |
-| Manual | `/clear-resume:handover`, `/clear`, `go` | None. This is the default |
-
-```bash
-claude plugin install clear-resume@clear-resume --config auto_nudge=true --config relay=10
-```
-
-The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue. It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.
-
-To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
-
-Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
-
-**Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
-
-<p align="center">
-  <img src="docs/media/relay-run.png" width="100%" alt="The last frame of a replay of a relay run. On the left, the final tool calls of session 7, ending in done. On the right, a chart of context per call: the relay's line climbs to the 180k nudge and drops six times, ending at 123k; a dashed line for the same work with no clears climbs to an estimated 823k. Below: relay 38.1M tokens sent, measured; no clears 101.3M, estimated; session 7 of 7, plan 26 of 26.">
-</p>
-
-<p align="center"><sub>A real run, 3 Oct 2026: from one prompt, the relay built a three-page site for this plugin in 7 sessions, 6 automatic clears, 26 commits and 48 minutes. Opus, nudge at 180k, relay=10. It sent 38.1M tokens. The same calls with no clears would have sent about 101.3M (an estimate: each session's work stacked on the last, with no auto-compaction), so treat 2.7× as an upper bound. Each session started at 77k to 93k tokens, mostly the author's own rules and tool schemas.</sub></p>
-
-## The handover is under 1% of what `/clear` removes
-
-Claude counts context in tokens. A token is a small piece of text, roughly a word.
-
-<p align="center">
-  <img src="docs/media/numbers.png" width="640" alt="Two bars drawn to scale. 102,088 tokens a typical /clear frees: a full-width bar. About 780 tokens in the handover, an estimate: a sliver under 1% as wide. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.">
-</p>
-
-<p align="center"><sub>The bars are drawn to scale: 780 / 102,088 = 0.76%. The handover's size is an estimate, its characters divided by 4. The author's sessions start at about 77k to 99k tokens. With a leaner setup, a <code>/clear</code> at the same size frees more.</sub></p>
-
 ## Install: two commands in your terminal
-
-> [!IMPORTANT]
-> You need **Node 18 or later** and **git**. Claude Code's native installer does not add Node, so check with `node -v`. Without Node 18 on your PATH, the plugin shows one line saying so when a session starts, and does nothing else.
->
-> On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
 
 ```bash
 claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
 claude plugin install clear-resume@clear-resume
 ```
 
+> [!IMPORTANT]
+> You need **Node 18 or later** and **git**. Claude Code's native installer does not add Node, so check with `node -v`. Without Node 18 on your PATH, the plugin shows one line saying so when a session starts, and does nothing else.
+>
+> On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
+
 Claude Code then says, or asks about, three options that are not set yet. They belong to the nudge and the relay, which are both off by default.
 
-Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#or-let-it-run-by-itself-the-relay) and let it do both.
+Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
 
 The author built it on Windows 11 and uses it there every day. On Linux, a clean install from GitHub was tested by hand on 5 Oct 2026: a session saved a handover and the next one loaded it and carried on. CI runs the tests on Windows, macOS and Linux; macOS has not been tested by hand yet.
 
@@ -152,6 +62,119 @@ claude plugin marketplace remove clear-resume
 Your handovers stay in `~/.clear-resume` until you delete that folder. If you added any `CLEAR_RESUME_` lines to `~/.claude/settings.json`, remove them too.
 
 </details>
+
+## Pick how it runs
+
+> [!TIP]
+> **Turn on the relay, and after your first prompt nobody types anything.**
+>
+> ```bash
+> claude plugin install clear-resume@clear-resume --config auto_nudge=true --config relay=10
+> ```
+>
+> The relay is a **Claude Code mod**: a small module, [plugin/hooks/relay.ts](plugin/hooks/relay.ts), that runs inside Claude Code and types `/clear` and the next prompt for you.
+
+| How you run it | What you do | Settings |
+|:--|:--|:--|
+| **Relay (recommended)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
+| Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true` |
+| Manual | `/clear-resume:handover`, `/clear`, `go` | None. This is the default |
+
+With the relay on, Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on.
+
+The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue. It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.
+
+<p align="center">
+  <img src="docs/media/relay-run.png" width="100%" alt="The closing card of the replay above. Same work, about 6.2 times fewer tokens. 91.0M with the relay; 565.6M for one long session, an estimate. 30 of 30 items, 15 sessions, 14 automatic hops, 94 minutes. Estimate: each session's work stacked on the last, no auto-compaction. Re-reads after each clear are counted, so treat 6.2 times as an upper bound. Beside it, the site the run built.">
+</p>
+
+<p align="center"><sub>The run in the video above, 5 Oct 2026: from one prompt, 15 sessions and 14 automatic clears in 94 minutes.</sub></p>
+
+<details>
+<summary><b>Relay controls, and picking the nudge size</b></summary>
+<br>
+
+To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
+
+Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
+
+**Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
+
+</details>
+
+## Why: in a long chat, the work gets buried
+
+<p align="center">
+  <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
+</p>
+
+Claude rereads the whole context for every reply. In a long chat, the goal and the decisions sit under every file read and test run since the chat began, and each reply is slower and uses more of your plan or budget. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
+
+<details>
+<summary><b>How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code></b></summary>
+<br>
+
+| | Claude keeps | You lose | Chat size after |
+|:--|:--|:--|:--|
+| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |
+| `--resume` | The whole chat | Nothing | Same as before |
+| `/clear` | Nothing | Everything, including where you were | Empty |
+| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
+
+</details>
+
+## The manual way: one command before `/clear`
+
+<p align="center">
+  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /clear-resume:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
+</p>
+
+<p align="center"><sub>Watch the context bar, top right: full before <code>/clear</code>, almost empty after.</sub></p>
+
+| Step | Type | What happens |
+|:--|:--|:--|
+| 1. **Save a handover.** | `/clear-resume:handover` | Claude writes a short note. The plugin saves it. |
+| 2. **Clear.** | `/clear` | The fresh session starts with the handover already loaded. |
+| 3. **Carry on.** | `go`, or say what to do next | Claude carries on from the handover. |
+
+Claude reads your branch, your changes and your last few commits. Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed.
+
+<details>
+<summary><b>What the plugin prints at each step</b></summary>
+<br>
+
+After the save:
+
+```text
+Saved handover "Cart totals rounding" (id 31c9af7).
+After /clear, the next session in ~/code/widget-shop loads it automatically.
+```
+
+After `/clear`, the plugin's load message reads:
+
+```text
+clear-resume: loaded handover "Cart totals rounding" (saved just now).
+A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md
+```
+
+Claude Code puts `SessionStart:clear says:` in front of the first line. If you do not see the message, press <kbd>ctrl</kbd>+<kbd>o</kbd> to show it. The handover loads either way.
+
+</details>
+
+Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
+
+> [!NOTE]
+> Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
+
+## The handover is under 1% of what `/clear` removes
+
+Claude counts context in tokens. A token is a small piece of text, roughly a word.
+
+<p align="center">
+  <img src="docs/media/numbers.png" width="640" alt="Two bars drawn to scale. 102,088 tokens a typical /clear frees: a full-width bar. About 780 tokens in the handover, an estimate: a sliver under 1% as wide. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.">
+</p>
+
+<p align="center"><sub>The bars are drawn to scale: 780 / 102,088 = 0.76%. The handover's size is an estimate, its characters divided by 4. The author's sessions start at about 77k to 99k tokens. With a leaner setup, a <code>/clear</code> at the same size frees more.</sub></p>
 
 ## Also built in, with no setup
 
@@ -210,7 +233,13 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** (auto mode) is off by default. To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**:
+**The nudge** (auto mode) is off by default. Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
+
+<details>
+<summary><b>Turn the nudge on</b></summary>
+<br>
+
+To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**:
 
 ```
 /plugin configure clear-resume@clear-resume
@@ -222,7 +251,9 @@ The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If 
 claude plugin install clear-resume@clear-resume --config auto_nudge=true
 ```
 
-Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. With the [relay](#or-let-it-run-by-itself-the-relay) off, you type `/clear` yourself. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
+If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
+
+</details>
 
 > [!TIP]
 > **[How it works](docs/HOW-IT-WORKS.md)** has the rest.
