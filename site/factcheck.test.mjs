@@ -5,14 +5,14 @@ import { fails, parseFacts, checkSources, checkPage, checkGit, parseHtml } from 
 const OFF = "They belong to the nudge and the relay, which are both off by default.";
 const RELAY = "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.";
 const ledger = [
-  `F1 | page: "Off by default." | source: "${OFF}" | README.md:117`,
-  `F2 | page: "Needs 2.1.300 or later." | source: "${RELAY}" | README.md:81`,
-  `F3 | page: "The relay always works." | source: "${RELAY}" | README.md:81`,
+  `F1 | page: "Off by default." | source: "${OFF}" | README.md:123`,
+  `F2 | page: "Needs 2.1.300 or later." | source: "${RELAY}" | README.md:87`,
+  `F3 | page: "The relay always works." | source: "${RELAY}" | README.md:87`,
   `F4 | page: "x" | source: "This sentence is not in the README at all" | README.md:5`,
   `F5 | page: "Off by default." | source: "${OFF}" | README.md:40`,
   `F6 | page: "y" | source: "Monochrome terminal" | TASK.md: Look`,
   `F8 | page: "{sessions} sessions" | source: "const sessions = out.length;" | site/buildstats.mjs:127 | value: 9 (x, buildstats.mjs)`,
-  `F9 | page: "A \\"quoted\\" 2.1.275" | source: "${RELAY}" | README.md:81`,
+  `F9 | page: "A \\"quoted\\" 2.1.275" | source: "${RELAY}" | README.md:87`,
 ].join("\n");
 
 let bad = 0;
