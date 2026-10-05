@@ -133,9 +133,11 @@ Claude rereads the whole context for every reply. In a long chat, the goal and t
 
 | Step | Type | What happens |
 |:--|:--|:--|
-| 1. **Save a handover.** | `/clear-resume:handover` | Claude reads your branch, your changes and your last few commits. Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it. |
+| 1. **Save a handover.** | `/clear-resume:handover` | Claude writes a short note. The plugin saves it. |
 | 2. **Clear.** | `/clear` | The fresh session starts with the handover already loaded. |
 | 3. **Carry on.** | `go`, or say what to do next | Claude carries on from the handover. |
+
+Claude reads your branch, your changes and your last few commits. Then it writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed.
 
 <details>
 <summary><b>What the plugin prints at each step</b></summary>
