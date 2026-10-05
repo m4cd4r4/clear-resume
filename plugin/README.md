@@ -20,12 +20,24 @@ Two optional settings, both off by default:
 ## What it runs, stores and sends
 
 - **Hooks.** `SessionStart` (startup, clear and compact) loads a waiting handover. `PostToolUse` and `Stop` check the context size for the nudge and the relay. Each hook runs `node` on a script in this plugin, and exits quietly if Node 18 or later is missing.
-- **A mod** (`hooks/relay.ts`) runs the relay: it runs `/clear` and submits one fixed prompt, "Continue from the clear-resume handover that was just loaded.", only when the relay is on.
 - **Git, read-only by default.** The plugin runs `git` in your repo to read the branch, status and recent commits. It never switches your branch or touches your index or files, and outside web mode (below) it never commits or pushes.
 - **Storage.** Handovers are plain text files on your disk, in `~/.clear-resume`. Each loaded handover is also copied to `~/.clear-resume/loaded/` for 30 days. Keep secrets out of them.
 - **Network: nothing by default.** No telemetry, no analytics, no web requests. Two opt-in modes use git and nothing else:
   - **Sync** pushes and pulls the store to a private git remote that you set up.
   - **Web mode** (`CLEAR_RESUME_WEB=1`, for Claude Code on the web) pushes each handover to its own `clear-resume/<branch>` branch on your repo's `origin`, and runs one `git fetch origin` at session start. Handovers found in git are listed as untrusted and never loaded on their own.
+
+### The relay mod (`hooks/relay.ts`)
+
+A mod is a function-hooks module that runs inside Claude Code. This one runs the relay. It does nothing else.
+
+- **When it is active.** Only when Relay is on: the `relay` setting, or `/relay` typed in that window. Otherwise it registers the `/relay` command and the status line, and nothing more.
+- **Programs it starts.** One: `git rev-parse HEAD` in the current repo, with a 5 second timeout (the `headOf` function). The stall guard compares the commit before and after each continued session, to stop when two in a row make no new commit. If git is missing or fails, it carries on without the check. It starts no other program.
+- **Slash command it runs.** `/clear`, once after Claude saves a handover, and only while the number of clears used is below the budget you set.
+- **Prompt it submits.** After the clear, as if you typed it: "Continue from the clear-resume handover that was just loaded." It contains no conversation text.
+- **Files it writes.** A status file at `~/.clear-resume/relay/<key>.json` (or `$CLEAR_RESUME_HOME/relay/<key>.json`). Fields: `v`, `key`, `cwd`, `sessions` (this window's session ids, up to 100), `limit`, `configured`, `used`, `stalled`, `applied`, `updatedAt`. Only the VS Code status bar reads it (the extension that ships with clear-resume), to show the clears left. The mod also reads `<key>.set.json` beside it, which the status bar writes to change the budget. It writes no settings, build, start-up or instructions file.
+- **What it adds.** The `/relay` command (`off`, `on`, `unlimited` or a number), the status line entry that shows the clears left, and toasts that report a stop or a refused command.
+- **Network.** It sends nothing anywhere. No data leaves your machine.
+- **The `command.run` hook.** It is the handler for the plugin's own `/relay` command, and it only answers that command. It does not filter, rewrite or decide on any other command.
 
 ## Requirements
 
