@@ -86,7 +86,7 @@ F46 | page: "Handovers are plain text files on your disk, in ~/.clear-resume. No
 F47 | page: "Node 18 or later and git. On Windows, Claude Code runs plugin hooks through Git Bash, which comes with Git for Windows." | source: "You need **Node 18 or later** and **git**." | README.md:112 | source: "On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows." | README.md:114
 F48 | page: "The relay needs Claude Code 2.1.275 or later and works in a terminal and in the VS Code chat panel." | source: "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel." | README.md:85
 F49 | page: "When it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). It says why. When the task is finished, Claude ends without a handover, so there is nothing to continue." | source: "The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue." | README.md:85
-F45 | page: "It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs." | source: "It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs" | CHANGELOG.md:53
+F45 | page: "It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs." | source: "It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs" | CHANGELOG.md:58
 
 ## Nudge default and settings
 
@@ -106,18 +106,18 @@ F106 | page: "A short handover it wrote on purpose" | source: "| **clear-resume*
 F110 | page: "Claude reads your branch, your changes and your last few commits." | source: "Claude reads your branch, your changes and your last few commits." | README.md:48
 F111 | page: "Each loaded handover is also saved as markdown in ~/.clear-resume/loaded/ for 30 days." | source: "Each loaded handover is also saved as markdown in `~/.clear-resume/loaded/` for 30 days." | README.md:186
 F112 | page: "The plugin checks for a waiting handover when a session starts, after /clear and after compaction (when /compact, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | source: "The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing." | README.md:66
-F113 | page: "Known limitation: the loop runs on /clear. A session started with --resume or /resume loads nothing." | source: "### Known limitations" | CHANGELOG.md:141 | source: "The loop runs on `/clear`. A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:146
+F113 | page: "Known limitation: the loop runs on /clear. A session started with --resume or /resume loads nothing." | source: "### Known limitations" | CHANGELOG.md:146 | source: "The loop runs on `/clear`. A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:151
 F114 | page: "Each handover belongs to the Claude Code window that wrote it. While that window is open, it is the only one that loads the handover after /clear." | source: "**Each handover belongs to the Claude Code window that wrote it.** While that window is open, it is the only one that loads the handover after `/clear`." | README.md:159
 F115 | page: "Other windows on the same project list it when they start, and load it only if you ask." | source: "Other windows on the same project list it when they start, and load it only if you ask." | README.md:159
 F116 | page: "Once that window closes, a session on the same branch loads it, if it is 7 days old or less." | source: "Once that window closes, a session on the same branch loads it." | README.md:159 | source: "from a closed window,<br>on your branch,<br>7 days old or less" | README.md:170
 F117 | page: "If it is the only one waiting from a closed window, it loads on any branch, if it is 7 days old or less." | source: "the only one waiting,<br>from a closed window,<br>any branch, 7 days old or less" | README.md:171
 F118 | page: "A handover older than 7 days is listed, not loaded." | source: "A handover older than 7 days is listed, not loaded." | README.md:159
 F119 | page: "After compaction, only this window's own handover loads." | source: "After compaction, only this window's own handover loads." | README.md:178
-F120 | page: "A handover loads in the checkout it was saved in." | source: "A handover loads in the checkout it was saved in;" | CHANGELOG.md:117
+F120 | page: "A handover loads in the checkout it was saved in." | source: "A handover loads in the checkout it was saved in;" | CHANGELOG.md:122
 F121 | page: "These are the common cases." | source: "These are the common cases." | README.md:178
 F122 | page: "Where it is kept" | source: "Handovers are plain text files on your disk, in `~/.clear-resume`." | README.md:69
 F123 | page: "When it loads" | source: "The plugin checks for a waiting handover when a session starts" | README.md:66
-F124 | page: "What does not load it" | source: "A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:146
+F124 | page: "What does not load it" | source: "A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:151
 F125 | page: "Which handover loads" | source: "Which handover loads when a session starts" | README.md:162
 F126 | page: "What it holds" | source: "Then it writes a short note about the work, called a handover" | README.md:48
 
@@ -141,7 +141,7 @@ F144 | page: "With the nudge on, past the size you set, the plugin asks Claude t
 F145 | page: "Claude saves a handover: you type /clear-resume:handover, or the nudge asks." | source: "Type `/clear-resume:handover`." | README.md:48 | source: "Claude is asked to save a handover" | README.md:207
 F146 | page: "/clear: you type it, or the plugin runs it when the turn ends, with the relay on." | source: "Type `/clear`." | README.md:55 | source: "the plugin runs `/clear` when the turn ends" | README.md:73
 F147 | page: "The fresh session loads the handover, and Claude carries on." | source: "The fresh session starts with the handover already loaded." | README.md:55 | source: "Claude carries on from the handover." | README.md:64
-F148 | page: "The loop" | source: "The loop runs on `/clear`." | CHANGELOG.md:146
+F148 | page: "The loop" | source: "The loop runs on `/clear`." | CHANGELOG.md:151
 
 ## how-it-works.html: worked example (README's example, never called real)
 
@@ -225,40 +225,40 @@ F210 | page: "Turns the nudge on. Past the Nudge at size, the plugin asks Claude
 F211 | page: "Source: the README." | source: "**The nudge** (auto mode) is off by default." | README.md:210
 F212 | page: "Nudge at" | source: "(the default; **Nudge at** changes it)" | README.md:222
 F213 | page: "Default: 180k tokens" | source: "Past 180k tokens of context (the default;" | README.md:222
-F214 | page: "The context size the nudge waits for. Claude Code keeps it between 50000 and 1000000 tokens." | source: "Past 180k tokens of context (the default; **Nudge at** changes it)" | README.md:222 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:76
-F215 | page: "Source: the README (default), the CHANGELOG (range)." | source: "Past 180k tokens of context (the default;" | README.md:222 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:76
-F216 | page: "relay" | source: "Set the `relay` option" | CHANGELOG.md:50
-F217 | page: "Default: off" | source: "Off by default." | CHANGELOG.md:54
-F218 | page: "A number of clears per Claude Code window, or unlimited. After Claude saves a handover, clear-resume runs /clear when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it." | source: "to a number of clears per Claude Code window, or `unlimited`. After Claude saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from it." | CHANGELOG.md:51 | source: "Needs Claude Code 2.1.275 or later; an older build ignores it" | CHANGELOG.md:54
-F219 | page: "Source: the CHANGELOG." | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:50
-F220 | page: "Set them with /plugin configure clear-resume@clear-resume, or in /config: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with claude plugin install clear-resume@clear-resume --config." | source: "Turn it on and set its size with `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later." | CHANGELOG.md:74 | source: "In the Claude Code panel in VS Code, set them from a terminal with `claude plugin install clear-resume@clear-resume --config`." | CHANGELOG.md:76 | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:50
-F221 | page: "The environment variables still work: CLEAR_RESUME_AUTO wins whenever it is set, and CLEAR_RESUME_NUDGE_AT wins when it is a positive number." | source: "The environment variables still work: `CLEAR_RESUME_AUTO` wins whenever it is set, and `CLEAR_RESUME_NUDGE_AT` wins when it is a positive number." | CHANGELOG.md:78
+F214 | page: "The context size the nudge waits for. Claude Code keeps it between 50000 and 1000000 tokens." | source: "Past 180k tokens of context (the default; **Nudge at** changes it)" | README.md:222 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:81
+F215 | page: "Source: the README (default), the CHANGELOG (range)." | source: "Past 180k tokens of context (the default;" | README.md:222 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:81
+F216 | page: "relay" | source: "Set the `relay` option" | CHANGELOG.md:55
+F217 | page: "Default: off" | source: "Off by default." | CHANGELOG.md:59
+F218 | page: "A number of clears per Claude Code window, or unlimited. After Claude saves a handover, clear-resume runs /clear when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it." | source: "to a number of clears per Claude Code window, or `unlimited`. After Claude saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from it." | CHANGELOG.md:56 | source: "Needs Claude Code 2.1.275 or later; an older build ignores it" | CHANGELOG.md:59
+F219 | page: "Source: the CHANGELOG." | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:55
+F220 | page: "Set them with /plugin configure clear-resume@clear-resume, or in /config: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with claude plugin install clear-resume@clear-resume --config." | source: "Turn it on and set its size with `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later." | CHANGELOG.md:79 | source: "In the Claude Code panel in VS Code, set them from a terminal with `claude plugin install clear-resume@clear-resume --config`." | CHANGELOG.md:81 | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:55
+F221 | page: "The environment variables still work: CLEAR_RESUME_AUTO wins whenever it is set, and CLEAR_RESUME_NUDGE_AT wins when it is a positive number." | source: "The environment variables still work: `CLEAR_RESUME_AUTO` wins whenever it is set, and `CLEAR_RESUME_NUDGE_AT` wins when it is a positive number." | CHANGELOG.md:83
 F222 | page: "Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web)." | source: "Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web)." | README.md:69
 F223 | page: "Source: the README." | source: "Nothing is sent anywhere unless you turn on" | README.md:69
 
 ## changelog.html: releases
 
 F224 | page: "Releases" | source: "# Changelog" | CHANGELOG.md:1
-F225 | page: "Each release in CHANGELOG.md, newest first." | source: "# Changelog" | CHANGELOG.md:1 | source: "## 0.4.0" | CHANGELOG.md:3
-F226 | page: "0.3.2" | source: "## 0.3.2" | CHANGELOG.md:36
-F227 | page: "The relay stops when work stalls: it stops after two continued sessions in a row make no new commit, and says so." | source: "The relay stops when work stalls." | CHANGELOG.md:40 | source: "it stops after two continued sessions in a row make no new commit, and says so" | CHANGELOG.md:40
-F228 | page: "Outside a git repo only the budget applies." | source: "Outside a git repo only the budget applies." | CHANGELOG.md:42
-F229 | page: "With the relay on, the context nudge tells Claude to end without a handover when the task is finished." | source: "With the relay on, the context nudge tells Claude to end without a handover when the task is finished" | CHANGELOG.md:43
-F230 | page: "0.3.1" | source: "## 0.3.1" | CHANGELOG.md:46
-F231 | page: "The relay: clear and continue with no keypress." | source: "The relay: clear and continue with no keypress." | CHANGELOG.md:50
-F232 | page: "After Claude saves a handover, clear-resume runs /clear when the turn ends and submits the prompt that continues from it." | source: "After Claude saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from it." | CHANGELOG.md:51
-F233 | page: "Off by default. Needs Claude Code 2.1.275 or later; an older build ignores it." | source: "Off by default. Needs Claude Code 2.1.275 or later; an older build ignores it" | CHANGELOG.md:54
-F234 | page: "0.3.0" | source: "## 0.3.0" | CHANGELOG.md:57
-F235 | page: "Headless runs continue themselves: node plugin/scripts/run.mjs runs claude -p in segments." | source: "Headless runs continue themselves." | CHANGELOG.md:61 | source: "`node plugin/scripts/run.mjs` runs `claude -p` in segments." | CHANGELOG.md:61
-F236 | page: "It needs caps (--max-segments, --total-budget-usd, and the command's own --max-turns and --max-budget-usd)." | source: "It needs caps (`--max-segments`, `--total-budget-usd`, and the command's own `--max-turns` and `--max-budget-usd`)" | CHANGELOG.md:64
-F237 | page: "It stops the chain when two continued segments in a row make no new commit." | source: "stops the chain when two continued segments in a row make no new commit" | CHANGELOG.md:65
-F238 | page: "0.2.1" | source: "## 0.2.1" | CHANGELOG.md:70
-F239 | page: "The nudge has settings in Claude Code." | source: "The nudge has settings in Claude Code." | CHANGELOG.md:74
-F240 | page: "Turn it on and set its size with /plugin configure clear-resume@clear-resume, or in /config in Claude Code 2.1.269 or later." | source: "Turn it on and set its size with `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later." | CHANGELOG.md:74
-F241 | page: "0.2.0" | source: "## 0.2.0" | CHANGELOG.md:81
-F242 | page: "Write one short handover on purpose, /clear, and that window's fresh session picks it up." | source: "Write one short handover on purpose, `/clear`, and that window's fresh session picks it up." | CHANGELOG.md:83
-F243 | page: "Other open windows on the same project only list it." | source: "Other open windows on the same project only list it" | CHANGELOG.md:83
-F244 | page: "Known limitation: the loop runs on /clear. A session started with --resume or /resume loads nothing." | source: "### Known limitations" | CHANGELOG.md:141 | source: "The loop runs on `/clear`. A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:146
+F225 | page: "Each release in CHANGELOG.md, newest first." | source: "# Changelog" | CHANGELOG.md:1 | source: "## 0.4.0" | CHANGELOG.md:8
+F226 | page: "0.3.2" | source: "## 0.3.2" | CHANGELOG.md:41
+F227 | page: "The relay stops when work stalls: it stops after two continued sessions in a row make no new commit, and says so." | source: "The relay stops when work stalls." | CHANGELOG.md:45 | source: "it stops after two continued sessions in a row make no new commit, and says so" | CHANGELOG.md:45
+F228 | page: "Outside a git repo only the budget applies." | source: "Outside a git repo only the budget applies." | CHANGELOG.md:47
+F229 | page: "With the relay on, the context nudge tells Claude to end without a handover when the task is finished." | source: "With the relay on, the context nudge tells Claude to end without a handover when the task is finished" | CHANGELOG.md:48
+F230 | page: "0.3.1" | source: "## 0.3.1" | CHANGELOG.md:51
+F231 | page: "The relay: clear and continue with no keypress." | source: "The relay: clear and continue with no keypress." | CHANGELOG.md:55
+F232 | page: "After Claude saves a handover, clear-resume runs /clear when the turn ends and submits the prompt that continues from it." | source: "After Claude saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from it." | CHANGELOG.md:56
+F233 | page: "Off by default. Needs Claude Code 2.1.275 or later; an older build ignores it." | source: "Off by default. Needs Claude Code 2.1.275 or later; an older build ignores it" | CHANGELOG.md:59
+F234 | page: "0.3.0" | source: "## 0.3.0" | CHANGELOG.md:62
+F235 | page: "Headless runs continue themselves: node plugin/scripts/run.mjs runs claude -p in segments." | source: "Headless runs continue themselves." | CHANGELOG.md:66 | source: "`node plugin/scripts/run.mjs` runs `claude -p` in segments." | CHANGELOG.md:66
+F236 | page: "It needs caps (--max-segments, --total-budget-usd, and the command's own --max-turns and --max-budget-usd)." | source: "It needs caps (`--max-segments`, `--total-budget-usd`, and the command's own `--max-turns` and `--max-budget-usd`)" | CHANGELOG.md:69
+F237 | page: "It stops the chain when two continued segments in a row make no new commit." | source: "stops the chain when two continued segments in a row make no new commit" | CHANGELOG.md:70
+F238 | page: "0.2.1" | source: "## 0.2.1" | CHANGELOG.md:75
+F239 | page: "The nudge has settings in Claude Code." | source: "The nudge has settings in Claude Code." | CHANGELOG.md:79
+F240 | page: "Turn it on and set its size with /plugin configure clear-resume@clear-resume, or in /config in Claude Code 2.1.269 or later." | source: "Turn it on and set its size with `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later." | CHANGELOG.md:79
+F241 | page: "0.2.0" | source: "## 0.2.0" | CHANGELOG.md:86
+F242 | page: "Write one short handover on purpose, /clear, and that window's fresh session picks it up." | source: "Write one short handover on purpose, `/clear`, and that window's fresh session picks it up." | CHANGELOG.md:88
+F243 | page: "Other open windows on the same project only list it." | source: "Other open windows on the same project only list it" | CHANGELOG.md:88
+F244 | page: "Known limitation: the loop runs on /clear. A session started with --resume or /resume loads nothing." | source: "### Known limitations" | CHANGELOG.md:146 | source: "The loop runs on `/clear`. A session started with `--resume` or `/resume` loads nothing." | CHANGELOG.md:151
 
 ## changelog.html: build log (rows written by site/buildlog.mjs from git log)
 
@@ -268,11 +268,11 @@ F247 | page: "Each site: commit since site-v5-base, oldest first: short sha, AWS
 F248 | page: "Source: git log, written by buildlog.mjs." | source: "buildlog.mjs: writes the build log on changelog.html from git" | site/buildlog.mjs:1
 F249 | page: "The totals will come from buildstats.mjs, run on this build's transcripts after the run, and be committed as stats:." | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "After the run, its output is committed as stats:" | site/buildstats.mjs:6
 F250 | page: "The totals came from buildstats.mjs, run on this build's transcripts after the run, and were committed as stats:." | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "After the run, its output is committed as stats:" | site/buildstats.mjs:6
-F251 | page: "0.4.0" | source: "## 0.4.0" | CHANGELOG.md:3
-F252 | page: "/relay for one window: it overrides the relay option for the window you type it in and starts its count over." | source: "`/relay` for one window." | CHANGELOG.md:7 | source: "overrides the `relay` option for the window you type it in and starts its count over" | CHANGELOG.md:7
-F253 | page: "A countdown of the clears left. The status line shows it while the relay is on." | source: "A countdown of the clears left." | CHANGELOG.md:10 | source: "The status line shows it while the relay is on." | CHANGELOG.md:10
-F254 | page: "The relay works from the VS Code chat panel." | source: "The relay works from the VS Code chat panel." | CHANGELOG.md:12
-F255 | page: "VS Code extension 0.4.0: a context pie in the status bar, a relay item showing this window's clears used against its budget, and a Worktrees view." | source: "VS Code extension 0.4.0" | CHANGELOG.md:19 | source: "Context pie** in the status bar" | CHANGELOG.md:21 | source: "Relay item** showing this window's clears used against its budget" | CHANGELOG.md:24 | source: "Worktrees view" | CHANGELOG.md:25
+F251 | page: "0.4.0" | source: "## 0.4.0" | CHANGELOG.md:8
+F252 | page: "/relay for one window: it overrides the relay option for the window you type it in and starts its count over." | source: "`/relay` for one window." | CHANGELOG.md:12 | source: "overrides the `relay` option for the window you type it in and starts its count over" | CHANGELOG.md:12
+F253 | page: "A countdown of the clears left. The status line shows it while the relay is on." | source: "A countdown of the clears left." | CHANGELOG.md:15 | source: "The status line shows it while the relay is on." | CHANGELOG.md:15
+F254 | page: "The relay works from the VS Code chat panel." | source: "The relay works from the VS Code chat panel." | CHANGELOG.md:17
+F255 | page: "VS Code extension 0.4.0: a context pie in the status bar, a relay item showing this window's clears used against its budget, and a Worktrees view." | source: "VS Code extension 0.4.0" | CHANGELOG.md:24 | source: "Context pie** in the status bar" | CHANGELOG.md:26 | source: "Relay item** showing this window's clears used against its budget" | CHANGELOG.md:29 | source: "Worktrees view" | CHANGELOG.md:30
 
 ## Footer
 

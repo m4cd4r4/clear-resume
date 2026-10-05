@@ -1,5 +1,10 @@
 # Changelog
 
+## VS Code extension 0.4.1
+
+- New icon, matching the plugin's: a line carried across a break, the work surviving `/clear`.
+  The marketplace icon and the sidebar icon both change. Nothing else in the extension changes.
+
 ## 0.4.0
 
 ### Added
