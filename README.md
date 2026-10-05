@@ -125,7 +125,7 @@ Claude Code then says, or asks about, three options that are not set yet. They b
 
 Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#or-let-it-run-by-itself-the-relay) and let it do both.
 
-The author built it on Windows 11 and uses it there every day. CI runs the tests on Windows, macOS and Linux, but macOS and Linux have not been tested by hand yet.
+The author built it on Windows 11 and uses it there every day. On Linux, a clean install from GitHub was tested by hand on 5 Oct 2026: a session saved a handover and the next one loaded it and carried on. CI runs the tests on Windows, macOS and Linux; macOS has not been tested by hand yet.
 
 <details>
 <summary><b>Update</b></summary>
