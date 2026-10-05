@@ -9,6 +9,10 @@
   <a href="https://m4cd4r4.github.io/clear-resume"><img alt="Website: m4cd4r4.github.io/clear-resume" src="https://img.shields.io/badge/website-m4cd4r4.github.io%2Fclear--resume-262626?style=flat-square&labelColor=0a0a0a"></a>
 </p>
 
+<p align="center"><sub>A real run, replayed in 75 seconds. Claude builds the <a href="https://m4cd4r4.github.io/clear-resume">project site</a> across 15 sessions: each time the chat gets long it saves a handover, clears itself and carries on, with no one typing after the first prompt. Left, every tool call. Right, the context per call, dropping at each clear. Below, the page as each commit lands. Sound on: a tick per tool call, a chime at each save, clear and load.</sub></p>
+
+https://github.com/user-attachments/assets/f9641132-034a-4747-ae0f-ac794faf03d6
+
 ## The problem: in a long chat, the work gets buried
 
 <p align="center">
@@ -57,10 +61,6 @@ Claude rereads the whole context for every reply. In a long chat, the goal and t
 3. **Carry on.** Type `go`, or say what to do next. Claude carries on from the handover.
 
 Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
-
-<p align="center"><sub>A real relay run, replayed in 75 seconds: Claude builds the <a href="https://m4cd4r4.github.io/clear-resume">project site</a> across 15 sessions, with no one typing after the first prompt. Left, every tool call. Right, the context per call, dropping at each clear. Below, the page as each commit lands. Sound on: a tick per tool call, a chime at each save, clear and load.</sub></p>
-
-https://github.com/user-attachments/assets/f9641132-034a-4747-ae0f-ac794faf03d6
 
 > [!NOTE]
 > Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
