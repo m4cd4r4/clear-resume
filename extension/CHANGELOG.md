@@ -1,7 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
+Needs the clear-resume plugin 0.4.0 or later for the context pie and the relay item.
+
+- A **context pie** in the status bar fills towards the plugin's nudge size: amber from
+  80%, red past it. Its hover card shows the relay, the chain of continued sessions and
+  an upper bound on what the clears saved.
+- A **relay** item shows this window's clears used against its budget. Click it to pick a
+  new budget or turn the relay off.
+- With two windows on one repo, each status bar names the handover its own window loaded
+  and reads its own session's context, not the folder's newest.
 - A **Worktrees** view lists the open repo's git worktrees oldest first, each with its
   branch, start time and newest handover's state. Click one to open it in its own
   window (`clear-resume: Open worktree window`).

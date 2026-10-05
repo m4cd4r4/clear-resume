@@ -1,13 +1,16 @@
 # Status
 
-Checked against `origin/main` at b7c9b73 on 2026-10-03. A claim here is a snapshot: re-check
+Checked against `origin/main` at d2e5342 on 2026-10-05. A claim here is a snapshot: re-check
 before acting on it.
 
 ## Shipped
 
-- [x] Plugin 0.3.2: handover skill, SessionStart load, auto-mode nudge, git-synced store,
-  hands-off relay (#58) and its stall guard (#60). `package.json`,
-  `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` all agree on 0.3.2.
+- [x] Plugin 0.4.0: handover skill, SessionStart load, auto-mode nudge, git-synced store,
+  hands-off relay (#58), its stall guard (#60), per-window `/relay` (#66) and the panel toast
+  (#67). `package.json`, `plugin/.claude-plugin/plugin.json` and
+  `.claude-plugin/marketplace.json` all agree on 0.4.0.
+- [x] VS Code extension 0.4.0 (in the repo; marketplace publish pending): context pie and relay
+  picker (#68, #69, #70), Worktrees view (#64).
 - [x] Relay stall guard (#60): stops after two continued sessions in a row make no new commit;
   with no git only the budget applies. With the relay on, the nudge tells a finished task to
   end without a handover.
