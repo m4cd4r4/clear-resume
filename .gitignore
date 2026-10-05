@@ -4,3 +4,7 @@ extension/dist/
 # packaged extension builds
 *.vsix
 .shots/
+
+# site screenshots (site/shot.sh)
+site/shots/
+site/.brave-shot/
