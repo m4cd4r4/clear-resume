@@ -2,7 +2,7 @@
   "name": "clear-resume",
   "displayName": "clear-resume",
   "description": "Browse your Claude Code handovers and resume one in a fresh conversation.",
-  "version": "0.2.2",
+  "version": "0.4.0",
   "publisher": "macdara",
   "license": "MIT",
   "icon": "media/icon.png",

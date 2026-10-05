@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.4.0
+
+### Added
+
+- **`/relay` for one window.** `/relay off|on|unlimited|<n>` overrides the `relay` option for the
+  window you type it in and starts its count over; a bare `/relay` reports the count. The relay
+  now always loads, so `/relay` can turn it on where the option is off.
+- **A countdown of the clears left.** The status line shows it while the relay is on. The VS Code
+  chat panel draws no plugin status line, so a toast shows it there after each continue.
+- **The relay works from the VS Code chat panel.** Proven on Claude Code 2.1.288: `/clear` and the
+  continue prompt run in the same tab with no keypress.
+- The relay writes each window's state to `<store>/relay/<key>.json` and takes a budget set from
+  outside the session, which the extension's status bar uses (below).
+- `scripts/label.mjs <slug> --registry <file>` prints a worktree's plan label as JSON, and
+  `save.mjs --unowned` writes a handover for a session that has not started yet.
+
+### VS Code extension 0.4.0
+
+- **Context pie** in the status bar, filling towards `nudge_at`: amber from 80%, red past it. Its
+  hover card shows the relay, the chain of continued sessions and an upper bound on what the clears
+  saved.
+- **Relay item** showing this window's clears used against its budget, with a picker to change it.
+- **Worktrees view**: the repo's git worktrees, oldest first, each opening in its own window; with
+  `clearResume.registryPath` set, rows name their plan row and wave, and queued entries show under
+  Next up.
+- With two VS Code windows on one repo, each status bar now names its own window's handover and
+  reads its own session's context, not the folder's newest.
+
+### Changed
+
+- The README and How it works document the relay, the headless runner and the new status-bar
+  items.
+
 ## 0.3.2
 
 ### Changed
