@@ -1,0 +1,56 @@
+name: pages
+
+# The project site in site/, served at https://m4cd4r4.github.io/clear-resume.
+# It deploys when a release is published, or by hand. A merge to main never deploys it,
+# so the live site always describes a released version.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # factcheck reads README.md, CHANGELOG.md and docs/STATUS.md live, so a release whose
+      # docs no longer back a claim on the site fails here instead of going live.
+      - run: node site/factcheck.mjs
+      - run: node site/factcheck.test.mjs
+      - run: node site/check.mjs
+      - run: node site/copycheck.mjs
+      - run: node site/copycheck.test.mjs
+      - run: node site/buildstats.test.mjs
+      - run: node site/simtest.mjs
+      # Only the files the pages load. FACTS.md, the check scripts and source/ stay in the repo.
+      - name: Collect served files
+        run: |
+          mkdir -p _site
+          cp site/*.html site/styles.css site/app.js site/model.js site/runstats.js _site/
+          cp -r site/fonts site/media _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

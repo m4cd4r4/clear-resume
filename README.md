@@ -6,6 +6,7 @@
   <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-e5a743?style=flat-square&labelColor=221d16"></a>
   <a href="https://github.com/m4cd4r4/clear-resume/actions/workflows/test.yml"><img alt="Tests on Windows, macOS and Linux" src="https://img.shields.io/github/actions/workflow/status/m4cd4r4/clear-resume/test.yml?branch=main&label=tests%3A%20Windows%2C%20macOS%2C%20Linux&style=flat-square&labelColor=221d16"></a>
   <img alt="Needs Node 18 or later" src="https://img.shields.io/badge/node-18%2B-e5a743?style=flat-square&labelColor=221d16">
+  <a href="https://m4cd4r4.github.io/clear-resume"><img alt="Website: m4cd4r4.github.io/clear-resume" src="https://img.shields.io/badge/website-m4cd4r4.github.io%2Fclear--resume-e5a743?style=flat-square&labelColor=221d16"></a>
 </p>
 
 ## The problem: in a long chat, the work gets buried

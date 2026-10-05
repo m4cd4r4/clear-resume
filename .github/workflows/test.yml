@@ -27,3 +27,8 @@ jobs:
       # skips without these locally, and never in CI.
       - run: npm ci --prefix extension
       - run: npx vitest run
+      # The site's checks read README.md, CHANGELOG.md and docs/STATUS.md, so a doc change
+      # that breaks a claim on the site fails here, not at the next release's Pages deploy.
+      - name: Site checks
+        if: matrix.os == 'ubuntu-latest'
+        run: for s in factcheck factcheck.test check copycheck copycheck.test buildstats.test simtest; do node site/$s.mjs || exit 1; done

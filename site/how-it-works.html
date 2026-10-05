@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works: clear-resume</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html">clear-resume</a>
+    <nav aria-label="Site">
+      <ul class="nav">
+        <li><a href="#handover">The handover</a></li>
+        <li><a href="#loop">The loop</a></li>
+        <li><a href="#example">Worked example</a></li>
+        <li><a href="#compare">Compared</a></li>
+        <li><a href="#model">The model</a></li>
+        <li><a href="#start">Start size</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li class="sep" aria-hidden="true"></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="how-it-works.html" aria-current="page">How it works</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="page-head" aria-labelledby="h-page">
+    <div class="wrap">
+      <h1 id="h-page">How it works</h1>
+    </div>
+  </section>
+
+  <section id="handover" aria-labelledby="h-handover">
+    <div class="wrap">
+      <h2 id="h-handover">The handover</h2>
+      <div class="facts">
+        <h3 data-fact="F126">What it holds</h3>
+        <div class="prose">
+          <p data-fact="F110">Claude reads your branch, your changes and your last few commits.</p>
+          <p data-fact="F10">Claude writes a short note, called a handover: the goal, the next action, where things stand, the decisions made and what already failed.</p>
+        </div>
+
+        <h3 data-fact="F122">Where it is kept</h3>
+        <div class="prose">
+          <p data-fact="F46">Handovers are plain text files on your disk, in <code>~/.clear-resume</code>. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
+          <p data-fact="F111">Each loaded handover is also saved as markdown in <code>~/.clear-resume/<wbr>loaded/</code> for 30 days.</p>
+        </div>
+
+        <h3 data-fact="F123">When it loads</h3>
+        <div class="prose">
+          <p data-fact="F112">The plugin checks for a waiting handover when a session starts, after <code>/clear</code> and after compaction (when <code>/compact</code>, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.</p>
+        </div>
+
+        <h3 data-fact="F124">What does not load it</h3>
+        <div class="prose">
+          <p data-fact="F113">Known limitation: the loop runs on <code>/clear</code>. A session started with <code class="nw">--resume</code> or <code>/resume</code> loads nothing.</p>
+        </div>
+
+        <h3 data-fact="F125">Which handover loads</h3>
+        <ul class="cases">
+          <li data-fact="F114">Each handover belongs to the Claude Code window that wrote it. While that window is open, it is the only one that loads the handover after <code>/clear</code>.</li>
+          <li data-fact="F115">Other windows on the same project list it when they start, and load it only if you ask.</li>
+          <li data-fact="F116">Once that window closes, a session on the same branch loads it, if it is 7 days old or less.</li>
+          <li data-fact="F117">If it is the only one waiting from a closed window, it loads on any branch, if it is 7 days old or less.</li>
+          <li data-fact="F118">A handover older than 7 days is listed, not loaded.</li>
+          <li data-fact="F119">After compaction, only this window's own handover loads.</li>
+          <li data-fact="F120">A handover loads in the checkout it was saved in.</li>
+        </ul>
+        <p class="cases-note" data-fact="F121">These are the common cases.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="loop" aria-labelledby="h-loop">
+    <div class="wrap">
+      <h2 id="h-loop" data-fact="F148">The loop</h2>
+      <figure class="loop">
+        <svg class="loop-wide" viewBox="0 0 1100 214" aria-hidden="true" focusable="false">
+          <defs><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs>
+          <rect class="node" x="1" y="16" width="186" height="104" rx="6"/>
+          <text class="t" x="94" y="60" data-fact="F130">work</text>
+          <text class="s" x="94" y="86" data-fact="F131">the chat grows</text>
+          <rect class="node opt" x="229" y="16" width="186" height="104" rx="6"/>
+          <text class="t" x="322" y="50" data-fact="F132">nudge</text>
+          <text class="s" x="322" y="76" data-fact="F133">with the nudge on</text>
+          <text class="s" x="322" y="96" data-fact="F134">asks Claude to save</text>
+          <rect class="node" x="457" y="16" width="186" height="104" rx="6"/>
+          <text class="t" x="550" y="50" data-fact="F135">save</text>
+          <text class="s" x="550" y="76" data-fact="F136">Claude writes a handover</text>
+          <text class="s" x="550" y="96" data-fact="F137">you ask, or the nudge does</text>
+          <rect class="node" x="685" y="16" width="186" height="104" rx="6"/>
+          <text class="t" x="778" y="42" data-fact="F6">/clear</text>
+          <text class="s" x="778" y="68" data-fact="F138">you type it</text>
+          <text class="s" x="778" y="88" data-fact="F139"><tspan x="778">or the plugin, </tspan><tspan x="778" dy="18">with the relay on</tspan></text>
+          <rect class="node" x="913" y="16" width="186" height="104" rx="6"/>
+          <text class="t" x="1006" y="60" data-fact="F140">load</text>
+          <text class="s" x="1006" y="86" data-fact="F141">the fresh session loads it</text>
+          <path class="arr" d="M188 68H224" marker-end="url(#aw)"/>
+          <path class="arr" d="M416 68H452" marker-end="url(#aw)"/>
+          <path class="arr" d="M644 68H680" marker-end="url(#aw)"/>
+          <path class="arr" d="M872 68H908" marker-end="url(#aw)"/>
+          <path class="arr" d="M1006 134V176H94V126" marker-end="url(#aw)"/>
+          <text class="lbl" x="550" y="200" data-fact="F142">carry on</text>
+        </svg>
+        <svg class="loop-narrow" viewBox="0 0 358 640" aria-hidden="true" focusable="false">
+          <defs><marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs>
+          <rect class="node" x="1" y="4" width="288" height="96" rx="6"/>
+          <text class="t" x="145" y="44" data-fact="F130">work</text>
+          <text class="s" x="145" y="68" data-fact="F131">the chat grows</text>
+          <rect class="node opt" x="1" y="136" width="288" height="96" rx="6"/>
+          <text class="t" x="145" y="166" data-fact="F132">nudge</text>
+          <text class="s" x="145" y="190" data-fact="F133">with the nudge on</text>
+          <text class="s" x="145" y="210" data-fact="F134">asks Claude to save</text>
+          <rect class="node" x="1" y="268" width="288" height="96" rx="6"/>
+          <text class="t" x="145" y="298" data-fact="F135">save</text>
+          <text class="s" x="145" y="322" data-fact="F136">Claude writes a handover</text>
+          <text class="s" x="145" y="342" data-fact="F137">you ask, or the nudge does</text>
+          <rect class="node" x="1" y="400" width="288" height="96" rx="6"/>
+          <text class="t" x="145" y="430" data-fact="F6">/clear</text>
+          <text class="s" x="145" y="454" data-fact="F138">you type it</text>
+          <text class="s" x="145" y="474" data-fact="F139">or the plugin, with the relay on</text>
+          <rect class="node" x="1" y="532" width="288" height="96" rx="6"/>
+          <text class="t" x="145" y="572" data-fact="F140">load</text>
+          <text class="s" x="145" y="596" data-fact="F141">the fresh session loads it</text>
+          <path class="arr" d="M145 101V131" marker-end="url(#an)"/>
+          <path class="arr" d="M145 233V263" marker-end="url(#an)"/>
+          <path class="arr" d="M145 365V395" marker-end="url(#an)"/>
+          <path class="arr" d="M145 497V527" marker-end="url(#an)"/>
+          <path class="arr" d="M290 580H326V52H294" marker-end="url(#an)"/>
+          <text class="lbl" x="346" y="316" transform="rotate(-90 346 316)" data-fact="F142">carry on</text>
+        </svg>
+        <ol class="loop-alt">
+          <li data-fact="F143">Claude works and the chat grows.</li>
+          <li data-fact="F144">With the nudge on, past the size you set, the plugin asks Claude to save a handover.</li>
+          <li data-fact="F145">Claude saves a handover: you type <code class="nw">/clear-resume:handover</code>, or the nudge asks.</li>
+          <li data-fact="F146"><code>/clear</code>: you type it, or the plugin runs it when the turn ends, with the relay on.</li>
+          <li data-fact="F147">The fresh session loads the handover, and Claude carries on.</li>
+        </ol>
+      </figure>
+    </div>
+  </section>
+
+  <section id="example" aria-labelledby="h-example">
+    <div class="wrap">
+      <h2 id="h-example">Worked example</h2>
+      <div class="prose">
+        <p data-fact="F150">The README's example: a handover in a widget-shop repo, saved, loaded after <code>/clear</code>, and the copy it leaves.</p>
+      </div>
+      <div class="term transcript">
+        <pre><span class="in" data-fact="F19">/clear-resume:handover</span>
+<span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span>
+<span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span>
+
+<span class="in" data-fact="F6">/clear</span>
+<span class="out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span>
+<span class="out" data-fact="F15">A copy to read or share: <span class="nw">~/.clear-resume/</span><wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span></pre>
+      </div>
+      <p class="copy-note" data-fact="F151">The copy in <code>~/.clear-resume/<wbr>loaded/</code> stays for 30 days: reread what a session started from, or <span class="nw">@-mention</span> it in another session.</p>
+      <div class="term file">
+        <p class="file-name" data-fact="F152">~/<wbr>.clear-resume/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</p>
+        <pre><span class="note" data-fact="F153"># the copy, as the README's screenshot of it reads</span>
+<span class="out h" data-fact="F154"># Cart totals rounding</span>
+<span class="out" data-fact="F155">Repo: widget-shop. Branch: fix/cart-rounding.</span>
+
+<span class="out" data-fact="F156">Goal: Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match.</span>
+
+<span class="out" data-fact="F157">Next action: Run npm test -- cart and fix src/cart.js:2 so cartTotal rounds once at the end, half-up, to 2 decimal places.</span>
+
+<span class="out" data-fact="F158">Decisions already made: Round once, at the total, never per line: the payment provider does the same.</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare" aria-labelledby="h-compare">
+    <div class="wrap">
+      <h2 id="h-compare" data-fact="F171">Compared with <code>/compact</code>, <code class="nw">--resume</code> and <code>/clear</code></h2>
+      <div class="table-scroll" role="region" aria-labelledby="h-compare" tabindex="0">
+        <table class="compare c-stack">
+          <thead>
+            <tr><td></td><th scope="col" data-fact="F159">Claude keeps</th><th scope="col" data-fact="F160">You lose</th><th scope="col" data-fact="F161">Chat size after</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" data-fact="F168">/compact</th><td data-label="Claude keeps" data-fact="F101">Its own summary of the chat</td><td data-label="You lose" data-fact="F102">What the summary leaves out</td><td data-label="Chat size after" data-fact="F162">Smaller</td></tr>
+            <tr><th scope="row" data-fact="F169">--resume</th><td data-label="Claude keeps" data-fact="F103">The whole chat</td><td data-label="You lose" data-fact="F104">Nothing</td><td data-label="Chat size after" data-fact="F163">Same as before</td></tr>
+            <tr><th scope="row" data-fact="F6">/clear</th><td data-label="Claude keeps" data-fact="F164">Nothing</td><td data-label="You lose" data-fact="F105">Everything, including where you were</td><td data-label="Chat size after" data-fact="F165">Empty</td></tr>
+            <tr class="us"><th scope="row" data-fact="F170">clear-resume</th><td data-label="Claude keeps" data-fact="F106">A short handover it wrote on purpose</td><td data-label="You lose" data-fact="F166">The rest of the chat</td><td data-label="Chat size after" data-fact="F167">Just the handover</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="src" data-fact="F172">Source: the comparison table in the README.</p>
+    </div>
+  </section>
+
+  <section id="model" aria-labelledby="h-model">
+    <div class="wrap">
+      <h2 id="h-model" data-fact="F173">The model</h2>
+      <div class="prose">
+        <p data-fact="F174">A model, not a measurement. Claude rereads the whole context for every reply: set a task and see how much it rereads with clear-resume and without it.</p>
+      </div>
+      <form class="model-ui" id="model-form">
+        <fieldset class="m-win">
+          <legend data-fact="F175">Context window</legend>
+          <label class="m-radio" for="m-w1m"><input type="radio" id="m-w1m" name="mwin" value="1000000" checked> <span data-fact="F176">1M</span></label>
+          <label class="m-radio" for="m-w200k"><input type="radio" id="m-w200k" name="mwin" value="200000"> <span data-fact="F177">200k</span></label>
+        </fieldset>
+        <div class="m-slider">
+          <label for="m-start" data-fact="F178">Start size <output for="m-start" data-run="mStart"></output></label>
+          <input type="range" id="m-start" min="15000" max="150000" step="1000" value="21000" list="m-marks">
+          <datalist id="m-marks"><option value="21000"></option><option value="85000"></option></datalist>
+          <p class="m-hint" data-fact="F179">Typical values: see <a href="#start">Start size</a> below</p>
+        </div>
+        <div class="m-slider">
+          <label for="m-clear" data-fact="F180">Clear at <output for="m-clear" data-run="mClearAt"></output></label>
+          <input type="range" id="m-clear" min="50000" max="895000" step="1000" value="180000">
+        </div>
+        <div class="m-slider">
+          <label for="m-work" data-fact="F181">Task size <output for="m-work" data-run="mWork"></output></label>
+          <input type="range" id="m-work" min="200000" max="5000000" step="100000" value="2000000">
+        </div>
+      </form>
+      <p class="m-note" id="m-note200" hidden data-fact="F182">On a 200k window, the run without clear-resume compacts on its own at <span data-run="mCompact"></span> (assumed).</p>
+      <p class="m-sum" aria-live="polite" data-fact="F183">Reread over the task: <span data-run="mClearReread"></span> with <span class="nw">clear-resume</span>, <span data-run="mBaseReread"></span> without it.</p>
+      <figure class="chart m-chart">
+        <div class="chart-svg" id="model-svg"></div>
+        <div class="m-key">
+          <p><span class="key-line" aria-hidden="true"></span><span data-fact="F170">clear-resume</span></p>
+          <p><span class="key-line base" aria-hidden="true"></span><span data-fact="F184">without it: Claude Code compacts on its own</span></p>
+        </div>
+      </figure>
+      <div class="table-scroll" role="region" aria-labelledby="h-model" tabindex="0">
+        <table class="compare m-table">
+          <thead>
+            <tr><td></td><th scope="col" data-fact="F185">Resets</th><th scope="col" data-fact="F186">Peak context</th><th scope="col" data-fact="F187">Context reread</th></tr>
+          </thead>
+          <tbody>
+            <tr class="us"><th scope="row" data-fact="F170">clear-resume</th><td data-fact="F188"><span data-run="mClearResets"></span></td><td data-fact="F189"><span data-run="mClearPeak"></span></td><td data-fact="F190"><span data-run="mClearReread"></span></td></tr>
+            <tr><th scope="row" data-fact="F191">without it</th><td data-fact="F192"><span data-run="mBaseResets"></span></td><td data-fact="F193"><span data-run="mBasePeak"></span></td><td data-fact="F194"><span data-run="mBaseReread"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="src" data-fact="F195">Source: site/model.js, a model, not a measurement.</p>
+      <details class="m-how">
+        <summary>How the model works</summary>
+        <ul class="cases">
+          <li data-fact="F196">Each reply adds 5000 new tokens to the context: assumed.</li>
+          <li data-fact="F197">Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply.</li>
+          <li data-fact="F198">After a clear, the run restarts at the start size plus the handover: about 780 tokens in the handover, an estimate. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.</li>
+          <li data-fact="F199">Without clear-resume, the run compacts at nine tenths of the window and keeps an 8000-token summary: both assumed.</li>
+          <li data-fact="F73">On the API, cache reads are billed at a tenth of the input price.</li>
+          <li data-fact="F200">The model clears at or below the clear-at size. The plugin asks Claude to save once context is past the size you set, and Claude then saves, so in use, peaks pass it.</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <section id="start" aria-labelledby="h-start">
+    <div class="wrap">
+      <h2 id="h-start" data-fact="F201">Start size</h2>
+      <div class="ss">
+        <div class="ss-row">
+          <p class="ss-num" data-fact="F202">21,200</p>
+          <div class="ss-body">
+            <p data-fact="F70">Stock Claude Code starts at 21,200 tokens before your first message.</p>
+            <p class="ss-cond" data-fact="F71"><span class="nw">Claude Code 2.1.289</span>, <span class="nw">Opus 5.5</span>, empty <code>CLAUDE_CONFIG_DIR</code>, cwd with no <code>CLAUDE.md</code>, <code>.claude</code> or <code>.mcp.json</code> above it, 0 MCP servers, 27 tools. One headless "say hi" run; <code>cache_creation_input_tokens</code> <span class="nw">21,200 +</span> <code>input_tokens</code> 2, read from the first assistant message, <span class="nw">2026-10-04</span>.</p>
+            <p class="src" data-fact="F203">Source: one headless run, measured 2026-10-04.</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <p class="ss-num" data-fact="F204">77k to 99k</p>
+          <div class="ss-body">
+            <p data-fact="F72">The author's sessions start at 77k to 99k (rules, skills, MCP).</p>
+            <p class="src" data-fact="F205">Source: the author's own sessions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" aria-labelledby="h-settings">
+    <div class="wrap">
+      <h2 id="h-settings" data-fact="F206">Settings</h2>
+      <div class="prose">
+        <p data-fact="F207">After install, Claude Code says, or asks about, three options that are not set yet. They belong to the nudge and the relay, which are both off by default.</p>
+      </div>
+      <div class="ss set">
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F208">Nudge to save a handover</p>
+            <p class="set-key"><code>auto_nudge</code></p>
+            <p class="set-def" data-fact="F209">Default: off</p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F210">Turns the nudge on. Past the Nudge at size, the plugin asks Claude once per session to save a handover, and prints a status line saying so.</p>
+            <p class="src" data-fact="F211">Source: the README.</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <div>
+            <p class="set-name" data-fact="F212">Nudge at</p>
+            <p class="set-def" data-fact="F213">Default: 180k tokens</p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F214">The context size the nudge waits for. Claude Code keeps it between 50000 and 1000000 tokens.</p>
+            <p class="src" data-fact="F215">Source: the README (default), the CHANGELOG (range).</p>
+          </div>
+        </div>
+        <div class="ss-row">
+          <div>
+            <p class="set-name"><code data-fact="F216">relay</code></p>
+            <p class="set-def" data-fact="F217">Default: off</p>
+          </div>
+          <div class="ss-body">
+            <p data-fact="F218">A number of clears per Claude Code window, or unlimited. After Claude saves a handover, clear-resume runs <code>/clear</code> when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it.</p>
+            <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
+          </div>
+        </div>
+      </div>
+      <div class="prose set-notes">
+        <p data-fact="F220">Set them with <code>/plugin configure <span class="nw">clear-resume@clear-resume</span></code>, or in <code>/config</code>: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with <code>claude plugin install <span class="nw">clear-resume@clear-resume --config</span></code>.</p>
+        <p data-fact="F221">The environment variables still work: <code>CLEAR_RESUME_AUTO</code> wins whenever it is set, and <code>CLEAR_RESUME_NUDGE_AT</code> wins when it is a positive number.</p>
+        <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
+        <p data-fact="F222">Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web).</p>
+        <p class="src" data-fact="F223">Source: the README.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p data-fact="F50">MIT licence. Independent, not made or endorsed by Anthropic.</p>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="changelog.html">Changelog</a></li>
+      <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="runstats.js"></script>
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
