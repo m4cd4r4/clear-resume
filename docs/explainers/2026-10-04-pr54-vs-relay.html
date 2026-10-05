@@ -1,0 +1,186 @@
+<title>PR #54 or Relay?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column of big pictures, each with one or two lines under it. Baton-relay metaphor. */
+:root{
+  --bg:#f3f5f7; --card:#ffffff; --ink:#18232f; --muted:#5a6774; --line:#d5dce3;
+  --baton:#e08a00; --lane:#2f6f8f; --good:#2e7d4f; --warn:#b5541b; --soft:#e7eef3;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11171d; --card:#18212a; --ink:#e8edf2; --muted:#9aa8b5; --line:#2c3843;
+  --baton:#ffb02e; --lane:#6fb3d6; --good:#5fc88a; --warn:#f08a55; --soft:#1f2a34; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171d; --card:#18212a; --ink:#e8edf2; --muted:#9aa8b5; --line:#2c3843;
+  --baton:#ffb02e; --lane:#6fb3d6; --good:#5fc88a; --warn:#f08a55; --soft:#1f2a34; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--body)}
+main{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:44px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800}
+h2{font-size:1.55rem;font-weight:800}
+p{margin:0;max-width:62ch}
+.snap{font:500 .8rem var(--mono);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+section{display:grid;gap:14px}
+.pic{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto}
+.pic svg{display:block;width:100%;height:auto}
+.pic svg text{font-family:var(--body);fill:var(--ink)}
+.pic svg .m{fill:var(--muted)}
+.pic svg .mono{font-family:var(--mono)}
+.lede{font-size:1.15rem}
+.muted{color:var(--muted)}
+code{font:500 .88em var(--mono);background:var(--soft);padding:1px 5px;border-radius:5px}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+@media (max-width:520px){table{font-size:.85rem}th,td{padding:7px 5px}.pic{padding:8px}}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-weight:600}
+.tw{overflow-x:auto}
+.y{color:var(--good);font-weight:700}.n{color:var(--warn);font-weight:700}
+.opts{display:grid;gap:12px}
+.opt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:8px}
+.opt.rec{border:2px solid var(--baton)}
+.opt h3{font-family:var(--display);margin:0;font-size:1.2rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:99px;background:var(--soft);color:var(--muted)}
+.pill.rec{background:var(--baton);color:#1b1200}
+.opt ul,.found{margin:0;padding-left:1.2em;display:grid;gap:4px}
+</style>
+
+<main>
+<header style="display:grid;gap:10px">
+  <div class="snap">Snapshot as of 2026-10-04, 20:40 AWST. Not a reference doc.</div>
+  <h1>PR #54 or Relay?</h1>
+  <p class="lede">Two ways to make Claude carry on by itself when a chat gets too full. One shipped. One is still a draft. You pick what happens to the draft.</p>
+</header>
+
+<section>
+  <h2>1. The two halves of clear-resume</h2>
+  <div class="pic"><svg viewBox="0 0 640 230" role="img" aria-label="Plugin inside Claude Code and extension inside VS Code share a box of handover notes">
+    <rect x="10" y="20" width="250" height="190" rx="14" fill="var(--soft)" stroke="var(--lane)" stroke-width="2"/>
+    <text x="30" y="52" font-size="20" font-weight="700">Plugin</text>
+    <text x="30" y="76" class="m" font-size="14">lives inside Claude Code</text>
+    <text x="30" y="110" font-size="15">• writes the handover note</text>
+    <text x="30" y="135" font-size="15">• loads it after /clear</text>
+    <text x="30" y="160" font-size="15">• nudges at 180k tokens</text>
+    <text x="30" y="185" font-size="15" font-weight="700" fill="var(--baton)">• Relay (new, shipped)</text>
+    <rect x="380" y="20" width="250" height="190" rx="14" fill="var(--soft)" stroke="var(--lane)" stroke-width="2"/>
+    <text x="400" y="52" font-size="20" font-weight="700">Extension</text>
+    <text x="400" y="76" class="m" font-size="14">lives in VS Code's sidebar</text>
+    <text x="400" y="110" font-size="15">• lists your handovers</text>
+    <text x="400" y="135" font-size="15">• Resume button</text>
+    <text x="400" y="160" font-size="15">• you run 0.2.2 (published)</text>
+    <text x="400" y="185" font-size="15" font-weight="700" fill="var(--baton)">• PR #54 adds to this</text>
+    <rect x="276" y="92" width="88" height="56" rx="8" fill="var(--card)" stroke="var(--muted)"/>
+    <text x="320" y="116" text-anchor="middle" font-size="13">handover</text>
+    <text x="320" y="134" text-anchor="middle" font-size="13">notes</text>
+    <path d="M260 120 H274 M366 120 H380" stroke="var(--muted)" stroke-width="2"/>
+  </svg></div>
+  <p>Both halves read the same box of handover notes.</p>
+</section>
+
+<section>
+  <h2>2. The problem: two chores per handover</h2>
+  <div class="pic"><svg viewBox="0 0 640 140" role="img" aria-label="Full chat, save note, you type clear, you type go, fresh chat">
+    <g font-size="14" text-anchor="middle">
+      <rect x="10" y="35" width="105" height="64" rx="10" fill="var(--soft)" stroke="var(--line)"/><text x="62" y="62">Chat full</text><text x="62" y="82" class="m">180k</text>
+      <rect x="140" y="35" width="105" height="64" rx="10" fill="var(--soft)" stroke="var(--line)"/><text x="192" y="62">Claude saves</text><text x="192" y="82">a note</text>
+      <rect x="270" y="35" width="105" height="64" rx="10" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/><text x="322" y="62" fill="var(--warn)" font-weight="700">YOU type</text><text x="322" y="82" class="mono">/clear</text>
+      <rect x="400" y="35" width="105" height="64" rx="10" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/><text x="452" y="62" fill="var(--warn)" font-weight="700">YOU type</text><text x="452" y="82" class="mono">go</text>
+      <rect x="530" y="35" width="100" height="64" rx="10" fill="var(--soft)" stroke="var(--line)"/><text x="580" y="62">Fresh chat</text><text x="580" y="82" class="m">~95k</text>
+    </g>
+    <path d="M115 67h25M245 67h25M375 67h25M505 67h25" stroke="var(--muted)" stroke-width="2"/>
+    <text x="320" y="128" text-anchor="middle" font-size="14" class="m">Claude cannot type /clear itself. Something else has to.</text>
+  </svg></div>
+</section>
+
+<section>
+  <h2>3. PR #54: a new runner in a new lane</h2>
+  <div class="pic"><svg viewBox="0 0 640 170" role="img" aria-label="Old tab hands off to a new tab or terminal opened by the extension">
+    <rect x="10" y="30" width="170" height="110" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+    <text x="95" y="62" text-anchor="middle" font-size="15" font-weight="700">Old tab</text>
+    <text x="95" y="88" text-anchor="middle" font-size="13" class="m">saves the note,</text>
+    <text x="95" y="106" text-anchor="middle" font-size="13" class="m">then gets closed</text>
+    <path d="M182 85 H300" stroke="var(--baton)" stroke-width="5" stroke-linecap="round"/>
+    <text x="241" y="74" text-anchor="middle" font-size="13">extension</text>
+    <rect x="310" y="10" width="320" height="64" rx="12" fill="var(--card)" stroke="var(--lane)" stroke-width="2"/>
+    <text x="326" y="38" font-size="15" font-weight="700">New chat tab</text>
+    <text x="326" y="60" font-size="13" fill="var(--warn)">prompt typed in. You still press Enter.</text>
+    <rect x="310" y="96" width="320" height="64" rx="12" fill="var(--card)" stroke="var(--lane)" stroke-width="2"/>
+    <text x="326" y="124" font-size="15" font-weight="700">New terminal</text>
+    <text x="326" y="146" font-size="13" fill="var(--good)">starts by itself. No key.</text>
+  </svg></div>
+  <p>Draft since 2026-10-01. 32 files, about 1,500 lines. The chat-tab version passed a full test. The terminal version broke twice, was fixed, and has not been re-tested. Its VS Code half has never been installed in your daily VS Code.</p>
+</section>
+
+<section>
+  <h2>4. Relay: the same runner, same lane</h2>
+  <div class="pic"><svg viewBox="0 0 640 150" role="img" aria-label="One tab clears itself and carries on">
+    <rect x="10" y="30" width="620" height="90" rx="12" fill="var(--soft)" stroke="var(--lane)" stroke-width="2"/>
+    <g font-size="14" text-anchor="middle">
+      <text x="95" y="70">note saved</text>
+      <text x="255" y="70" class="mono">/clear</text><text x="255" y="92" class="m" font-size="12">typed for you</text>
+      <text x="415" y="70">"continue"</text><text x="415" y="92" class="m" font-size="12">sent for you</text>
+      <text x="560" y="70" font-weight="700" fill="var(--good)">working</text>
+    </g>
+    <path d="M150 66h55M305 66h55M470 66h40" stroke="var(--baton)" stroke-width="4" stroke-linecap="round"/>
+    <text x="320" y="142" text-anchor="middle" font-size="14" class="m">About 3 seconds. Same tab. Zero keys.</text>
+  </svg></div>
+  <p>Shipped in the plugin, 0.3.1 and 0.3.2. Proven in a terminal on 2026-10-03 (4 sessions in a row, no hands) and in the VS Code chat panel today at 20:03. Your setting: <code>relay: 15</code>, meaning up to 15 hand-offs per window. It stops early if two sessions in a row make no commit.</p>
+</section>
+
+<section>
+  <h2>5. Side by side</h2>
+  <div class="tw"><table>
+    <tr><th></th><th>PR #54</th><th>Relay</th></tr>
+    <tr><td>Keys you press, chat tab</td><td class="n">1 Enter each time</td><td class="y">0</td></tr>
+    <tr><td>Keys you press, terminal</td><td class="y">0 (untested since fix)</td><td class="y">0 (proven)</td></tr>
+    <tr><td>Where it continues</td><td>a new tab or terminal</td><td class="y">the same tab</td></tr>
+    <tr><td>Works outside VS Code</td><td class="n">no</td><td class="y">yes, any terminal</td></tr>
+    <tr><td>Needs</td><td>extension 0.4 installed</td><td>Claude Code 2.1.275 or newer</td></tr>
+    <tr><td>On/off per window, countdown in the status bar</td><td class="y">yes</td><td class="n">no, one number for all windows</td></tr>
+    <tr><td>Status</td><td>draft</td><td class="y">shipped, in use</td></tr>
+  </table></div>
+  <p><b>Both on at once = two continues per handover.</b> That is why the azureprep-reminders window had to switch the extension's auto off.</p>
+</section>
+
+<section>
+  <h2>6. What I found this session</h2>
+  <ul class="found">
+    <li>Your plugin runs from the PR #54 folder, on purpose, for testing.</li>
+    <li>Your VS Code still runs the published extension 0.2.2, so half of PR #54 was never live for you.</li>
+    <li>My plugin reinstall wiped your relay setting. Restored to 15 at 20:26. I won't touch it again.</li>
+    <li>The <code>/clear-resume:auto</code> command only exists because of PR #54's plugin folder. Back on the shipped plugin, it disappears. With relay on, it is not needed.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>7. Your three choices</h2>
+  <div class="opts">
+    <div class="opt rec">
+      <h3>A. Close it, keep the useful bits <span class="pill rec">Recommended</span> <span class="pill">about 30 min</span></h3>
+      <ul>
+        <li>I list the few things only #54 has (the per-window switch and the status-bar countdown).</li>
+        <li>Anything worth keeping goes into a small new PR built on relay.</li>
+        <li>#54 closes as replaced by relay. Nothing else in it is lost; the branch stays.</li>
+        <li>Switching your plugin back to the shipped version needs a reinstall, so I ask you first.</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h3>B. Park it <span class="pill">about 5 min</span></h3>
+      <ul>
+        <li>#54 stays open as a draft, marked "parked" in the status doc.</li>
+        <li>Nothing changes for you today. The branch drifts further behind main over time.</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h3>C. Test it anyway <span class="pill">1 to 2 hours</span></h3>
+      <ul>
+        <li>Install extension 0.4 in your main VS Code (affects every open window).</li>
+        <li>Turn relay off for the test, so the two do not double up.</li>
+        <li>Run both chains in a test folder. Proves a path relay already covers.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</main>
