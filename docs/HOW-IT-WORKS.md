@@ -178,7 +178,12 @@ commit (outside a git repo, only the count applies). With the relay on, the nudg
 end without a handover when the task is finished, so a finished job is not resumed.
 
 It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works
-as before. It is proven in a terminal; the trigger from the VS Code chat panel is not proven yet.
+as before. It works in a terminal and in the VS Code chat panel.
+
+`/relay off|on|unlimited|<n>` overrides the option for the current window only and starts its
+count over; a bare `/relay` reports the count. The status line shows the clears left. The VS Code
+panel draws no plugin status line, so there a toast shows the count after each continue, and the
+extension's status bar can show and change the window's relay (below).
 
 ### Headless runs: no clear at all
 
@@ -298,6 +303,13 @@ unsent. A **Loaded** group at the top lists the handovers loaded in the last 24 
 status-bar item names the one this workspace loaded, such as
 `Handover: Cart totals rounding (loaded 3h ago)`. Either opens the readable copy. It reads and
 writes the same store as the plugin.
+
+Two more status-bar items follow the Claude session in that window. A **context pie** fills
+towards `nudge_at`: amber from 80%, red past it. Its hover card shows the relay, the chain of
+sessions it has continued, and an upper bound on what the clears saved. A **relay** item shows
+the window's clears used against its budget; click it to pick a new budget or turn the relay off,
+the same as typing `/relay` in that window. A **Worktrees** view lists the repo's git worktrees,
+oldest first; details in the [extension README](../extension/README.md#worktrees-view).
 
 The plugin covers the common path. The sidebar is for the rest: an older handover, one from
 another repo, or one you want to read before you resume it.

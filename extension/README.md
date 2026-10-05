@@ -26,6 +26,11 @@ claude plugin install clear-resume@clear-resume
 - **Resume** opens a Claude Code tab with that handover's prompt pre-filled and
   not submitted, so you read it before you send it.
 - **Pin** keeps a handover out of the stale and delete timers.
+- A **context pie** in the status bar fills towards the plugin's nudge size: amber from
+  80%, red past it. Hover it for the relay, the chain of sessions it has continued, and
+  an upper bound on what the clears saved.
+- A **relay** item shows this window's clears used against its budget. Click it to pick
+  a new budget or turn the relay off, the same as typing `/relay` in that window.
 
 ![After Resume, a Claude Code tab with the prompt box filled in: Resume from handover "Refund flow tests", then its goal and next action. It is not sent.](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-resume.png)
 
