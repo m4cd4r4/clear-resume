@@ -60,7 +60,7 @@ F60 | page: "Replay of the run that built this page." | source: "Caption under t
 F20 | page: "Past a size you choose, Claude saves a handover and the plugin runs /clear when the turn ends." | source: "Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on." | README.md:73
 F21 | page: "Off by default. Needs Claude Code 2.1.275 or later; works in a terminal and in the VS Code chat panel." | source: "They belong to the nudge and the relay, which are both off by default." | README.md:121 | source: "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel." | README.md:85
 F23 | page: "plugin default, 180k (this run's setting is not recorded)" | source: "The default, 180k tokens, is what the author uses on a 1M-token context window." | README.md:91
-F25 | page: "{sessions} sessions. Peaks: {peakLo} to {peakHi} tokens." | source: "var vals = { sessions: String(run.sessions.length), peakLo: kTok(Math.min.apply(null, peaks)), peakHi: kTok(Math.max.apply(null, peaks)) };" | site/app.js:155
+F25 | page: "{sessions} sessions. Peaks: {peakLo} to {peakHi} tokens." | source: "var vals = { sessions: String(run.sessions.length), peakLo: kTok(Math.min.apply(null, peaks)), peakHi: kTok(Math.max.apply(null, peaks)) };" | site/app.js:185
 F26 | page: "nudge at {nudge} (this run's setting)" | source: "const m = nudgeText.match(/threshold (\d+)k/);" | site/buildstats.mjs:113
 F27 | page: "Source: this site's build transcripts (buildstats.mjs)" | source: "buildstats.mjs: reads a relay run's transcripts and writes its figures into the site." | site/buildstats.mjs:1
 F28 | page: "Source: transcripts of an earlier relay run (site/source/fixture), buildstats.mjs" | source: "site/source/fixture holds the transcripts of an earlier relay run." | site/buildstats.mjs:5
@@ -176,23 +176,23 @@ F174 | page: "A model, not a measurement. Claude rereads the whole context for e
 F175 | page: "Context window" | source: "1M-token context window" | README.md:91
 F176 | page: "1M" | source: "is what the author uses on a 1M-token context window" | README.md:91
 F177 | page: "200k" | source: "On a 200k window" | README.md:91
-F178 | page: "Start size {mStart}" | source: "the size your sessions start at" | README.md:91 | source: "mStart: tok(start)" | site/app.js:213
+F178 | page: "Start size {mStart}" | source: "the size your sessions start at" | README.md:91 | source: "mStart: tok(start)" | site/app.js:243
 F179 | page: "Typical values: see Start size below" | source: "keep it well above the size your sessions start at" | README.md:91
-F180 | page: "Clear at {mClearAt}" | source: "Claude saves a handover at the size you set." | README.md:78 | source: "mClearAt: tok(clearAt)" | site/app.js:213
-F181 | page: "Task size {mWork}" | source: "mWork: tok(work)" | site/app.js:213 | source: "var add = Math.min(STEP, work - done);" | site/model.js:19
-F182 | page: "On a 200k window, the run without clear-resume compacts on its own at {mCompact} (assumed)." | source: "If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own" | README.md:222 | source: "mCompact: tok(M.compactAt(win))" | site/app.js:213
-F183 | page: "Reread over the task: {mClearReread} with clear-resume, {mBaseReread} without it." | source: "Claude rereads the whole context for every reply." | README.md:25 | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:214 | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:215
+F180 | page: "Clear at {mClearAt}" | source: "Claude saves a handover at the size you set." | README.md:78 | source: "mClearAt: tok(clearAt)" | site/app.js:243
+F181 | page: "Task size {mWork}" | source: "mWork: tok(work)" | site/app.js:243 | source: "var add = Math.min(STEP, work - done);" | site/model.js:19
+F182 | page: "On a 200k window, the run without clear-resume compacts on its own at {mCompact} (assumed)." | source: "If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own" | README.md:222 | source: "mCompact: tok(M.compactAt(win))" | site/app.js:243
+F183 | page: "Reread over the task: {mClearReread} with clear-resume, {mBaseReread} without it." | source: "Claude rereads the whole context for every reply." | README.md:25 | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:244 | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:245
 F184 | page: "without it: Claude Code compacts on its own" | source: "the size where Claude Code compacts on its own" | README.md:91
 F185 | page: "Resets" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32
 F186 | page: "Peak context" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32
 F187 | page: "Context reread" | source: "return { resets: resets, peak: peak, reread: reread" | site/model.js:32 | source: "Claude rereads the whole context for every reply." | README.md:25
-F188 | page: "{mClearResets}" | source: "vals.mClearResets = String(r.clear.resets);" | site/app.js:214
-F189 | page: "{mClearPeak}" | source: "vals.mClearPeak = tok(r.clear.peak);" | site/app.js:214
-F190 | page: "{mClearReread}" | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:214
+F188 | page: "{mClearResets}" | source: "vals.mClearResets = String(r.clear.resets);" | site/app.js:244
+F189 | page: "{mClearPeak}" | source: "vals.mClearPeak = tok(r.clear.peak);" | site/app.js:244
+F190 | page: "{mClearReread}" | source: "vals.mClearReread = tok(r.clear.reread);" | site/app.js:244
 F191 | page: "without it" | source: "the size where Claude Code compacts on its own" | README.md:91
-F192 | page: "{mBaseResets}" | source: "vals.mBaseResets = String(r.base.resets);" | site/app.js:215
-F193 | page: "{mBasePeak}" | source: "vals.mBasePeak = tok(r.base.peak);" | site/app.js:215
-F194 | page: "{mBaseReread}" | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:215
+F192 | page: "{mBaseResets}" | source: "vals.mBaseResets = String(r.base.resets);" | site/app.js:245
+F193 | page: "{mBasePeak}" | source: "vals.mBasePeak = tok(r.base.peak);" | site/app.js:245
+F194 | page: "{mBaseReread}" | source: "vals.mBaseReread = tok(r.base.reread);" | site/app.js:245
 F195 | page: "Source: site/model.js, a model, not a measurement." | source: "A model, not a measurement." | site/model.js:1
 F196 | page: "Each reply adds 5000 new tokens to the context: assumed." | source: "var STEP = 5000;" | site/model.js:3
 F197 | page: "Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply." | source: "Claude rereads the whole context for every reply." | README.md:25 | source: "reread += ctx;" | site/model.js:27

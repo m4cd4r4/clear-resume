@@ -88,6 +88,36 @@
       else video.pause();
     });
     setBtn();
+
+    /* Expand: the same replay near full width in a dialog, with sound and controls.
+       The inline copy stays muted, since browsers only autoplay a muted video. */
+    var dlg = document.getElementById("media-full");
+    var full = document.getElementById("replay-full");
+    if (dlg && full && dlg.showModal) {
+      var wasPlaying = false;
+      var expand = function () {
+        if (fellBack) return;
+        wasPlaying = !video.paused;
+        video.pause();
+        if (!full.getAttribute("src")) full.src = video.getAttribute("src");
+        full.currentTime = video.currentTime;
+        full.muted = false;
+        dlg.showModal();
+        var p = full.play(); if (p && p.catch) p.catch(function () {});
+      };
+      video.addEventListener("click", expand);
+      document.getElementById("mbig").addEventListener("click", expand);
+      document.getElementById("mclose").addEventListener("click", function () { dlg.close(); });
+      /* a click on the backdrop lands on the dialog itself */
+      dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+      dlg.addEventListener("close", function () {
+        full.pause();
+        video.currentTime = full.currentTime;
+        if (wasPlaying) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+      });
+    } else {
+      document.getElementById("mbig").hidden = true;
+    }
     if (video.error || video.networkState === 3) fallback();
     var poster = new Image();
     poster.onerror = fallback;
