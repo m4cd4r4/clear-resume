@@ -238,7 +238,7 @@ F223 | page: "Source: the README." | source: "Nothing is sent anywhere unless yo
 ## changelog.html: releases
 
 F224 | page: "Releases" | source: "# Changelog" | CHANGELOG.md:1
-F225 | page: "Each release in CHANGELOG.md, newest first." | source: "# Changelog" | CHANGELOG.md:1 | source: "## 0.3.2" | CHANGELOG.md:36
+F225 | page: "Each release in CHANGELOG.md, newest first." | source: "# Changelog" | CHANGELOG.md:1 | source: "## 0.4.0" | CHANGELOG.md:3
 F226 | page: "0.3.2" | source: "## 0.3.2" | CHANGELOG.md:36
 F227 | page: "The relay stops when work stalls: it stops after two continued sessions in a row make no new commit, and says so." | source: "The relay stops when work stalls." | CHANGELOG.md:40 | source: "it stops after two continued sessions in a row make no new commit, and says so" | CHANGELOG.md:40
 F228 | page: "Outside a git repo only the budget applies." | source: "Outside a git repo only the budget applies." | CHANGELOG.md:42
@@ -267,6 +267,11 @@ F247 | page: "Each site: commit since site-v5-base, oldest first: short sha, AWS
 F248 | page: "Source: git log, written by buildlog.mjs." | source: "buildlog.mjs: writes the build log on changelog.html from git" | site/buildlog.mjs:1
 F249 | page: "The totals will come from buildstats.mjs, run on this build's transcripts after the run, and be committed as stats:." | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "After the run, its output is committed as stats:" | site/buildstats.mjs:6
 F250 | page: "The totals came from buildstats.mjs, run on this build's transcripts after the run, and were committed as stats:." | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "After the run, its output is committed as stats:" | site/buildstats.mjs:6
+F251 | page: "0.4.0" | source: "## 0.4.0" | CHANGELOG.md:3
+F252 | page: "/relay for one window: it overrides the relay option for the window you type it in and starts its count over." | source: "`/relay` for one window." | CHANGELOG.md:7 | source: "overrides the `relay` option for the window you type it in and starts its count over" | CHANGELOG.md:7
+F253 | page: "A countdown of the clears left. The status line shows it while the relay is on." | source: "A countdown of the clears left." | CHANGELOG.md:10 | source: "The status line shows it while the relay is on." | CHANGELOG.md:10
+F254 | page: "The relay works from the VS Code chat panel." | source: "The relay works from the VS Code chat panel." | CHANGELOG.md:12
+F255 | page: "VS Code extension 0.4.0: a context pie in the status bar, a relay item showing this window's clears used against its budget, and a Worktrees view." | source: "VS Code extension 0.4.0" | CHANGELOG.md:19 | source: "Context pie** in the status bar" | CHANGELOG.md:21 | source: "Relay item** showing this window's clears used against its budget" | CHANGELOG.md:24 | source: "Worktrees view" | CHANGELOG.md:25
 
 ## Footer
 
