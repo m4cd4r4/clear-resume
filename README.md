@@ -58,9 +58,9 @@ Claude rereads the whole context for every reply. In a long chat, the goal and t
 
 Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
 
-<p align="center"><sub>The 75-second explainer: the problem, the three steps, the numbers, two windows, the VS Code sidebar and the nudge.</sub></p>
+<p align="center"><sub>A real relay run, replayed in 76 seconds: Claude builds the <a href="https://m4cd4r4.github.io/clear-resume">project site</a> across 15 sessions, with no one typing after the first prompt. Left, every tool call. Right, the context per call, dropping at each clear. Below, the page as each commit lands. Sound on: a tick per tool call, a chime at each save, clear and load.</sub></p>
 
-https://github.com/user-attachments/assets/32846470-8fd4-4f25-9467-1f64a08c7efc
+https://github.com/user-attachments/assets/119d0bec-b1f4-49f7-918e-1f8160796309
 
 > [!NOTE]
 > Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
