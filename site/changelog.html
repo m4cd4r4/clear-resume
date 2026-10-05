@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog: clear-resume</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html">clear-resume</a>
+    <nav aria-label="Site">
+      <ul class="nav">
+        <li><a href="#releases">Releases</a></li>
+        <li><a href="#build-log">Build log</a></li>
+        <li class="sep" aria-hidden="true"></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="how-it-works.html">How it works</a></li>
+        <li><a href="changelog.html" aria-current="page">Changelog</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="page-head" aria-labelledby="h-page">
+    <div class="wrap">
+      <h1 id="h-page">Changelog</h1>
+    </div>
+  </section>
+
+  <section id="releases" aria-labelledby="h-releases">
+    <div class="wrap">
+      <h2 id="h-releases" data-fact="F224">Releases</h2>
+      <div class="prose">
+        <p data-fact="F225">Each release in CHANGELOG.md, newest first.</p>
+      </div>
+      <ol class="ss rel">
+        <li class="ss-row">
+          <h3 class="rel-ver" data-fact="F226">0.3.2</h3>
+          <ul class="ss-body rel-lines">
+            <li data-fact="F227">The relay stops when work stalls: it stops after two continued sessions in a row make no new commit, and says so.</li>
+            <li data-fact="F228">Outside a git repo only the budget applies.</li>
+            <li data-fact="F229">With the relay on, the context nudge tells Claude to end without a handover when the task is finished.</li>
+          </ul>
+        </li>
+        <li class="ss-row">
+          <h3 class="rel-ver" data-fact="F230">0.3.1</h3>
+          <ul class="ss-body rel-lines">
+            <li data-fact="F231">The relay: clear and continue with no keypress.</li>
+            <li data-fact="F232">After Claude saves a handover, <span class="nw">clear-resume</span> runs <code>/clear</code> when the turn ends and submits the prompt that continues from it.</li>
+            <li data-fact="F233">Off by default. Needs Claude Code 2.1.275 or later; an older build ignores it.</li>
+          </ul>
+        </li>
+        <li class="ss-row">
+          <h3 class="rel-ver" data-fact="F234">0.3.0</h3>
+          <ul class="ss-body rel-lines">
+            <li data-fact="F235">Headless runs continue themselves: <code>node plugin/scripts/run.mjs</code> runs <code>claude -p</code> in segments.</li>
+            <li data-fact="F236">It needs caps (<code>--max-segments</code>, <code>--total-budget-usd</code>, and the command's own <code>--max-turns</code> and <code>--max-budget-usd</code>).</li>
+            <li data-fact="F237">It stops the chain when two continued segments in a row make no new commit.</li>
+          </ul>
+        </li>
+        <li class="ss-row">
+          <h3 class="rel-ver" data-fact="F238">0.2.1</h3>
+          <ul class="ss-body rel-lines">
+            <li data-fact="F239">The nudge has settings in Claude Code.</li>
+            <li data-fact="F240">Turn it on and set its size with <code class="brk">/plugin configure clear-resume@clear-resume</code>, or in <code>/config</code> in Claude Code 2.1.269 or later.</li>
+          </ul>
+        </li>
+        <li class="ss-row">
+          <h3 class="rel-ver" data-fact="F241">0.2.0</h3>
+          <ul class="ss-body rel-lines">
+            <li data-fact="F242">Write one short handover on purpose, <code>/clear</code>, and that window's fresh session picks it up.</li>
+            <li data-fact="F243">Other open windows on the same project only list it.</li>
+            <li data-fact="F244"><span class="rel-kl">Known limitation:</span> the loop runs on <code>/clear</code>. A session started with <code>--resume</code> or <code>/resume</code> loads nothing.</li>
+          </ul>
+        </li>
+      </ol>
+      <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
+    </div>
+  </section>
+
+  <section id="build-log" aria-labelledby="h-build-log">
+    <div class="wrap">
+      <h2 id="h-build-log" data-fact="F246">Build log</h2>
+      <div class="prose">
+        <p data-fact="F247">Each <code>site:</code> commit since <code>site-v5-base</code>, oldest first: short sha, AWST time and subject.</p>
+      </div>
+      <ol class="bl">
+<!-- buildlog:begin -->
+          <li data-fact="F245"><code data-run="sha">6a0af29</code> <span class="bl-when" data-run="when">5 Oct 07:36</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 1.</span> Facts ledger (FACTS.md) from README, CHANGELOG, STATUS and the measured-by-hand block</span></li>
+          <li data-fact="F245"><code data-run="sha">8fb05bb</code> <span class="bl-when" data-run="when">5 Oct 07:36</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 2.</span> Scaffold: tokens, fonts, header nav, five section shells, footer</span></li>
+          <li data-fact="F245"><code data-run="sha">76764d2</code> <span class="bl-when" data-run="when">5 Oct 07:37</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 3.</span> Hero: H1, subline, marketplace add and relay install with copy buttons</span></li>
+          <li data-fact="F245"><code data-run="sha">d5a30ee</code> <span class="bl-when" data-run="when">5 Oct 07:38</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 4.</span> Media box: 16:9 video with pause/play, reduced motion, fallback on video or poster error</span></li>
+          <li data-fact="F245"><code data-run="sha">6d72c0c</code> <span class="bl-when" data-run="when">5 Oct 07:40</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 5.</span> Fallback feed: looping terminal of the relay loop (context climbs, nudge, save, /clear, load, carry on), reduced motion shows the final frame</span></li>
+          <li data-fact="F245"><code data-run="sha">bd30db4</code> <span class="bl-when" data-run="when">5 Oct 07:41</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 6.</span> What it does: one terminal transcript of save, /clear, carry on from the README's output</span></li>
+          <li data-fact="F245"><code data-run="sha">20fb1e8</code> <span class="bl-when" data-run="when">5 Oct 07:43</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 7.</span> Build stats: buildstats.mjs, proof counter strip slots, runstats.js and FACTS.md markers, fixture output committed</span></li>
+          <li data-fact="F245"><code data-run="sha">188f399</code> <span class="bl-when" data-run="when">5 Oct 07:47</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 8.</span> The relay: what it does, off by default, 2.1.275, sawtooth chart from crRun with text alternative, source line and sample-data label</span></li>
+          <li data-fact="F245"><code data-run="sha">5992883</code> <span class="bl-when" data-run="when">5 Oct 07:48</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 9.</span> Proof, part 2: strip source line and sample label switched by crRun.source, then the 191-load 2026-10-03 measurement with median labels and its PR #57 source line</span></li>
+          <li data-fact="F245"><code data-run="sha">a08ccc4</code> <span class="bl-when" data-run="when">5 Oct 07:50</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 10.</span> Install: relay one-liner first (after marketplace add), manual way as fallback, VS Code extension line, every command with a copy button, then the three-question FAQ</span></li>
+          <li data-fact="F245"><code data-run="sha">061753b</code> <span class="bl-when" data-run="when">5 Oct 07:52</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 11.</span> Footer colophon: one line of buildstats slots (sessions, automatic clears, site: commits, first and last AWST time, date) and a Build log link, hidden while crRun.source is fixture</span></li>
+          <li data-fact="F245"><code data-run="sha">3e43881</code> <span class="bl-when" data-run="when">5 Oct 07:56</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 12.</span> Fact check: factcheck.mjs checks pages against FACTS.md and FACTS.md against its sources; index.html passes</span></li>
+          <li data-fact="F245"><code data-run="sha">d940972</code> <span class="bl-when" data-run="when">5 Oct 07:59</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 13.</span> Accessibility: check.mjs (token contrast pairs, no hue, focus ring, reduced motion, names, no external requests); index.html passes</span></li>
+          <li data-fact="F245"><code data-run="sha">58d8f1b</code> <span class="bl-when" data-run="when">5 Oct 08:04</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 14.</span> Copy audit: copycheck.mjs (dashes, ellipsis, not just, not X but Y, grading words by numbers, 250-word cap); index.html at 248 words</span></li>
+          <li data-fact="F245"><code data-run="sha">924c932</code> <span class="bl-when" data-run="when">5 Oct 08:06</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 15.</span> 390 pass: no overflow, 44 px brand link, nav separator hidden at 390, date in the measurement h3 kept on one line; chart read at 390</span></li>
+          <li data-fact="F245"><code data-run="sha">36f980d</code> <span class="bl-when" data-run="when">5 Oct 08:07</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 16.</span> Model: model.js (global crModel, no DOM; STEP 5000, HANDOVER 780, SUMMARY 8000, COMPACT_AT 0.9; run() returns clear and base walks) and simtest.mjs, 11 cases ok</span></li>
+          <li data-fact="F245"><code data-run="sha">df32b84</code> <span class="bl-when" data-run="when">5 Oct 08:09</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 17.</span> how-it-works.html: the handover (what it holds, where it is kept, when it loads, --resume as a Known limitation, which handover loads with every README.md:151-170 case plus CHANGELOG.md:84, called the common cases); F110-F126</span></li>
+          <li data-fact="F245"><code data-run="sha">c95c3ba</code> <span class="bl-when" data-run="when">5 Oct 08:11</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 18.</span> Loop diagram: two hand-written SVGs (wide row, narrow column at 390), opt-in nodes say with the nudge on / with the relay on, ordered-list text alternative; F130-F148. Node fill none (check.mjs allows only text tokens for fill)</span></li>
+          <li data-fact="F245"><code data-run="sha">4b736ae</code> <span class="bl-when" data-run="when">5 Oct 08:14</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 19.</span> Worked example on how-it-works.html: the README's Cart totals rounding handover (save and load output, the copy's text from README.md:175 alt), @-mention line beside ~/.clear-resume/loaded/ and naming it; nav link; F150-F158. Saved/Loaded times omitted: the source gives no values</span></li>
+          <li data-fact="F245"><code data-run="sha">8dd5bdf</code> <span class="bl-when" data-run="when">5 Oct 08:15</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 20.</span> Comparison on how-it-works.html: /compact, --resume, /clear and clear-resume, every cell quoted from README.md:23-28; table scrolls inside its own box at 390; F159-F172. No auto-compaction row: the sources name it (README.md:58) but give no keeps/loses for it</span></li>
+          <li data-fact="F245"><code data-run="sha">5a4b189</code> <span class="bl-when" data-run="when">5 Oct 08:21</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 21 (part 1).</span> Model on how-it-works.html: #model section, nav link, window radios, start/clear-at/task sliders, chart of both runs, table, aria-live summary, How the model works details; F173-F200. Mobile model view and 200k/85k screenshot still to read; box not ticked</span></li>
+          <li data-fact="F245"><code data-run="sha">f6ed9a3</code> <span class="bl-when" data-run="when">5 Oct 08:24</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 21 (done).</span> Model: table fits 390 (no min-width under 600px, smaller type), screenshots read at 1M/21k and 200k/85k (both runs 23 resets on 200k, lines overlap: model output as is); checks pass; box ticked</span></li>
+          <li data-fact="F245"><code data-run="sha">12d9b78</code> <span class="bl-when" data-run="when">5 Oct 08:25</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 22.</span> Start size on how-it-works.html (#start): stock 21,200 with its full measurement conditions and the author's 77k to 99k, each row with its own source line; nav link; F201-F205. Repeat-caveat (58,978) left out: it is advice for someone repeating the probe</span></li>
+          <li data-fact="F245"><code data-run="sha">8fa1a17</code> <span class="bl-when" data-run="when">5 Oct 08:28</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 23.</span> Settings on how-it-works.html (#settings): Nudge to save a handover (auto_nudge), Nudge at, relay, each with default, what it does and its own source line; README.md:113 three-options wording; where to set them with per-option versions (2.1.269 nudge in /config, 2.1.275 relay); env vars; sync and web mode as opt-in with no setting names; F206-F223. No key name for Nudge at: the sources give none</span></li>
+          <li data-fact="F245"><code data-run="sha">731632b</code> <span class="bl-when" data-run="when">5 Oct 08:32</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 24.</span> changelog.html releases: lead, 0.3.2 to 0.2.0 newest first, 1-3 lines each, 0.3.0 keeps its runner caps, 0.2.0 Known limitation labelled; F224-F244. factcheck's build-log row check fails until item 25 adds the buildlog markers</span></li>
+          <li data-fact="F245"><code data-run="sha">fee5d6e</code> <span class="bl-when" data-run="when">5 Oct 08:35</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 25.</span> changelog.html build log: buildlog.mjs writes every site: commit since site-v5-base (oldest first, short sha, AWST day and time, subject) between buildlog markers; tense-switched totals line; F245-F250. buildstats.mjs line 6 now names the stats: commit (appended to the line so cited line numbers hold). copycheck skips quoted git subjects for phrase rules (item 14's subject names the banned phrase); dash/ellipsis still checked file-wide. Log lags HEAD by one commit until buildlog reruns</span></li>
+          <li data-fact="F245"><code data-run="sha">da3b63a</code> <span class="bl-when" data-run="when">5 Oct 08:38</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 26.</span> Print stylesheet: @media print flips the tokens to a white ground, hides nav, copy and media buttons and the model controls, opens details, prints the feed's lines statically, caps the chart height, keeps terminals, rows and strips from splitting, prints the GitHub URL in the footer. All three pages printed to PDF (shot.sh print) and read. buildlog rerun (26 rows). The relay chart still starts a new page in index print: left as is</span></li>
+          <li data-fact="F245"><code data-run="sha">7e5b50b</code> <span class="bl-when" data-run="when">5 Oct 08:42</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 27 (hero).</span> Self-review of index.html starts: site/REVIEW.md lists 3 fixes per section. Hero: H1 balanced to two lines (text-wrap: balance), fallback feed font clamped 12px to 18px (was 10px at 390, 20px at 1440), install commands break after URL slashes (&lt;wbr&gt;) and keep clear-resume@clear-resume and each --config pair whole (overflow-wrap: break-word). buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">ae05f8f</code> <span class="bl-when" data-run="when">5 Oct 08:43</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 27 (what it does).</span> Transcript lines are blocks (new .term.lines class, so how-it-works' newline transcript is untouched) with a 2ch hanging indent, so a wrapped line at 390 no longer reads as new output; the loaded/ path breaks after slashes (&lt;wbr&gt;); steps are split by a 12px gap in place of a blank line. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">0aa620d</code> <span class="bl-when" data-run="when">5 Oct 08:44</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 27 (relay).</span> Sawtooth x axis rounds up to the next 5 minutes (55, was 60 for a 52.8-minute run); &quot;Off by default.&quot; is bold; the &quot;context tokens&quot; axis title starts at the left edge over the tick labels (also on the how-it-works model chart, same code). buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">54baa97</code> <span class="bl-when" data-run="when">5 Oct 08:46</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 27 (proof).</span> At 390 an odd last strip figure spans both columns (tokens sent no longer sits beside an empty cell); app.js marks an n/a slot (.na, appended at the end of app.js so FACTS.md's cited line numbers hold) and it shows in text-2 at weight 400; the 2026-10-03 measurement h3 (F35) gets a hairline and 40px above it. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">0f38154</code> <span class="bl-when" data-run="when">5 Oct 08:47</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 27 (install).</span> Self-review of index.html done, item 27 ticked. Install: step labels use the text colour; the marketplace and install commands get the hero markup (&lt;wbr&gt; after URL slashes, clear-resume@clear-resume and each --config pair whole), also in the manual install line; the FAQ +/- marker brightens to the text colour on hover. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">3e5dadb</code> <span class="bl-when" data-run="when">5 Oct 08:50</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (handover).</span> Self-review of how-it-works.html starts: REVIEW.md gets its section. Handover: paths and commands are &lt;code&gt; in mono and the text colour (loaded/ path breaks after its slash); text-wrap: pretty on prose and case rows ends lone last words; 'These are the common cases.' moves from the ghost source style to prose size in text-2. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">086de2b</code> <span class="bl-when" data-run="when">5 Oct 08:52</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (loop).</span> Loop diagram: node text centred vertically in every node (wide and narrow SVG); in the text alternative /clear-resume:handover and /clear are &lt;code&gt; in the text colour, kept whole; the list measure is 90ch so each step is one line at 1440, text-wrap: pretty at 390. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">4a1ac55</code> <span class="bl-when" data-run="when">5 Oct 08:55</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (worked example).</span> Intro /clear and the loaded/ path in the note are &lt;code&gt; in the text colour; paths break after slashes (&lt;wbr&gt;), ~/.clear-resume/ kept whole in the transcript, file name uses overflow-wrap: break-word (was break-all); text-wrap: pretty on the note and the example's terminal text. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">41031a0</code> <span class="bl-when" data-run="when">5 Oct 08:56</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (compared).</span> Under 600 px the comparison table stacks each row with the column name over each cell (was a sideways scroll that cut off two columns at 390); cells align on the baseline; the h2's commands are &lt;code&gt; in mono. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">abbb6eb</code> <span class="bl-when" data-run="when">5 Oct 08:57</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (model).</span> Row stacking scoped to .c-stack so the results table keeps its table layout at 390 (the compared fix had caught it); clear-resume kept whole in the summary; slider groups 20 px apart at narrow widths; the How the model works marker brightens on hover. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">7319581</code> <span class="bl-when" data-run="when">5 Oct 08:59</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (start size).</span> Conditions line: overflow-wrap break-word (was anywhere), the date, version, model and 21,200 + kept whole; the names in it are &lt;code&gt; in the text colour; rows align on the first baseline. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">8d7455d</code> <span class="bl-when" data-run="when">5 Oct 08:59</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (settings).</span> clear-resume@clear-resume kept whole in both commands (with --config in the install one); /clear in the relay row is &lt;code&gt;; key names in the text colour. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">78c2b95</code> <span class="bl-when" data-run="when">5 Oct 09:02</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (releases).</span> Self-review of changelog.html starts: REVIEW.md gets its section. Releases: clear-resume kept whole in the 0.3.1 line (was clear- / resume at 390), lines use overflow-wrap break-word (was anywhere) and text-wrap: pretty; above 600 px the version column is 120 px (was the shared 220 px) on the first baseline. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">38b3456</code> <span class="bl-when" data-run="when">5 Oct 09:04</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 28 (build log).</span> Self-review of changelog.html done, item 28 ticked. Build log: buildlog.mjs wraps each subject's leading site: N label in .bl-item (text colour) so the item is easy to find; subjects capped at 100ch with overflow-wrap break-word (was anywhere); site:, site-v5-base, buildstats.mjs and stats: in the lead and totals line are &lt;code&gt; in the text colour. buildlog rerun.</span></li>
+          <li data-fact="F245"><code data-run="sha">f36328d</code> <span class="bl-when" data-run="when">5 Oct 09:05</span> <span class="bl-subj" data-run="subject"><span class="bl-item">site: 29.</span> copycheck.mjs now defaults to all three pages like check.mjs and factcheck.mjs (250-word cap stays index-only); all three checks pass on index, how-it-works and changelog with no fixes needed. buildlog rerun.</span></li>
+          <!-- buildlog:end -->
+      </ol>
+      <p class="src" data-fact="F248">Source: git log, written by buildlog.mjs.</p>
+      <p class="bl-note" data-when="fixture" data-fact="F249">The totals will come from <code>buildstats.mjs</code>, run on this build's transcripts after the run, and be committed as <code>stats:</code>.</p>
+      <p class="bl-note" data-when="run" data-fact="F250">The totals came from <code>buildstats.mjs</code>, run on this build's transcripts after the run, and were committed as <code>stats:</code>.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p data-fact="F50">MIT licence. Independent, not made or endorsed by Anthropic.</p>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="changelog.html">Changelog</a></li>
+      <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="runstats.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
