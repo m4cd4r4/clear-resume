@@ -255,6 +255,13 @@ If your model's context window is 200k tokens, set **Nudge at** below the size w
 
 </details>
 
+## What's inside
+
+- **One skill**, `/clear-resume:handover`, that saves the handover.
+- **Three hooks**: one loads a waiting handover at startup, `/clear` and compaction; two nudge when the chat gets long.
+- **One Claude Code mod**, the relay, that runs `/clear` after a save and continues from the handover.
+- **One store**, plain files in `~/.clear-resume`, that the hooks and the VS Code extension read and write through the same code. [What's inside](docs/HOW-IT-WORKS.md#whats-inside)
+
 > [!TIP]
 > **[How it works](docs/HOW-IT-WORKS.md)** has the rest.
 >
@@ -268,6 +275,7 @@ If your model's context window is 200k tokens, set **Nudge at** below the size w
 > | Use Claude Code on the web | [Claude Code on the web](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) |
 > | See what it costs, reads and writes | [Cost](docs/HOW-IT-WORKS.md#cost) and [Privacy](docs/HOW-IT-WORKS.md#privacy) |
 > | See what it cannot do | [Limitations](docs/HOW-IT-WORKS.md#limitations) |
+> | See the parts and the code | [What's inside](docs/HOW-IT-WORKS.md#whats-inside) |
 
 ---
 
