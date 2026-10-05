@@ -13,7 +13,13 @@
 
 https://github.com/user-attachments/assets/f9641132-034a-4747-ae0f-ac794faf03d6
 
-## The problem: in a long chat, the work gets buried
+## 91.0M tokens, against about 565.6M in one long chat
+
+That run took 15 sessions and sent Claude 91.0M tokens. The same work as one long chat, with no clears, comes to about 565.6M: up to 6.2× more. On the API, tokens cost money. On a Claude plan, they use up your limits.
+
+<sub>The 91.0M is measured: the context of every reply in the run, added up. The 565.6M is an estimate: each session's tool calls stacked on the last, with no auto-compaction. It also counts the files Claude re-read after each clear, which one long chat would not need, so treat 6.2× as an upper bound.</sub>
+
+## Why: in a long chat, the work gets buried
 
 <p align="center">
   <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
