@@ -86,6 +86,23 @@ section > .wrap > h2 + * { margin-top: 16px; }
   border-color: transparent transparent transparent var(--text); margin-left: 4px;
 }
 .mbtn[data-paused="true"]:hover .mbtn-icon { border-color: transparent transparent transparent var(--bg); background: none; }
+.media-box video { cursor: zoom-in; }
+.mbtn-big { right: 64px; color: var(--text); }
+.mbtn-big:hover { color: var(--bg); }
+.mbtn-big svg { display: block; }
+.mbtn[hidden], .media-box.is-fallback .mbtn-big { display: none; }
+/* expanded replay: as wide as the viewport allows at 16:9 */
+.media-full {
+  width: min(96vw, calc((100vh - 72px) * 16 / 9)); max-width: none; max-height: none;
+  padding: 0; border: 1px solid var(--hairline); border-radius: 6px; background: var(--bg); color: var(--text); overflow: visible;
+}
+.media-full::backdrop { background: var(--bg); opacity: 0.92; }
+.media-full video { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface); border-radius: 6px; }
+.mclose {
+  position: absolute; right: 0; bottom: 100%; min-height: 44px; padding: 0 4px; margin: 0;
+  border: 0; background: none; color: var(--text); font: 400 14px var(--mono); cursor: pointer;
+}
+.mclose:hover { text-decoration: underline; }
 /* fallback feed: a terminal that scrolls, newest line at the bottom */
 .feed { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; container-type: inline-size; }
 .feed[hidden] { display: none; }

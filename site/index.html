@@ -34,12 +34,17 @@
         <div class="media-box" id="media-box">
           <video id="replay" src="media/replay.mp4" poster="media/replay-poster.jpg" muted playsinline autoplay loop preload="metadata" aria-label="Replay of the run that built this page." data-fact="F60"></video>
           <button class="mbtn" id="mbtn" type="button" aria-label="Pause replay" data-paused="false"><span class="mbtn-icon" aria-hidden="true"></span></button>
+          <button class="mbtn mbtn-big" id="mbig" type="button" aria-label="Expand replay, with sound"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
           <div class="feed" id="feed" hidden>
             <pre><span class="ln note" data-fact="F62"># with the relay on, context passes the nudge size</span><span class="ln bar" aria-hidden="true" data-bar="24"></span><span class="ln out" data-fact="F63">clear-resume: context is about 182k tokens (nudge at 180k).</span><span class="ln note" data-fact="F64"># Claude is asked to save a handover</span><span class="ln out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="ln out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="ln note" data-fact="F65"># the plugin runs /clear when the turn ends</span><span class="ln bar" aria-hidden="true" data-bar="3"></span><span class="ln out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="ln note" data-fact="F17"># Claude carries on from the handover.</span></pre>
           </div>
         </div>
         <figcaption class="media-cap" id="media-cap" data-fact="F60" hidden>Replay of the run that built this page.</figcaption>
       </figure>
+      <dialog class="media-full" id="media-full" aria-labelledby="media-cap">
+        <button class="mclose" id="mclose" type="button">Close</button>
+        <video id="replay-full" playsinline controls preload="none" aria-label="Replay of the run that built this page." data-fact="F60"></video>
+      </dialog>
       <div class="cmds">
         <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
         <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
