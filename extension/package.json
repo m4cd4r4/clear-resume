@@ -7,7 +7,7 @@
   "license": "MIT",
   "icon": "media/icon.png",
   "galleryBanner": {
-    "color": "#1E2536",
+    "color": "#0A0A0A",
     "theme": "dark"
   },
   "homepage": "https://github.com/m4cd4r4/clear-resume/tree/main/extension#readme",
@@ -35,6 +35,9 @@
     "sessions",
     "context",
     "sidebar",
+    "relay",
+    "worktrees",
+    "context window",
     "productivity"
   ],
   "main": "./dist/extension.js",
