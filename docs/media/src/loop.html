@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+  Source for docs/media/loop.webp. loop.html#N shows frame N; loop.html#list
+  prints every frame's duration in ms as JSON. render-loop.sh shoots each frame
+  and joins them into the animated webp. Same palette as cards.html.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>clear-resume loop</title>
+<style>
+@font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-700.woff2") format("woff2"); font-weight: 700; }
+:root { --bg: #0a0a0a; --surface: #121212; --hairline: #262626; --text: #f2f2f2; --text-2: #8c8c8c; --ghost: #5a5a5a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); }
+body { color: var(--text); font: 400 13px/1.5 "JetBrains Mono", monospace; font-variant-ligatures: none; -webkit-font-smoothing: antialiased; }
+.win { width: 600px; height: 436px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+.bar { flex: none; display: flex; align-items: center; gap: 12px; height: 38px; padding: 0 16px; border-bottom: 1px solid var(--hairline); background: var(--surface); }
+.repo { font-weight: 700; } .branch { color: var(--text-2); }
+.ctx { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; }
+.meter { width: 120px; height: 4px; background: var(--hairline); } .meter i { display: block; height: 100%; background: var(--text); }
+.body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding: 0 16px 16px; -webkit-mask-image: linear-gradient(transparent 0, #000 40px); mask-image: linear-gradient(transparent 0, #000 40px); }
+.row { display: grid; grid-template-columns: 60px 1fr; column-gap: 8px; margin-top: 2px; }
+.row.gap { margin-top: 10px; }
+.who { color: var(--ghost); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding-top: 2px; }
+.p { color: var(--text-2); } .cmd { font-weight: 700; } .arg { color: var(--text-2); } .h { font-weight: 700; } .m { color: var(--text-2); }
+.plug { display: block; border-left: 2px solid var(--text); padding-left: 10px; }
+.hi { background: #1f1f1f; outline: 1px solid var(--ghost); }
+.caret { display: inline-block; width: 8px; height: 15px; vertical-align: -3px; background: var(--text); }
+pre { display: none; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="ctx">context <span class="meter"><i id="m"></i></span></span></div>
+  <div class="body" id="b"></div>
+</div>
+<pre id="list"></pre>
+<script>
+const you = (h, gap) => ({ who: 'you', h, gap });
+const cl = (h, gap) => ({ who: 'Claude', h, gap });
+const plug = (h, gap) => ({ who: '', h: '<span class="plug">' + h + '</span>', gap });
+const t = (a, b) => '<span class="tool">' + a + '</span> <span class="arg">' + b + '</span>';
+
+const chat = [
+  you('<span class="p">&gt;</span> start a widget-shop cart: items, quantities, prices'),
+  cl(t('Write', 'src/items.js') + '<br>Items, quantities and prices are in place.'),
+  you('<span class="p">&gt;</span> add a cart page that lists the line items and a total'),
+  cl(t('Write', 'src/cart.js') + '<br>' + t('Bash&nbsp;', 'npm test -- cart') + '<br>The cart page lists each line and a total.'),
+  you('<span class="p">&gt;</span> now print the same total on the receipt'),
+  cl(t('Edit&nbsp;', 'src/receipt.js') + '<br>The receipt now prints the cart total.'),
+  you('<span class="p">&gt;</span> the receipt total is a cent less than the cart total', true),
+  cl(t('Read&nbsp;', 'src/cart.js') + '<br>' + t('Read&nbsp;', 'src/receipt.js') + '<br>' + t('Bash&nbsp;', 'npm test -- cart') + '<br>Reproduced: 3 items at $19.99 total 59.97 in the cart but 59.96 on the receipt.', true),
+];
+const handover = [
+  '<span class="arg">node "${CLAUDE_PLUGIN_ROOT}/scripts/save.mjs" --title "Cart totals rounding" &lt;&lt;\'EOF\'</span>',
+  '<span class="h"># Cart totals rounding</span>',
+  '<span class="h">## Goal</span>',
+  'Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match.',
+  '<span class="h">## Next action</span>',
+  'Run `npm test -- cart` and fix `src/cart.js:2` so `cartTotal` rounds once at the end, half-up, to 2 decimal places.',
+  '<span class="h">## Decisions already made</span>',
+  '- Round once, at the total, never per line: the payment provider does the same.',
+  '<span class="arg">EOF</span>',
+];
+const saved = plug('Saved handover "Cart totals rounding" (id 31c9af7).<br>After /clear, the next session in ~/code/widget-shop loads it automatically.', true);
+const loaded = (hi) => plug('SessionStart:clear says: clear-resume: loaded handover "Cart totals rounding" (saved just now).<br><span' + (hi ? ' class="hi"' : '') + '>A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md</span>');
+const work = [
+  'Running the cart tests, then fixing src/cart.js:2.',
+  t('Bash&nbsp;', 'npm test -- cart'),
+  t('Edit&nbsp;', 'src/cart.js'),
+  t('Bash&nbsp;', 'npm test -- cart'),
+  'cartTotal now rounds once, at the total. The cart tests pass.',
+];
+
+// Build the frame list: each frame is { rows, meter, ms }.
+const F = [];
+const push = (rows, meter, ms) => F.push({ rows: rows.slice(), meter, ms });
+const typing = (rows, text, meter, gap) => {
+  for (let i = 1; i <= text.length; i++)
+    push([...rows, you('<span class="p">&gt;</span> <span class="cmd">' + text.slice(0, i) + '</span><span class="caret"></span>', gap)], meter, 55);
+  push([...rows, you('<span class="p">&gt;</span> <span class="cmd">' + text + '</span>', gap)], meter, 400);
+  return [...rows, you('<span class="p">&gt;</span> <span class="cmd">' + text + '</span>', gap)];
+};
+
+let rows = [...chat];
+push([...rows, you('<span class="p">&gt;</span> <span class="caret"></span>', true)], 94, 2600);
+rows = typing(rows, '/clear-resume:handover', 94, true);
+for (let i = 1; i <= handover.length; i++) push([...rows, cl('<span class="tool">Bash</span> ' + handover.slice(0, i).join('<br>'))], 95, 180);
+rows = [...rows, cl('<span class="tool">Bash</span> ' + handover.join('<br>'))];
+rows.push(saved); push(rows, 96, 2800);
+rows = typing(rows, '/clear', 96, true);
+rows = []; push([you('<span class="p">&gt;</span> <span class="caret"></span>')], 4, 900);
+rows = [loaded(false)]; push(rows, 6, 1400);
+push([loaded(true)], 6, 1600);
+rows = [loaded(true)];
+rows = typing(rows, 'go', 6, true);
+for (let i = 1; i <= work.length; i++) push([...rows, cl(work.slice(0, i).join('<br>'))], 6 + i, i === work.length ? 4200 : 450);
+
+function show(n) {
+  const f = F[Math.max(0, Math.min(F.length - 1, n))];
+  document.getElementById('m').style.width = f.meter + '%';
+  document.getElementById('b').innerHTML = f.rows.map(r =>
+    '<div class="row' + (r.gap ? ' gap' : '') + '"><span class="who">' + r.who + '</span><span>' + r.h + '</span></div>').join('');
+}
+const h = location.hash.slice(1);
+if (h === 'list') { const l = document.getElementById('list'); l.textContent = JSON.stringify(F.map(f => f.ms)); }
+show(h === 'list' ? 0 : +h || 0);
+</script>
+</body>
+</html>

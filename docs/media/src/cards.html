@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+  Source for the README cards in docs/media/. One card shows per #hash
+  (cards.html#banner, #problem, #nudge, #numbers, #copy, #windows).
+  Render all of them with: bash docs/media/src/render.sh
+  Palette and fonts are the site's (site/styles.css), so the README matches
+  https://m4cd4r4.github.io/clear-resume and the relay replay.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>clear-resume README cards</title>
+<style>
+@font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-700.woff2") format("woff2"); font-weight: 700; }
+@font-face { font-family: "Montserrat"; src: url("../../../site/fonts/montserrat-400.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Montserrat"; src: url("../../../site/fonts/montserrat-600.woff2") format("woff2"); font-weight: 600; }
+@font-face { font-family: "Montserrat"; src: url("../../../site/fonts/montserrat-700.woff2") format("woff2"); font-weight: 700; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #181818;
+  --hairline: #262626;
+  --text: #f2f2f2;
+  --text-2: #8c8c8c;
+  --ghost: #5a5a5a;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --sans: "Montserrat", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { color: var(--text); font: 400 15px/1.5 var(--mono); font-variant-ligatures: none; -webkit-font-smoothing: antialiased; }
+section { display: none; }
+section:target { display: block; }
+
+/* terminal window */
+.win { background: var(--bg); border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+.win + .win { margin-top: 12px; }
+.bar { display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--hairline); background: var(--surface); font-size: 13px; }
+.bar .repo { font-weight: 700; }
+.bar .branch { color: var(--text-2); }
+.bar .ctx { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.meter { width: 120px; height: 4px; background: var(--hairline); }
+.meter i { display: block; height: 100%; background: var(--text); }
+.tag { margin-left: auto; padding: 2px 8px; border: 1px solid var(--ghost); color: var(--text); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.body { padding: 16px 16px 18px; }
+.row { display: grid; grid-template-columns: 64px 1fr; column-gap: 8px; }
+.row + .row { margin-top: 2px; }
+.row.gap { margin-top: 12px; }
+.who { color: var(--ghost); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding-top: 3px; }
+.p { color: var(--text-2); }
+.cmd { color: var(--text); font-weight: 700; }
+.tool { color: var(--text); }
+.arg { color: var(--text-2); }
+.say { color: var(--text); }
+/* the plugin's own voice: a hairline rule on the left, never a colour */
+.plug { border-left: 2px solid var(--text); padding-left: 10px; color: var(--text); }
+
+/* banner */
+#banner .frame { width: 1280px; height: 400px; display: flex; align-items: center; gap: 56px; padding: 0 72px; background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px;
+  background-image: radial-gradient(circle at 78% 50%, #161616 0, transparent 60%); }
+#banner .copy { flex: 1; }
+#banner .kicker { font: 400 12px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--text-2); }
+#banner h1 { margin: 14px 0 0; font: 700 84px/1 var(--sans); letter-spacing: -0.035em; }
+#banner h1 span { color: var(--ghost); }
+#banner .line { margin-top: 22px; font: 600 22px/1.35 var(--sans); }
+#banner .sub { margin-top: 18px; font: 400 14px var(--mono); color: var(--text-2); }
+#banner .win { width: 470px; flex: none; }
+#banner .body { padding: 18px 18px 20px; font-size: 15px; }
+#banner .row + .row { margin-top: 14px; }
+#banner .note { color: var(--text-2); font-size: 13px; }
+
+/* problem */
+#problem .frame { width: 780px; display: grid; grid-template-columns: 1fr 180px; gap: 16px; align-items: start; padding: 16px; background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px; }
+#problem .frame > .win { border-color: var(--hairline); }
+#problem .body { font-size: 12.5px; }
+#problem .side { border: 1px solid var(--hairline); border-left: 2px solid var(--text); background: var(--surface); padding: 14px 14px; font: 600 15px/1.35 var(--sans); }
+#problem .side b { font-weight: 700; }
+#problem .side small { display: block; margin-top: 8px; font: 400 11px/1.4 var(--mono); color: var(--text-2); }
+
+/* nudge, copy, windows */
+#nudge .frame, #copy .frame, #windows .frame { width: 520px; }
+#nudge .body, #windows .body { font-size: 14px; }
+
+/* numbers */
+#numbers .frame { width: 640px; background: var(--bg); border: 1px solid var(--hairline); border-radius: 10px; padding: 28px 28px 22px; }
+#numbers .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); }
+#numbers .fig { display: flex; align-items: baseline; gap: 12px; margin-top: 6px; }
+#numbers .fig b { font: 700 52px/1 var(--mono); letter-spacing: -0.03em; }
+#numbers .fig b.small { color: var(--text); }
+#numbers .fig span { font: 600 16px var(--sans); }
+#numbers .fig em { font-style: normal; color: var(--text-2); font: 400 14px var(--sans); }
+#numbers .track { height: 10px; margin-top: 12px; background: var(--hairline); }
+#numbers .track i { display: block; height: 100%; background: var(--text); }
+#numbers .gap { height: 26px; }
+#numbers .foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--text-2); }
+
+/* copy (editor tab) */
+#copy .tabs { display: flex; height: 38px; background: var(--surface); border-bottom: 1px solid var(--hairline); font-size: 13px; }
+#copy .tabs span { display: flex; align-items: center; padding: 0 16px; border-right: 1px solid var(--hairline); background: var(--bg); box-shadow: inset 0 2px 0 var(--text); }
+#copy .crumb { padding: 8px 16px; font-size: 10.5px; white-space: nowrap; color: var(--text-2); border-bottom: 1px solid var(--hairline); }
+#copy .lines { padding: 10px 16px 14px 0; font-size: 13px; line-height: 1.55; }
+#copy .ln { display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; }
+#copy .ln > i { font-style: normal; text-align: right; color: var(--ghost); }
+#copy .h { font-weight: 700; }
+#copy .m { color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<section id="banner"><div class="frame">
+  <div class="copy">
+    <div class="kicker">handover · /clear · resume</div>
+    <h1><span>clear-</span>resume</h1>
+    <div class="line">Clear the chat. Keep the goal,<br>the next step and the decisions.</div>
+    <div class="sub">A free, open-source plugin for Claude Code</div>
+  </div>
+  <div class="win">
+    <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="ctx">context <span class="meter" style="width:72px"><i style="width:6%"></i></span></span></div>
+    <div class="body">
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> <span class="cmd">/clear-resume:handover</span><br><span class="note">└ Claude saves a short note</span></span></div>
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> <span class="cmd">/clear</span><br><span class="note">└ the fresh session loads the note</span></span></div>
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> <span class="cmd">go</span><br><span class="note">└ Claude carries on from it</span></span></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="problem"><div class="frame">
+  <div class="win">
+    <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="ctx">context <span class="meter"><i style="width:94%"></i></span></span></div>
+    <div class="body">
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> start a widget-shop cart: items, quantities, prices</span></div>
+      <div class="row"><span class="who">Claude</span><span><span class="tool">Write</span> <span class="arg">src/items.js</span><br>Items, quantities and prices are in place.</span></div>
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> add a cart page that lists the line items and a total</span></div>
+      <div class="row"><span class="who">Claude</span><span><span class="tool">Write</span> <span class="arg">src/cart.js</span><br><span class="tool">Bash</span>&nbsp; <span class="arg">npm test -- cart</span><br>The cart page lists each line and a total.</span></div>
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> now print the same total on the receipt</span></div>
+      <div class="row"><span class="who">Claude</span><span><span class="tool">Edit</span>&nbsp; <span class="arg">src/receipt.js</span><br>The receipt now prints the cart total.</span></div>
+      <div class="row gap"><span class="who">you</span><span><span class="p">&gt;</span> the receipt total is a cent less than the cart total</span></div>
+      <div class="row gap"><span class="who">Claude</span><span><span class="tool">Read</span>&nbsp; <span class="arg">src/cart.js</span><br><span class="tool">Read</span>&nbsp; <span class="arg">src/receipt.js</span><br><span class="tool">Read</span>&nbsp; <span class="arg">test/cart.test.js</span><br><span class="tool">Bash</span>&nbsp; <span class="arg">npm test -- cart</span><br>Reproduced: 3 items at $19.99 total 59.97 in the cart but 59.96 on the receipt.</span></div>
+    </div>
+  </div>
+  <div class="side"><b>Context</b>: everything Claude is holding in mind for this chat.<small>The bar, top right, is almost full.</small></div>
+</div></section>
+
+<section id="nudge"><div class="frame"><div class="win">
+  <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="ctx">context <span class="meter"><i style="width:96%"></i></span></span></div>
+  <div class="body">
+    <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> also email a copy of the receipt to the customer</span></div>
+    <div class="row"><span class="who">Claude</span><span><span class="tool">Edit</span> <span class="arg">src/receipt.js</span><br>The receipt email sends the rounded total.</span></div>
+    <div class="row gap"><span></span><span class="plug">clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.</span></div>
+  </div>
+</div></div></section>
+
+<section id="numbers"><div class="frame">
+  <div class="label">A typical /clear frees</div>
+  <div class="fig"><b>102,088</b><span>tokens</span></div>
+  <div class="track"><i style="width:100%"></i></div>
+  <div class="gap"></div>
+  <div class="label">The handover that replaces it</div>
+  <div class="fig"><em>about</em><b class="small">780</b><span>tokens</span><em>(an estimate)</em></div>
+  <div class="track"><i style="width:0.76%;min-width:3px"></i></div>
+  <div class="foot">Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.</div>
+</div></section>
+
+<section id="copy"><div class="frame"><div class="win">
+  <div class="tabs"><span>widget-shop-cart-totals-rounding-31c9af7.md</span></div>
+  <div class="crumb">~ › .clear-resume › loaded › widget-shop-cart-totals-rounding-31c9af7.md</div>
+  <div class="lines">
+    <div class="ln"><i>1</i><span class="h"># Cart totals rounding</span></div>
+    <div class="ln"><i>2</i><span></span></div>
+    <div class="ln"><i>3</i><span><span class="m">-</span> Repo: widget-shop</span></div>
+    <div class="ln"><i>4</i><span><span class="m">-</span> Branch: fix/cart-rounding</span></div>
+    <div class="ln"><i>5</i><span><span class="m">-</span> Saved: 2026-09-28 14:02 (UTC+00:00)</span></div>
+    <div class="ln"><i>6</i><span><span class="m">-</span> Loaded: 2026-09-28 14:03 (UTC+00:00)</span></div>
+    <div class="ln"><i>7</i><span></span></div>
+    <div class="ln"><i>8</i><span class="m">---</span></div>
+    <div class="ln"><i>9</i><span></span></div>
+    <div class="ln"><i>10</i><span class="h">## Goal</span></div>
+    <div class="ln"><i>11</i><span>Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match.</span></div>
+    <div class="ln"><i>12</i><span></span></div>
+    <div class="ln"><i>13</i><span class="h">## Next action</span></div>
+    <div class="ln"><i>14</i><span>Run <span class="m">`</span>npm test -- cart<span class="m">`</span> and fix <span class="m">`</span>src/cart.js:2<span class="m">`</span> so <span class="m">`</span>cartTotal<span class="m">`</span> rounds once at the end, half-up, to 2 decimal places.</span></div>
+    <div class="ln"><i>15</i><span></span></div>
+    <div class="ln"><i>16</i><span class="h">## Decisions already made</span></div>
+    <div class="ln"><i>17</i><span><span class="m">-</span> Round once, at the total, never per line: the payment provider does the same.</span></div>
+  </div>
+</div></div></section>
+
+<section id="windows"><div class="frame">
+  <div class="win">
+    <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="tag">window 1</span></div>
+    <div class="body">
+      <div class="row"><span class="who">you</span><span><span class="p">&gt;</span> <span class="cmd">/clear-resume:handover</span></span></div>
+      <div class="row"><span></span><span class="plug">Saved handover "Cart totals rounding" (id 31c9af7).</span></div>
+      <div class="row gap"><span class="who">you</span><span><span class="p">&gt;</span> <span class="cmd">/clear</span></span></div>
+      <div class="row"><span></span><span class="plug">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span></div>
+    </div>
+  </div>
+  <div class="win">
+    <div class="bar"><span class="repo">widget-shop</span><span class="branch">fix/cart-rounding</span><span class="tag">window 2</span></div>
+    <div class="body">
+      <div class="row"><span></span><span class="plug">clear-resume: 1 handover waiting for this repo: "Cart totals rounding". Say which to resume.</span></div>
+    </div>
+  </div>
+</div></section>
+
+</body>
+</html>

@@ -9,8 +9,8 @@ each other.
 | # | Slug | Scope | Status | Effort | Depends on |
 |---|---|---|---|---|---|
 | 1 | release-0-4-0 | CHANGELOG for #64 and #66-#70; README covers relay, headless runs, Worktrees view, context pie, relay picker (absorbs open PR #63); plugin + extension to 0.4.0; tag `v0.4.0`; GitHub release. Backfill tags/releases for 0.3.0-0.3.2 at their release commits. | merged (#73) | ~1 h | - |
-| 2 | ext-media | Real-use screenshots and short clips of the new extension features, captured in the `demo/` widget-shop fixture under a throwaway VS Code profile and `CLAUDE_CONFIG_DIR`. Used by README, marketplace listing, site. Publish extension 0.4.0 to VS Code Marketplace and Open VSX. | later | ~1-1.5 h | 1 |
-| 3 | site-pages | Move `I:/Scratch/cr-e2e/site` into `site/`; point `factcheck.mjs` at the real README/CHANGELOG instead of the fixture; add install hub (plugin commands first, extension second, both marketplaces, latest release); GitHub Pages workflow on `release: published` + `workflow_dispatch`; repo homepage field and README link to the site. | materialised | ~1 h | 1 |
+| 2 | ext-media | Real-use screenshots and short clips of the new extension features, captured in the `demo/` widget-shop fixture under a throwaway VS Code profile and `CLAUDE_CONFIG_DIR`. Used by README, marketplace listing, site. Widened 2026-10-05: README cards, loop and badges restyled mono to match the site, with their HTML source in `docs/media/src/`; extension metadata and repo topics updated. Publish extension 0.4.0 to VS Code Marketplace and Open VSX. | materialised | ~1-1.5 h | 1 |
+| 3 | site-pages | Move `I:/Scratch/cr-e2e/site` into `site/`; point `factcheck.mjs` at the real README/CHANGELOG instead of the fixture; add install hub (plugin commands first, extension second, both marketplaces, latest release); GitHub Pages workflow on `release: published` + `workflow_dispatch`; repo homepage field and README link to the site. | merged (#74) | ~1 h | 1 |
 
 ## Waves
 
