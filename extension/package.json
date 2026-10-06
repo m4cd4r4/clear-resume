@@ -133,6 +133,11 @@
         "command": "clearResume.pickRelay",
         "title": "Set relay for this window",
         "category": "clear-resume"
+      },
+      {
+        "command": "clearResume.handoverNow",
+        "title": "Hand over now",
+        "category": "clear-resume"
       }
     ],
     "menus": {
