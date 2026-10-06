@@ -11,9 +11,11 @@
 // `claude setup-token`), read from a file and passed in the environment only. The
 // token is never printed, and nothing ever signs in inside the rig.
 //
-//   node scripts/rig.mjs setup [--plugin owner/repo]... [--plugin-config k=v]... [--model M] [--effort E]
+//   node scripts/rig.mjs setup [--plugin owner/repo]... [--clone owner/repo]... [--plugin-config k=v]... [--model M] [--effort E]
 //                                         --plugin clones a GitHub repo and installs it
-//                                         as <repo>@<repo>; --plugin-config applies to those
+//                                         as <repo>@<repo>; --plugin-config applies to those;
+//                                         --clone only clones, so the repo can be worked on
+//                                         without its plugin loaded
 //   node scripts/rig.mjs open <folder>    VS Code on <folder>, window placed for capture
 //   node scripts/rig.mjs place            put the window back
 //   node scripts/rig.mjs close            close the rig's VS Code
@@ -177,6 +179,7 @@ function setup() {
   const model = flag("model", "sonnet");
   const effort = flag("effort", "medium");
   const plugins = flags("plugin");
+  const clones = flags("clone");
   const pluginConfig = flags("plugin-config").flatMap((kv) => ["--config", kv]);
   for (const d of [P.config, P.store, P.src, P.userData, P.extensions, P.takes]) mkdirSync(d, { recursive: true });
 
@@ -213,7 +216,7 @@ function setup() {
     "window.zoomLevel": 2,
   });
 
-  for (const slug of ["m4cd4r4/clear-resume", ...plugins]) {
+  for (const slug of new Set(["m4cd4r4/clear-resume", ...plugins, ...clones])) {
     const repo = slug.split("/").pop();
     const dest = join(P.src, repo);
     if (existsSync(dest)) console.log(`${repo}: already cloned, left as is`);
