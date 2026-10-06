@@ -64,6 +64,8 @@ const P = {
   extensions: join(ROOT, "vscode", "extensions"),
   takes: join(ROOT, "takes"),
   stop: join(ROOT, "takes", ".stop"),
+  tmp: join(ROOT, "tmp"),
+  npmCache: join(ROOT, "npm-cache"),
 };
 const TOKEN_FILE = process.env.CR_RIG_TOKEN_FILE || join(homedir(), ".claude", "secrets", "claude-oauth-token");
 
@@ -100,8 +102,11 @@ function token() {
 }
 
 // Everything the rig runs gets this environment: the parent's, minus anything that
-// would tie it to the session that started it, with the home folder swapped.
+// would tie it to the session that started it, with the home folder swapped. Temp
+// files and the npm cache stay under the root too: the inherited TEMP is on the
+// system drive, which filled up on 2026-10-06.
 function rigEnv() {
+  for (const d of [P.tmp, P.npmCache]) mkdirSync(d, { recursive: true });
   const env = {};
   for (const [k, v] of Object.entries(process.env)) {
     if (/^(ELECTRON_|VSCODE_|CLAUDE|ANTHROPIC_|TERM_PROGRAM|GIT_ASKPASS|MCP_)/i.test(k)) continue;
@@ -114,6 +119,9 @@ function rigEnv() {
     HOMEPATH: P.home.slice(2),
     CLAUDE_CONFIG_DIR: P.config,
     CLEAR_RESUME_HOME: P.store,
+    TEMP: P.tmp,
+    TMP: P.tmp,
+    npm_config_cache: P.npmCache,
     CLAUDE_CODE_OAUTH_TOKEN: token(),
   });
   return env;
