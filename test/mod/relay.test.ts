@@ -24,9 +24,10 @@ type World = {
   files: Map<string, string>
 }
 
-// The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json override.
-// The engine resolves the path before a hook sees it, so on Windows it is C:\home\me\...
-const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set)\.json$/
+// The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json
+// override or the .handover.json request. The engine resolves the path before a
+// hook sees it, so on Windows it is C:\home\me\...
+const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set|\.handover)\.json$/
 
 function world(on: On, env: Record<string, string> = {}) {
   const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [], files: new Map() }
@@ -63,7 +64,10 @@ function world(on: On, env: Record<string, string> = {}) {
   on('turn.complete', async ($, e) => ({ text: e.answer }))
   on('session.end', async ($, e) => ({ sessionId: e.sessionId }))
   on('session.start', async ($, e) => ({ cwd: e.cwd }))
+  // Commands the host refuses, as it does an unknown name.
+  const refused = new Set<string>()
   on('command.run', async ($, e) => {
+    if (refused.has(e.command)) throw new Error(`unknown command: ${e.command}`)
     w.commands.push(e.command)
     return { text: '' }
   })
@@ -95,6 +99,9 @@ function world(on: On, env: Record<string, string> = {}) {
     },
     nextSession: (id: string) => {
       sessionId = id
+    },
+    refuse: (command: string) => {
+      refused.add(command)
     },
     // The one state file the mod wrote, parsed.
     state: () => {
@@ -408,5 +415,90 @@ describe('/relay and the status line', () => {
     const { state } = world(on)
     await $.command.run(relayCmd('2'))
     expect(state().file).toMatchObject({ limit: 2, used: 0 })
+  })
+})
+
+// tdd-guard:allow - written beside the code; each case was then seen to fail by
+// breaking the line of relay.ts it guards.
+describe('the status bar hand-over button', () => {
+  // What the extension writes on a click, beside this window's state file.
+  const click = (w: World, statePath: string, at: number) =>
+    w.files.set(statePath.replace(/\.json$/, '.handover.json'), JSON.stringify({ at }))
+
+  test('a click runs the handover skill, once', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    click(w, state().path, 5)
+    expect(w.commands).toEqual([])
+    await clock.advance(1000)
+    expect(w.commands).toEqual(['clear-resume:handover'])
+    await clock.advance(5000)
+    expect(w.commands).toEqual(['clear-resume:handover'])
+    // A second click is a newer request.
+    click(w, state().path, 6)
+    await clock.advance(1000)
+    expect(w.commands).toEqual(['clear-resume:handover', 'clear-resume:handover'])
+  })
+
+  test('with the relay on, the save it makes clears and continues', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    click(w, state().path, 5)
+    await clock.advance(1000)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear-resume:handover', 'clear'])
+    expect(w.prompts).toEqual(['Continue from the clear-resume handover that was just loaded.'])
+  })
+
+  test('the poll survives /clear', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    await relayOnce($, clock)
+    click(w, state().path, 5)
+    await clock.advance(1000)
+    expect(w.commands).toEqual(['clear', 'clear-resume:handover'])
+  })
+
+  test('starts from the first turn end when no session.start was seen', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    click(w, state().path, 5)
+    await clock.advance(1000)
+    expect(w.commands).toEqual(['clear-resume:handover'])
+  })
+
+  test('one poll, however many starts', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    await $.session.start(start)
+    await $.turn.complete(turn)
+    click(w, state().path, 5)
+    await clock.advance(1000)
+    expect(w.commands).toEqual(['clear-resume:handover'])
+  })
+
+  test('a refused command falls back to a prompt', async ($, on) => {
+    const { w, clock, state, refuse } = world(on)
+    refuse('clear-resume:handover')
+    await $.session.start(start)
+    click(w, state().path, 5)
+    await clock.advance(1000)
+    expect(w.prompts).toEqual(['Write a clear-resume handover now, with the /clear-resume:handover skill.'])
+  })
+
+  test('a bad request file asks for nothing', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.session.start(start)
+    w.files.set(state().path.replace(/\.json$/, '.handover.json'), 'not json')
+    await clock.advance(3000)
+    expect(w.commands).toEqual([])
+  })
+
+  test('under the headless runner there is no poll', async ($, on) => {
+    const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    await $.session.start(start)
+    w.files.set('/home/me/.clear-resume/relay/any.handover.json', JSON.stringify({ at: 5 }))
+    await clock.advance(3000)
+    expect(w.commands).toEqual([])
   })
 })
