@@ -83,6 +83,11 @@
     ],
     "commands": [
       {
+        "command": "clearResume.spareAct",
+        "title": "Spare Cycles: Done / Skip / Snooze",
+        "category": "clear-resume"
+      },
+      {
         "command": "clearResume.resume",
         "title": "Resume",
         "icon": "$(play)"

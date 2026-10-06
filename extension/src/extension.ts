@@ -11,6 +11,7 @@ import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { HistoryProvider, type HandoverNode } from "./tree";
 import { LanesProvider } from "./lanes-tree";
 import { statsStatus } from "./stats-status";
+import { spareStatus } from "./spare-status";
 import { ownedByThisWindow } from "./window-owner";
 
 const VIEW = "clearResume.history";
@@ -72,6 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (record) void openLoaded(record, root());
     else void vscode.window.showInformationMessage("clear-resume: no handover loaded in this window in the last day.");
   });
+  spareStatus(context);
   watchStore(context, root, () => {
     provider.refresh();
     lanesProvider.refresh();
