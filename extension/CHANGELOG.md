@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Needs a clear-resume plugin with the hand-over poll in its relay mod.
+
+- A **Hand over** item in the status bar has the window's Claude session write a handover
+  now. With the relay on it then clears and continues by itself; with it off it only saves.
+  A click during a reply waits for the reply to finish.
+
 ## 0.4.0
 
 Needs the clear-resume plugin 0.4.0 or later for the context pie and the relay item.

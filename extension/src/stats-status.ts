@@ -57,7 +57,7 @@ function readJson<T>(path: string): T | null {
 function relayFiles(): RelayFile[] {
   try {
     return readdirSync(relayDir())
-      .filter((n) => n.endsWith(".json") && !n.endsWith(".set.json"))
+      .filter((n) => n.endsWith(".json") && !n.endsWith(".set.json") && !n.endsWith(".handover.json"))
       .map((n) => readJson<RelayFile>(join(relayDir(), n)))
       .filter((f): f is RelayFile => f !== null);
   } catch {
@@ -153,17 +153,23 @@ class Transcripts {
 }
 
 /**
- * Two status-bar items: the context pie (`◕ 142k/180k`, hover for the chain and
- * the relay, click to open the loaded handover) and the relay (`⟳ relay 3/15`,
- * click to set this window's budget). The relay item shows only once the relay
- * mod has written state for a workspace folder.
+ * Three status-bar items: the context pie (`◕ 142k/180k`, hover for the chain and
+ * the relay, click to open the loaded handover), the relay (`⟳ relay 3/15`,
+ * click to set this window's budget) and "Hand over" (click to have the session
+ * write a handover now; with the relay on it then clears and continues). The
+ * relay and hand-over items show only once the relay mod has written state for a
+ * workspace folder.
  */
 export function statsStatus(context: vscode.ExtensionContext, openHandover: () => void): void {
   const pieItem = vscode.window.createStatusBarItem("clearResume.context", vscode.StatusBarAlignment.Left, 1);
   pieItem.name = "clear-resume: context";
   const relayItem = vscode.window.createStatusBarItem("clearResume.relay", vscode.StatusBarAlignment.Left, 0.5);
   relayItem.name = "clear-resume: relay";
-  context.subscriptions.push(pieItem, relayItem);
+  const handoverItem = vscode.window.createStatusBarItem("clearResume.handover", vscode.StatusBarAlignment.Left, 0.4);
+  handoverItem.name = "clear-resume: hand over now";
+  handoverItem.text = "$(debug-step-out) Hand over";
+  handoverItem.command = "clearResume.handoverNow";
+  context.subscriptions.push(pieItem, relayItem, handoverItem);
 
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
@@ -228,13 +234,20 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
           : "Relay budget for this window: clears used of the limit. Click to change.";
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
+        handoverItem.tooltip =
+          relay.limit === 0
+            ? "Have Claude write a handover now. The relay is off in this window, so type /clear when it is saved."
+            : "Have Claude write a handover now, then clear and continue from it. Waits for the current reply to finish.";
+        handoverItem.show();
       } else {
         relayItem.hide();
+        handoverItem.hide();
       }
     } catch {
       // A status-bar item must never break the extension.
       pieItem.hide();
       relayItem.hide();
+      handoverItem.hide();
     } finally {
       busy = false;
     }
@@ -276,7 +289,19 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
     await update();
   };
 
+  // The relay mod polls for <key>.handover.json and runs the handover skill when
+  // its `at` is newer than the last one it took.
+  const handoverNow = () => {
+    if (!window) {
+      void vscode.window.showInformationMessage("clear-resume: no Claude session in this window yet.");
+      return;
+    }
+    writeFileSync(join(relayDir(), `${window.key}.handover.json`), JSON.stringify({ at: Date.now() }));
+    void vscode.window.setStatusBarMessage("clear-resume: asked for a handover", 4000);
+  };
+
   context.subscriptions.push(
+    vscode.commands.registerCommand("clearResume.handoverNow", handoverNow),
     vscode.commands.registerCommand("clearResume.openContextHandover", openHandover),
     vscode.commands.registerCommand("clearResume.pickRelay", pickRelay),
     vscode.commands.registerCommand("clearResume.relayLog", async () => {

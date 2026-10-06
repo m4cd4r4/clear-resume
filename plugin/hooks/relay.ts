@@ -16,12 +16,21 @@ import type { Register } from 'claude-code'
 // The VS Code extension's status bar reads this window's relay from a state file
 // the module writes, <store>/relay/<key>.json, and changes this window's budget
 // by writing <key>.set.json beside it, which the module reads before each clear.
+// Its "Hand over" button writes <key>.handover.json; the module polls for it once
+// a second, idle or not, and runs the handover skill, which the relay then clears
+// and continues from as after any other save. With the relay off it only saves.
 
 // What save.mjs prints on a good save (plugin/scripts/save.mjs).
 export const SAVED = 'Saved handover "'
 export const SAVE_SCRIPT = /scripts\/save\.mjs/
 
 export const RESUME_TEXT = 'Continue from the clear-resume handover that was just loaded.'
+
+// What the status bar's "Hand over" button runs, and the prompt sent instead if
+// the command is refused (a host that does not list plugin skills as commands).
+export const HANDOVER_COMMAND = 'clear-resume:handover'
+export const HANDOVER_TEXT = 'Write a clear-resume handover now, with the /clear-resume:handover skill.'
+const POLL_MS = 1000
 
 // "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
 export function budget(raw: unknown): number {
@@ -109,6 +118,10 @@ type Relay = {
   lastHead: string | undefined
   stalled: number
   headless: boolean
+  // The `at` of the last hand-over request taken from <key>.handover.json, and
+  // whether the poll for it is running. The poll's timer outlives /clear.
+  asked: number
+  polling: boolean
 }
 
 // The standing status entry: what is left while the relay is on, nothing while off.
@@ -164,6 +177,46 @@ async function takeOverride($: Engine, r: Relay): Promise<void> {
   } catch {
     // No override file, or a bad one: keep the budget there is.
   }
+}
+
+// A hand-over request from the status bar, newer than the last one taken: run the
+// handover skill. Queued until the session is idle, so a click mid-turn waits.
+async function takeHandover($: Engine, r: Relay): Promise<void> {
+  let at: unknown
+  try {
+    const dir = await relayDir($)
+    if (!dir) return
+    at = JSON.parse(String(await $.fs.read(`${dir}/${r.key}.handover.json`)))?.at
+  } catch {
+    // No request file, or a bad one: nothing asked.
+    return
+  }
+  if (typeof at !== 'number' || at <= r.asked) return
+  r.asked = at
+  $.ui.toast('clear-resume: writing a handover', { timeoutMs: 5000 })
+  try {
+    await $.command.run({ command: HANDOVER_COMMAND, args: '' })
+  } catch {
+    await $.prompt.submit({ text: HANDOVER_TEXT, asUser: true }).catch(err => {
+      $.ui.toast(`clear-resume: hand-over refused: ${String(err)}`, { timeoutMs: 15000 })
+    })
+  }
+}
+
+// Start the poll once per process, from whichever of session.start and the first
+// turn's end comes first. Not under the headless runner, which has no button.
+async function poll($: Engine, r: Relay): Promise<void> {
+  if (r.polling) return
+  r.polling = true
+  if (await headlessRun($)) return
+  let busy = false
+  $.clock.every(POLL_MS, () => {
+    if (busy) return
+    busy = true
+    void takeHandover($, r).finally(() => {
+      busy = false
+    })
+  })
 }
 
 // What the end of a main-thread turn does with a pending save.
@@ -229,6 +282,8 @@ export const register: Register = (on, options) => {
     lastHead: undefined,
     stalled: 0,
     headless: false,
+    asked: 0,
+    polling: false,
   }
 
   on('session.start', async ($, e, next) => {
@@ -242,6 +297,7 @@ export const register: Register = (on, options) => {
     })
     $.ui.status(shown(r))
     await publish($, r)
+    await poll($, r)
     return result
   })
 
@@ -278,6 +334,7 @@ export const register: Register = (on, options) => {
     await takeOverride($, r)
     await decide($, r, e.reason)
     await publish($, r)
+    await poll($, r)
     return result
   })
 
