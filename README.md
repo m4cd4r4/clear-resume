@@ -255,6 +255,14 @@ If your model's context window is 200k tokens, set **Nudge at** below the size w
 
 </details>
 
+## Built with it: Spare Cycles
+
+[Spare Cycles](https://github.com/m4cd4r4/spare-cycles) is a small mod I made for Claude Code. It reminds you to do a short task you pick, like 10 push-ups, on a timer, so you take the break while Claude is working. The clip shows it being built in one long session, with clear-resume relaying the work across clears, then running in the status bar of the window it was built in.
+
+https://github.com/user-attachments/assets/03a746bb-a202-4f61-b21e-2856cfedb128
+
+<sub>The status bar is in the clear-resume extension's next release. The Marketplace version, 0.4.1, does not have it yet.</sub>
+
 ## What's inside
 
 - **One skill**, `/clear-resume:handover`, that saves the handover.
