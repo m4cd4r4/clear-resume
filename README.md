@@ -261,7 +261,7 @@ If your model's context window is 200k tokens, set **Nudge at** below the size w
 
 https://github.com/user-attachments/assets/03a746bb-a202-4f61-b21e-2856cfedb128
 
-<sub>The status bar is in the clear-resume extension's next release. The Marketplace version, 0.4.1, does not have it yet.</sub>
+<sub>The clip uses a 2-minute timer, sped up, so a reminder comes due on camera. The default is 45 minutes, and you can change it. The status bar is in the clear-resume extension's next release. The Marketplace version, 0.4.1, does not have it yet.</sub>
 
 ## What's inside
 
