@@ -294,4 +294,4 @@ F270 | page: "Source: the source files, the plugin README and How it works." | s
 ## Footer
 
 F31 | page: "Built in {sessions} sessions and {clears} automatic clears, {commits} commits, {first} to {last} AWST, {date}. Build log" | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "const sessions = out.length;" | site/buildstats.mjs:127 | source: "const clears = sessions - 1;" | site/buildstats.mjs:128 | source: "const commits = lines.length;" | site/buildstats.mjs:147 | source: "const awst = (iso) => {" | site/buildstats.mjs:134 | source: "date: commits ? awstDate(lines[0]) : \"n/a\"" | site/buildstats.mjs:149
-F50 | page: "MIT licence. Independent, not made or endorsed by Anthropic." | source: "MIT licence</a>. clear-resume is an independent project. It is not made or endorsed by Anthropic." | README.md:283
+F50 | page: "MIT licence. Independent, not made or endorsed by Anthropic." | source: "MIT licence</a>. clear-resume is an independent project. It is not made or endorsed by Anthropic." | README.md:291
