@@ -13,7 +13,8 @@ const enabled = () => vscode.workspace.getConfiguration("clearResume").get<boole
  * the timer and writes ~/.spare-cycles/state.json; this only draws it. Behind
  * `clearResume.spareCycles`: off means no item, no watcher and no interval, and
  * turning it on or off takes effect without a reload. Clicking it writes Done,
- * Skip or Snooze to action.json, which the mod polls.
+ * Skip or Snooze to action.json, which the mod polls. Each due task also raises
+ * one notification with the same three buttons.
  */
 export function spareStatus(context: vscode.ExtensionContext): void {
   let running: vscode.Disposable | undefined;
@@ -47,6 +48,15 @@ export function spareStatus(context: vscode.ExtensionContext): void {
     if (chosen) act(chosen.action);
   };
 
+  // One toast per due task: remembering dueAt keeps the 1s tick and reloads from re-raising it.
+  const notify = (due: SpareState) => {
+    if (due.dueAt === context.globalState.get<number>("clearResume.spareNotifiedDueAt")) return;
+    void context.globalState.update("clearResume.spareNotifiedDueAt", due.dueAt);
+    void vscode.window.showInformationMessage(`Spare cycle: ${due.task}`, "Done", "Skip", "Snooze").then((chosen) => {
+      if (chosen && enabled()) act(chosen.toLowerCase() as SpareAction);
+    });
+  };
+
   const start = (): vscode.Disposable => {
     const dir = spareDir();
     const item = vscode.window.createStatusBarItem("clearResume.spare", vscode.StatusBarAlignment.Left, 0.3);
@@ -61,9 +71,11 @@ export function spareStatus(context: vscode.ExtensionContext): void {
         }
         const now = Date.now();
         item.text = statusText(state, now);
-        item.backgroundColor = isDue(state, now) ? new vscode.ThemeColor("statusBarItem.warningBackground") : undefined;
+        const due = isDue(state, now);
+        item.backgroundColor = due ? new vscode.ThemeColor("statusBarItem.warningBackground") : undefined;
         item.tooltip = `${state.lastAction ? `Last: ${state.lastAction}` : "Spare Cycles: nothing done yet"}. Click for Done / Skip / Snooze.`;
         item.show();
+        if (due) notify(state);
       } catch {
         // A status-bar item must never break the extension.
         item.hide();
