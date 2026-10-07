@@ -31,6 +31,10 @@ claude plugin install clear-resume@clear-resume
   an upper bound on what the clears saved.
 - A **relay** item shows this window's clears used against its budget. Click it to pick
   a new budget or turn the relay off, the same as typing `/relay` in that window.
+- A **Spare Cycles** countdown, off by default, such as `1:42 Wash the dishes`. It
+  needs the spare-cycles plugin, which owns the timer. Click it to mark the task Done,
+  Skip it or Snooze it, and you get one notification with the same choices when a task
+  comes due. Turn it on with `clearResume.spareCycles`.
 
 ![After Resume, a Claude Code tab with the prompt box filled in: Resume from handover "Refund flow tests", then its goal and next action. It is not sent.](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-resume.png)
 
@@ -70,6 +74,7 @@ Scripts that create worktrees can use the same labels:
 | `clearResume.storePath` | `~/.clear-resume` | Folder holding the handover store. |
 | `clearResume.showArchived` | `false` | Show archived handovers (loaded, resumed or replaced by a newer save) in the tree. |
 | `clearResume.registryPath` | (empty) | Optional worktree registry. When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up. |
+| `clearResume.spareCycles` | `false` | Show the Spare Cycles countdown in the status bar, with Done / Skip / Snooze on click and one notification per due task. Needs the spare-cycles plugin. |
 
 The extension does not read Claude Code's settings. If you moved the store with
 `CLEAR_RESUME_HOME` there, set `clearResume.storePath` to the same folder.

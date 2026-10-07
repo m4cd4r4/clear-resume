@@ -138,6 +138,11 @@
         "command": "clearResume.handoverNow",
         "title": "Hand over now",
         "category": "clear-resume"
+      },
+      {
+        "command": "clearResume.spareAct",
+        "title": "Spare Cycles: Done / Skip / Snooze",
+        "category": "clear-resume"
       }
     ],
     "menus": {
@@ -173,6 +178,10 @@
         {
           "command": "clearResume.openLane",
           "when": "false"
+        },
+        {
+          "command": "clearResume.spareAct",
+          "when": "config.clearResume.spareCycles"
         }
       ],
       "view/title": [
@@ -232,6 +241,11 @@
           "type": "string",
           "default": "",
           "description": "Optional worktree registry (JSON with an entries array). When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up."
+        },
+        "clearResume.spareCycles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the Spare Cycles timer in the status bar: a countdown to the next task, Done / Skip / Snooze on click, and one notification when a task comes due. Needs the spare-cycles plugin, which owns the timer."
         }
       }
     }
