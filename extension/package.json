@@ -138,6 +138,11 @@
         "command": "clearResume.handoverNow",
         "title": "Hand over now",
         "category": "clear-resume"
+      },
+      {
+        "command": "clearResume.spareAct",
+        "title": "Spare Cycles: Done / Skip / Snooze",
+        "category": "clear-resume"
       }
     ],
     "menus": {
@@ -173,6 +178,10 @@
         {
           "command": "clearResume.openLane",
           "when": "false"
+        },
+        {
+          "command": "clearResume.spareAct",
+          "when": "config.clearResume.spareCycles"
         }
       ],
       "view/title": [

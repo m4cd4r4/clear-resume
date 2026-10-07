@@ -1,6 +1,7 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import * as vscode from "vscode";
-import { isDue, readState, spareDir, statusText, type SpareState } from "./spare-state";
+import { actionJson, isDue, readState, spareDir, statusText, type SpareAction, type SpareState } from "./spare-state";
 
 const TICK_MS = 1_000;
 
@@ -11,16 +12,46 @@ const enabled = () => vscode.workspace.getConfiguration("clearResume").get<boole
  * `$(bell) Wash the dishes: now` on the warning background once due. The mod owns
  * the timer and writes ~/.spare-cycles/state.json; this only draws it. Behind
  * `clearResume.spareCycles`: off means no item, no watcher and no interval, and
- * turning it on or off takes effect without a reload.
+ * turning it on or off takes effect without a reload. Clicking it writes Done,
+ * Skip or Snooze to action.json, which the mod polls.
  */
 export function spareStatus(context: vscode.ExtensionContext): void {
   let running: vscode.Disposable | undefined;
+  let state: SpareState | null = null;
+
+  const act = (action: SpareAction) => {
+    const dir = spareDir();
+    try {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "action.json"), actionJson(action, Date.now()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      void vscode.window.showWarningMessage(`Spare Cycles: could not write the choice: ${message}`);
+    }
+  };
+
+  // The bar changes when the mod rewrites state.json, not on the pick.
+  const pick = async () => {
+    if (!state) {
+      void vscode.window.showInformationMessage("Spare Cycles: no task yet. The spare-cycles plugin starts one with the next Claude session.");
+      return;
+    }
+    const chosen = await vscode.window.showQuickPick(
+      [
+        { label: "$(check) Done", action: "done" as const },
+        { label: "$(debug-step-over) Skip", action: "skip" as const },
+        { label: "$(clock) Snooze", action: "snooze" as const },
+      ],
+      { title: "Spare Cycles", placeHolder: state.task },
+    );
+    if (chosen) act(chosen.action);
+  };
 
   const start = (): vscode.Disposable => {
     const dir = spareDir();
     const item = vscode.window.createStatusBarItem("clearResume.spare", vscode.StatusBarAlignment.Left, 0.3);
     item.name = "clear-resume: Spare Cycles";
-    let state: SpareState | null = null;
+    item.command = "clearResume.spareAct";
 
     const draw = () => {
       try {
@@ -31,7 +62,7 @@ export function spareStatus(context: vscode.ExtensionContext): void {
         const now = Date.now();
         item.text = statusText(state, now);
         item.backgroundColor = isDue(state, now) ? new vscode.ThemeColor("statusBarItem.warningBackground") : undefined;
-        item.tooltip = state.lastAction ? `Last: ${state.lastAction}` : "Spare Cycles: nothing done yet";
+        item.tooltip = `${state.lastAction ? `Last: ${state.lastAction}` : "Spare Cycles: nothing done yet"}. Click for Done / Skip / Snooze.`;
         item.show();
       } catch {
         // A status-bar item must never break the extension.
@@ -56,7 +87,12 @@ export function spareStatus(context: vscode.ExtensionContext): void {
     watcher.onDidDelete(reload);
     const tick = setInterval(draw, TICK_MS);
     reload();
-    return vscode.Disposable.from(item, watcher, { dispose: () => clearInterval(tick) });
+    return vscode.Disposable.from(item, watcher, {
+      dispose: () => {
+        clearInterval(tick);
+        state = null;
+      },
+    });
   };
 
   const apply = () => {
@@ -69,6 +105,7 @@ export function spareStatus(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("clearResume.spareAct", pick),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("clearResume.spareCycles")) apply();
     }),
