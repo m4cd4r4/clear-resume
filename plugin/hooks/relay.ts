@@ -122,6 +122,39 @@ type Relay = {
   // whether the poll for it is running. The poll's timer outlives /clear.
   asked: number
   polling: boolean
+  // The session last warned that the nudge went unanswered, so it warns once.
+  warned: string | undefined
+}
+
+// Told after a nudged turn ends with no save through save.mjs. Seen 2026-10-07: a
+// user's own skill also named "handover" saved by its own script, the relay never
+// armed, and nothing said so.
+export const UNARMED_TEXT =
+  'clear-resume relay: no handover was saved with /clear-resume:handover after the context nudge, so the relay will not clear. ' +
+  'If the work goes on, run /clear-resume:handover (another handover skill does not count), or type /clear.'
+
+// The nudge (scripts/lib/nudge.mjs) marks a session it has asked to hand over at
+// <store>/.nudged/<slug of the session id>, the slug as in scripts/lib/store.mjs.
+async function nudged($: Engine, id: string): Promise<boolean> {
+  const dir = await relayDir($)
+  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
+  if (!dir || !slug) return false
+  try {
+    await $.fs.read(`${dir.replace(/[/\\]relay$/, '')}/.nudged/${slug}`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// A finished turn with the relay on and nothing saved: if the nudge has asked this
+// session for a handover, say once that the relay will not clear.
+async function warnUnarmed($: Engine, r: Relay, reason: string): Promise<void> {
+  if (r.limit === 0 || reason !== 'answer' || (await headlessRun($))) return
+  const id = await $.session.id()
+  if (!id || r.warned === id || !(await nudged($, id))) return
+  r.warned = id
+  $.ui.toast(UNARMED_TEXT, { timeoutMs: 20000 })
 }
 
 // The standing status entry: what is left while the relay is on, nothing while off.
@@ -221,7 +254,7 @@ async function poll($: Engine, r: Relay): Promise<void> {
 
 // What the end of a main-thread turn does with a pending save.
 async function decide($: Engine, r: Relay, reason: string): Promise<void> {
-  if (!r.pending) return
+  if (!r.pending) return warnUnarmed($, r, reason)
   // Turned off for this window: drop the save quietly.
   if (r.limit === 0) {
     r.pending = false
@@ -284,6 +317,7 @@ export const register: Register = (on, options) => {
     headless: false,
     asked: 0,
     polling: false,
+    warned: undefined,
   }
 
   on('session.start', async ($, e, next) => {
