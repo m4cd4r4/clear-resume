@@ -38,7 +38,11 @@ function world(on: On, env: Record<string, string> = {}) {
     w.files.set(e.path, e.text)
     return { value: undefined }
   })
+  // Sessions the nudge has marked (<store>/.nudged/<id>, scripts/lib/nudge.mjs).
+  const nudgedIds = new Set<string>()
   on('fs.read', async ($, e) => {
+    const mark = /[\\/]\.clear-resume[\\/]\.nudged[\\/]([^\\/]+)$/.exec(e.path)
+    if (mark && nudgedIds.has(mark[1])) return { value: '2026-10-07T10:00:00Z' }
     const text = w.files.get(e.path)
     if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
     return { value: text }
@@ -103,6 +107,9 @@ function world(on: On, env: Record<string, string> = {}) {
     refuse: (command: string) => {
       refused.add(command)
     },
+    nudge: (id: string) => {
+      nudgedIds.add(id)
+    },
     // The one state file the mod wrote, parsed.
     state: () => {
       const found = [...w.files].filter(([k]) => STATE.test(k))
@@ -120,6 +127,10 @@ async function relayOnce($: Parameters<Parameters<typeof test>[1]>[0], clock: { 
   await $.session.end(cleared)
   await clock.advance(1000)
 }
+
+const UNARMED =
+  'clear-resume relay: no handover was saved with /clear-resume:handover after the context nudge, so the relay will not clear. ' +
+  'If the work goes on, run /clear-resume:handover (another handover skill does not count), or type /clear.'
 
 const turn = { answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as const
 const cleared = { reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as const
@@ -188,6 +199,36 @@ describe('relay', () => {
     await $.turn.complete(turn)
     await clock.advance(5000)
     expect(w.commands).toEqual([])
+  })
+
+  test('a nudged turn that saves through another skill warns once that the relay will not clear', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, reply, nudge } = world(on)
+    reply('Handover saved: x. /clear - the next session loads it.')
+    nudge('s1')
+    await $.tool.call({ tool: 'Bash', command: 'node C:/Users/me/.claude/scripts/handover-save.js h.md' })
+    await $.turn.complete(turn)
+    await clock.advance(5000)
+    expect(w.commands).toEqual([])
+    expect(w.toasts).toEqual([UNARMED])
+    await $.turn.complete(turn)
+    expect(w.toasts).toEqual([UNARMED])
+  })
+
+  test('a nudged turn that saves with save.mjs clears with no warning', { options: { relay: '3' } }, async ($, on) => {
+    const { w, clock, nudge } = world(on)
+    nudge('s1')
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(300)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts).toEqual([])
+  })
+
+  test('relay off: a nudged turn with no save stays quiet', async ($, on) => {
+    const { w, nudge } = world(on)
+    nudge('s1')
+    await $.turn.complete(turn)
+    expect(w.toasts).toEqual([])
   })
 
   test('under the headless runner the relay stands aside', { options: { relay: '3' } }, async ($, on) => {
