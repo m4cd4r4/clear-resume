@@ -232,6 +232,11 @@
           "type": "string",
           "default": "",
           "description": "Optional worktree registry (JSON with an entries array). When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up."
+        },
+        "clearResume.spareCycles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the Spare Cycles timer in the status bar: a countdown to the next task, Done / Skip / Snooze on click, and one notification when a task comes due. Needs the spare-cycles plugin, which owns the timer."
         }
       }
     }
