@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Idle handover** (off by default). New plugin options `idle_handover` (`off`, `toast`, `auto`),
+  `cache_ttl_minutes` (60) and `idle_min_tokens` (100000). About 5 minutes before the prompt cache
+  would expire, on a large context, the relay mod shows a message or asks for a handover, once per
+  session. In one measurement (n=1) a handover written while warm cost about 5 times less than
+  resuming cold.
+
 ## VS Code extension 0.4.1
 
 - New icon, matching the plugin's: a line carried across a break, the work surviving `/clear`.

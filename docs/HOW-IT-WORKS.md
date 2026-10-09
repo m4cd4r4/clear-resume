@@ -142,6 +142,11 @@ The third plugin option, `relay`, is `off` (the default), a number of clears per
 window, or `unlimited`. Set it the same way, for example `--config relay=10`. See
 [The relay](#the-relay-clear-and-continue-with-no-keypress) below.
 
+Three more plugin options belong to the idle handover, which is off by default. `idle_handover` is
+`off`, `toast` or `auto` (anything else is off); `cache_ttl_minutes` is your prompt cache lifetime
+(default 60; 5 is the default with an API key); `idle_min_tokens` is the smallest context size
+(default 100000) at which it acts. See [Idle handover](#idle-handover-before-the-cache-expires).
+
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
 sidebar's `clearResume.storePath` to the same folder.
 
@@ -205,6 +210,35 @@ Every option and cap: [AUTO-CONTINUE.md](AUTO-CONTINUE.md).
 As a fallback, set auto-compaction to fire well before the context window is full, with
 `/autocompact` or the `CLAUDE_CODE_AUTO_COMPACT_WINDOW` environment variable, for example at
 250k tokens.
+
+### Idle handover: before the cache expires
+
+Off by default. Claude Code keeps your prompt in a cache that lasts `cache_ttl_minutes` after the
+last reply (60 on a subscription; 5 with an API key by default). Come back after it lapses and the
+first message pays for a full rewrite of the context. A handover written while the cache is still
+warm is read from the cache and costs much less.
+
+Measured once (`_ab` runs of 2026-10-09, n=1, Sonnet 5.5, one 390k-token session): the first
+message after 65 minutes away, and after 180 minutes, each wrote about 390k tokens and cost
+US$1.56. A handover written at +55 minutes cost US$0.20, and a fresh session reading it US$0.11,
+US$0.30 in all, about 5 times less. One run on one session; the handover path continues from a
+note, not from the whole conversation.
+
+With `idle_handover` set to `toast` or `auto`, the relay mod checks every 30 seconds. It acts when
+all of these hold:
+
+- the last main-thread reply ended at least `cache_ttl_minutes` minus 5 minutes ago (half the TTL,
+  if the TTL is under 10 minutes), and less than the full TTL ago;
+- the context was at least `idle_min_tokens` at that reply (read from `$.session.usage()`, else from
+  the session transcript, as the nudge does);
+- no turn is running, and this session has not been nudged (the same once-per-session mark the
+  180k nudge uses, so the two never both fire);
+- it is not the headless runner.
+
+`toast` shows a message. `auto` submits the handover request as if you typed it, and with the relay
+on, the relay then clears and continues. If a tool call is running (it may be waiting on a
+permission prompt), `auto` shows the message instead. Idle time is the difference between clock
+readings, so a laptop that slept is judged by the real time that passed. State starts over on `/clear`.
 
 ## Claude Code on the web (opt-in)
 

@@ -31,7 +31,7 @@ claude plugin install clear-resume@clear-resume
 >
 > On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
 
-Claude Code then says, or asks about, three options that are not set yet. They belong to the nudge and the relay, which are both off by default.
+Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default.
 
 Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
 
@@ -95,6 +95,14 @@ The relay stops, and says why, when it uses up its clears for that Claude Code w
 <br>
 
 To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
+
+**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context. In one measurement (n=1, Sonnet 5.5, a 390k-token session), the first message after 65 minutes away cost US$1.56, and the same after 180 minutes, both writing about 390k tokens. A handover written at +55 minutes, while the cache was still warm, cost US$0.30 in total (US$0.20 to write it plus US$0.11 for a fresh session to read it), about 5 times less. This is one run on one session, and the handover path continues from a note, not from the full conversation. With `idle_handover` set to `toast`, the relay mod shows a message about 5 minutes before the cache expires; with `auto`, it asks Claude to write the handover itself (and the relay, if on, then clears). It acts once per session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `idle_handover` | `off` | `off`, `toast` or `auto`. |
+| `cache_ttl_minutes` | `60` | Your prompt cache lifetime: 60 on a subscription, 5 with an API key by default. The mod acts 5 minutes before it (half of it, if shorter). |
+| `idle_min_tokens` | `100000` | Below this context size a cold rewrite is cheap, so nothing happens. |
 
 Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
 
