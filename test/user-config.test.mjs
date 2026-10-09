@@ -15,7 +15,7 @@ const envName = (key) => `CLAUDE_PLUGIN_OPTION_${key.toUpperCase()}`;
 
 describe("plugin options (userConfig)", () => {
   it("declares the options the hooks read, under the names Claude Code exports", () => {
-    expect(Object.keys(manifest.userConfig).sort()).toEqual(["auto_nudge", "nudge_at", "relay"]);
+    expect(Object.keys(manifest.userConfig).sort()).toEqual(["auto_nudge", "cache_ttl_minutes", "idle_handover", "idle_min_tokens", "nudge_at", "relay"]);
     expect(envName("relay")).toBe(RELAY_OPTION);
     expect(envName("auto_nudge")).toBe(AUTO_OPTION);
     expect(envName("nudge_at")).toBe(NUDGE_AT_OPTION);

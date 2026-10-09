@@ -32,6 +32,45 @@ export const HANDOVER_COMMAND = 'clear-resume:handover'
 export const HANDOVER_TEXT = 'Write a clear-resume handover now, with the /clear-resume:handover skill.'
 const POLL_MS = 1000
 
+// Idle handover. The prompt cache lasts cache_ttl_minutes after the last reply;
+// a handover written before it lapses is read from the cache, one written after
+// pays a full rewrite of the context. The mod acts IDLE_MARGIN_MS before the lapse
+// (or half the TTL when the TTL is short), and only once the context is large.
+// Measured once (n=1, Sonnet 5.5, 390k tokens): README, "Idle handover".
+export const IDLE_MARGIN_MS = 5 * 60_000
+export const IDLE_TICK_MS = 30_000
+export const DEFAULT_TTL_MIN = 60
+export const DEFAULT_IDLE_MIN_TOKENS = 100_000
+export type IdleMode = 'off' | 'toast' | 'auto'
+
+// "toast" or "auto"; anything else, or unset, is off.
+export function idleMode(raw: unknown): IdleMode {
+  const s = String(raw ?? 'off').trim().toLowerCase()
+  return s === 'toast' || s === 'auto' ? s : 'off'
+}
+
+// A positive number from an option, else the default.
+export function positive(raw: unknown, fallback: number): number {
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+// How long after the last reply the mod acts, in ms: the TTL less the margin.
+export function idleFireAfterMs(ttlMin: number): number {
+  const ttl = ttlMin * 60_000
+  return ttl - Math.min(IDLE_MARGIN_MS, ttl / 2)
+}
+
+// True while the cache is about to expire but has not: from the fire time up to
+// the TTL. Past the TTL a handover would pay the full rewrite itself.
+export function idleDue(idleMs: number, ttlMin: number): boolean {
+  return idleMs >= idleFireAfterMs(ttlMin) && idleMs < ttlMin * 60_000
+}
+
+export const idleToast = (leftMin: number): string =>
+  `clear-resume: the prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
+  'A handover now costs far less than resuming cold. Run /clear-resume:handover, then /clear.'
+
 // "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
 export function budget(raw: unknown): number {
   const s = String(raw ?? 'off').trim().toLowerCase()
@@ -124,6 +163,16 @@ type Relay = {
   polling: boolean
   // The session last warned that the nudge went unanswered, so it warns once.
   warned: string | undefined
+  // Idle handover: the settings, the clock reading and context size at the end of
+  // the last main-thread reply, tool calls and turns now running, and the timer.
+  idle: IdleMode
+  ttlMin: number
+  minTokens: number
+  lastReplyAt: number | undefined
+  tokens: number | undefined
+  tools: number
+  turning: boolean
+  ticking: boolean
 }
 
 // Told after a nudged turn ends with no save through save.mjs. Seen 2026-10-07: a
@@ -252,6 +301,90 @@ async function poll($: Engine, r: Relay): Promise<void> {
   })
 }
 
+// The context size after the last reply. $.session.usage() has it; if the host
+// has no figure (older builds), read the transcript the way the Stop-hook nudge
+// does, through the same function (scripts/lib/nudge.mjs, run as
+// scripts/context-tokens.mjs because a mod may not import node:fs). Undefined when
+// neither knows: the idle handover then stays quiet.
+async function contextTokens($: Engine): Promise<number | undefined> {
+  try {
+    const t = (await $.session.usage())?.context?.tokens
+    if (typeof t === 'number' && Number.isFinite(t)) return t
+  } catch {
+    // No usage on this build: fall through to the transcript.
+  }
+  try {
+    const id = await $.session.id()
+    const cwd = await $.session.cwd()
+    const home = (await $.env.get('USERPROFILE')) || (await $.env.get('HOME'))
+    const cfg = (await $.env.get('CLAUDE_CONFIG_DIR')) || (home ? `${home.replace(/[/\\]+$/, '')}/.claude` : '')
+    if (!id || !cwd || !cfg) return undefined
+    const file = `${cfg.replace(/[/\\]+$/, '')}/projects/${cwd.replace(/[^a-zA-Z0-9]/g, '-')}/${id}.jsonl`
+    const r = await $.process.run(['node', `${$.plugin.root}/scripts/context-tokens.mjs`, file], { timeoutMs: 15000 })
+    const t = r.exitCode === 0 ? Number(r.stdout.trim()) : NaN
+    return Number.isFinite(t) && t > 0 ? t : undefined
+  } catch {
+    return undefined
+  }
+}
+
+// Claim the once-per-session nudge mark that the 180k Stop nudge also claims
+// (scripts/lib/nudge.mjs claimNudge): true when this call made it, false when it
+// was there already or cannot be written (then do nothing rather than repeat).
+async function claimNudge($: Engine, id: string): Promise<boolean> {
+  const dir = await relayDir($)
+  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
+  if (!dir || !slug || (await nudged($, id))) return false
+  try {
+    await $.fs.write(`${dir.replace(/[/\\]relay$/, '')}/.nudged/${slug}`, new Date().toISOString())
+    return true
+  } catch {
+    return false
+  }
+}
+
+// One look at the idle state. Acts at most once per session.
+async function idleCheck($: Engine, r: Relay): Promise<void> {
+  if (r.idle === 'off' || r.lastReplyAt === undefined || r.tokens === undefined) return
+  if (r.tokens < r.minTokens || r.turning || (await headlessRun($))) return
+  const idle = (await $.clock.now()) - r.lastReplyAt
+  const ttl = r.ttlMin * 60_000
+  if (!idleDue(idle, r.ttlMin)) return
+  const id = await $.session.id()
+  if (!id || !(await claimNudge($, id))) return
+  const left = Math.max(1, Math.round((ttl - idle) / 60_000))
+  // Auto needs a quiet session: a tool call in flight may be waiting on a
+  // permission prompt, and a submitted prompt would queue behind it. Toast then.
+  if (r.idle === 'auto' && r.tools === 0) {
+    $.ui.toast(`clear-resume: idle, the cache expires in about ${left} min. Writing a handover now.`, { timeoutMs: 10000 })
+    await $.prompt.submit({ text: HANDOVER_TEXT, asUser: true }).catch(err => {
+      $.ui.toast(`clear-resume: idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
+    })
+    return
+  }
+  // A toast is the user's to act on, so the "no handover saved" warning
+  // (warnUnarmed) would only nag them after they come back.
+  r.warned = id
+  $.ui.toast(idleToast(left), { timeoutMs: 30000 })
+}
+
+// The idle check's timer, once per process. Not under the headless runner.
+async function idleTick($: Engine, r: Relay): Promise<void> {
+  if (r.ticking || r.idle === 'off') return
+  r.ticking = true
+  if (await headlessRun($)) return
+  let busy = false
+  $.clock.every(IDLE_TICK_MS, () => {
+    if (busy) return
+    busy = true
+    void idleCheck($, r)
+      .catch(() => {})
+      .finally(() => {
+        busy = false
+      })
+  })
+}
+
 // What the end of a main-thread turn does with a pending save.
 async function decide($: Engine, r: Relay, reason: string): Promise<void> {
   if (!r.pending) return warnUnarmed($, r, reason)
@@ -318,11 +451,22 @@ export const register: Register = (on, options) => {
     asked: 0,
     polling: false,
     warned: undefined,
+    idle: idleMode(options.idle_handover),
+    ttlMin: positive(options.cache_ttl_minutes, DEFAULT_TTL_MIN),
+    minTokens: positive(options.idle_min_tokens, DEFAULT_IDLE_MIN_TOKENS),
+    lastReplyAt: undefined,
+    tokens: undefined,
+    tools: 0,
+    turning: false,
+    ticking: false,
   }
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     r.headless = await headlessRun($)
+    r.lastReplyAt = undefined
+    r.tokens = undefined
+    r.turning = false
     await $.command.register({
       name: 'relay',
       description: 'Clear and continue by itself in this window: off, on, unlimited or a number',
@@ -332,6 +476,7 @@ export const register: Register = (on, options) => {
     $.ui.status(shown(r))
     await publish($, r)
     await poll($, r)
+    await idleTick($, r)
     return result
   })
 
@@ -346,6 +491,21 @@ export const register: Register = (on, options) => {
     $.ui.status(shown(r))
     await publish($, r)
     return { text: relayStatus(r.limit, r.used) }
+  })
+
+  // Tool calls in flight, any thread: one may be waiting on a permission prompt.
+  on('tool.call', async ($, e, next) => {
+    r.tools++
+    try {
+      return await next(e)
+    } finally {
+      r.tools = Math.max(0, r.tools - 1)
+    }
+  })
+
+  on('turn.start', async ($, e, next) => {
+    r.turning = true
+    return next(e)
   })
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -365,15 +525,26 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId !== undefined) return result
+    r.turning = false
+    if (r.idle !== 'off') {
+      r.lastReplyAt = await $.clock.now()
+      r.tokens = await contextTokens($)
+    }
     await takeOverride($, r)
     await decide($, r, e.reason)
     await publish($, r)
     await poll($, r)
+    await idleTick($, r)
     return result
   })
 
   on('session.end', async ($, e, next) => {
     const result = await next(e)
+    if (e.reason === 'clear') {
+      r.lastReplyAt = undefined
+      r.tokens = undefined
+      r.turning = false
+    }
     if (e.reason !== 'clear' || !r.pending) return result
     r.pending = false
     $.ui.status('clear-resume: continuing...')
