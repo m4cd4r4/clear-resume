@@ -11,7 +11,18 @@
 // the mod asked for.
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
-import { HANDOVER_TEXT, IDLE_MARGIN_MS, idleDue, idleFireAfterMs, idleMode, idleToast, positive } from './relay'
+import {
+  IDLE_HANDOVER_TEXT,
+  IDLE_MARGIN_MS,
+  IDLE_TICK_MS,
+  idleDue,
+  idleEffective,
+  idleFireAfterMs,
+  idleMode,
+  idleToast,
+  idleWoke,
+  positive,
+} from './relay'
 
 const SAVE = 'node "C:/Users/me/.claude/plugins/cache/clear-resume/scripts/save.mjs" --title "x" <<\'EOF\''
 const SAVED = 'Saved handover "x" (id abc123).'
@@ -98,6 +109,7 @@ function world(on: On, env: Record<string, string> = {}) {
   })
   on('session.end', async ($, e) => ({ sessionId: e.sessionId }))
   on('session.start', async ($, e) => ({ cwd: e.cwd }))
+  on('session.compact', async ($, e) => ({ messages: e.messages }))
   // Commands the host refuses, as it does an unknown name.
   const refused = new Set<string>()
   on('command.run', async ($, e) => {
@@ -584,13 +596,19 @@ describe('the status bar hand-over button', () => {
 
 describe('idle handover', () => {
   // The mock clock ticks every wait due on the way, and the relay polls once a
-  // second, so these tests use a 2 minute cache lifetime: the mod acts at 60 s
+  // second, so toast tests use a 2 minute cache lifetime: the mod acts at 60 s
   // idle (the margin is half the TTL, being under 10 minutes) and the cache is
-  // gone at 120 s. The 60 minute default is checked as arithmetic below.
+  // gone at 120 s. auto needs a TTL of 10 minutes or more: it acts at 300 s.
+  // The 60 minute default is checked as arithmetic below.
   const S = 1000
   const opts = (mode: string, more: Record<string, string | number> = {}) => ({
     options: { idle_handover: mode, cache_ttl_minutes: 2, ...more },
   })
+  const auto = (more: Record<string, string | number> = {}) => ({
+    options: { idle_handover: 'auto', cache_ttl_minutes: 10, ...more },
+  })
+  const marks = (w: { files: Map<string, string> }, dir: string) =>
+    [...w.files.keys()].filter(k => k.split('\\').join('/').includes(`/${dir}/`))
 
   test('the margin: 5 minutes before a 60 minute cache expires, half of a short one', () => {
     expect(idleFireAfterMs(60)).toBe(55 * 60 * S)
@@ -603,6 +621,25 @@ describe('idle handover', () => {
     expect(['toast', 'AUTO', ' off ', 'on', '', undefined].map(idleMode)).toEqual(['toast', 'auto', 'off', 'off', 'off', 'off'])
     expect(positive('90', 60)).toBe(90)
     expect([positive('', 60), positive('x', 60), positive(-1, 60), positive(undefined, 60)]).toEqual([60, 60, 60, 60])
+  })
+
+  test('auto needs a TTL of 10 minutes or more; below that it is toast', () => {
+    expect(idleEffective('auto', 9)).toBe('toast')
+    expect(idleEffective('auto', 10)).toBe('auto')
+    expect(idleEffective('toast', 60)).toBe('toast')
+    expect(idleEffective('off', 5)).toBe('off')
+  })
+
+  test('a gap far past one tick means the machine woke', () => {
+    expect(idleWoke(undefined, 1_000_000)).toBe(false)
+    expect(idleWoke(0, IDLE_TICK_MS)).toBe(false)
+    expect(idleWoke(0, 2 * IDLE_TICK_MS)).toBe(false)
+    expect(idleWoke(0, 2 * IDLE_TICK_MS + 1)).toBe(true)
+  })
+
+  test('no fire once the cache has expired: the check is a window, not a floor', () => {
+    const f = (idleMs: number) => idleDue(idleMs, 60)
+    expect([f(54 * 60 * S), f(55 * 60 * S), f(59 * 60 * S), f(60 * 60 * S), f(3 * 3600 * S)]).toEqual([false, true, true, false, false])
   })
 
   test('off: nothing happens however long the chat sits idle', async ($, on) => {
@@ -619,18 +656,37 @@ describe('idle handover', () => {
     await clock.advance(50 * S)
     expect(w.toasts).toEqual([])
     await clock.advance(20 * S)
-    expect(w.toasts.length).toBe(1)
-    expect(w.toasts[0]).toBe(idleToast(1))
+    expect(w.toasts).toEqual([idleToast(1)])
     expect(w.prompts).toEqual([])
     await clock.advance(40 * S)
     expect(w.toasts.length).toBe(1)
   })
 
-  test('no fire below idle_min_tokens', opts('toast'), async ($, on) => {
-    const { w, clock, context } = world(on)
-    context(99_999)
+  test('the toast text states the single measurement', () => {
+    expect(idleToast(5)).toContain('Measured once')
+    expect(idleToast(5)).toContain('about 5x cheaper')
+  })
+
+  test('toast: the message stays in the status line until the next turn starts', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
     await $.turn.complete(turn)
-    await clock.advance(100 * S)
+    await clock.advance(70 * S)
+    expect(w.status.at(-1)).toBe(idleToast(1))
+    await clock.advance(40 * S)
+    expect(w.status.at(-1)).toBe(idleToast(1))
+    await $.turn.start({ text: 'back', turnId: 't2' })
+    expect(w.status.at(-1)).toBeUndefined()
+  })
+
+  test('no fire below idle_min_tokens, and the size is read only when the window is due', opts('toast'), async ($, on) => {
+    const { w, clock, context, transcripts } = world(on)
+    context(null, 99_999)
+    await $.turn.complete(turn)
+    expect(transcripts).toEqual([])
+    await clock.advance(50 * S)
+    expect(transcripts).toEqual([])
+    await clock.advance(50 * S)
+    expect(transcripts.length).toBeGreaterThan(0)
     expect(w.toasts).toEqual([])
   })
 
@@ -641,65 +697,82 @@ describe('idle handover', () => {
     expect(w.toasts).toEqual([])
   })
 
-  test('no fire once the cache has expired: the check is a window, not a floor', () => {
-    const f = (idleMs: number) => idleDue(idleMs, 60)
-    expect([f(54 * 60 * S), f(55 * 60 * S), f(59 * 60 * S), f(60 * 60 * S), f(3 * 3600 * S)]).toEqual([false, true, true, false, false])
-  })
-
-  test('a session the nudge already marked is not nudged again', opts('toast'), async ($, on) => {
+  test('it has its own mark: a session the 180k nudge marked still gets the idle message, and .nudged is left alone', opts('toast'), async ($, on) => {
     const { w, clock, nudge } = world(on)
     nudge('s1')
+    await $.turn.complete(turn)
+    await clock.advance(70 * S)
+    expect(w.toasts.length).toBe(1)
+    expect(marks(w, '.idle').length).toBe(1)
+    expect(marks(w, '.nudged')).toEqual([])
+  })
+
+  test('a handover already saved this session means nothing to ask for', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.tool.call({ tool: 'Bash', command: SAVE })
     await $.turn.complete(turn)
     await clock.advance(100 * S)
     expect(w.toasts).toEqual([])
   })
 
-  test('it claims the shared mark, so the 180k nudge stays quiet after it', opts('toast'), async ($, on) => {
+  test('auto: submits the idle handover request, which says the user is away, once', auto(), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
-    await clock.advance(70 * S)
-    expect(w.toasts.length).toBe(1)
-    expect([...w.files.keys()].some(k => /[\\/]\.nudged[\\/]s1$/.test(k))).toBe(true)
+    await clock.advance(310 * S)
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+    expect(IDLE_HANDOVER_TEXT).toContain('The user is away. If a question is open, the Next action is to wait for their answer; do not guess.')
+    await clock.advance(100 * S)
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
   })
 
-  test('toast does not make the relay warn that no handover was saved', { options: { idle_handover: 'toast', cache_ttl_minutes: 2, relay: '3' } }, async ($, on) => {
+  test('auto: saves and clears, and does not submit the resume text (relay off)', auto(), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
-    await clock.advance(70 * S)
-    await $.turn.complete(turn)
-    expect(w.toasts.length).toBe(1)
-  })
-
-  test('auto: submits the handover request, once', opts('auto'), async ($, on) => {
-    const { w, clock } = world(on)
-    await $.turn.complete(turn)
-    await clock.advance(70 * S)
-    expect(w.prompts).toEqual([HANDOVER_TEXT])
-    await clock.advance(40 * S)
-    expect(w.prompts).toEqual([HANDOVER_TEXT])
-  })
-
-  test('auto: with the relay on, the handover it asks for is relayed', { options: { idle_handover: 'auto', cache_ttl_minutes: 2, relay: '3' } }, async ($, on) => {
-    const { w, clock } = world(on)
-    await $.turn.complete(turn)
-    await clock.advance(70 * S)
-    expect(w.prompts).toEqual([HANDOVER_TEXT])
+    await clock.advance(310 * S)
     await relayOnce($, clock)
     expect(w.commands).toEqual(['clear'])
-    expect(w.prompts).toEqual([HANDOVER_TEXT, 'Continue from the clear-resume handover that was just loaded.'])
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
   })
 
-  test('auto: a tool call in flight turns it into a toast', opts('auto'), async ($, on) => {
+  test('auto: with the relay on it still clears without resuming, and the budget is not spent', auto({ relay: '3' }), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+    expect(w.toasts.some(t => t.includes('left'))).toBe(false)
+  })
+
+  test('auto: an idle ask that saved nothing leaves the next save to the normal relay', auto({ relay: '3' }), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await $.turn.complete(turn)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT, 'Continue from the clear-resume handover that was just loaded.'])
+  })
+
+  test('auto: a tool call in flight turns it into a message', auto(), async ($, on) => {
     const { w, clock, hold } = world(on)
     let release!: () => void
     hold(new Promise<void>(r => (release = r)))
     await $.turn.complete(turn)
     const call = $.tool.call({ tool: 'Read', path: '/x' } as never)
-    await clock.advance(70 * S)
+    await clock.advance(310 * S)
     expect(w.prompts).toEqual([])
     expect(w.toasts.length).toBe(1)
     release()
     await call
+  })
+
+  test('auto with a TTL under 10 minutes behaves as toast', opts('auto', { cache_ttl_minutes: 6 }), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(190 * S)
+    expect(w.prompts).toEqual([])
+    expect(w.toasts.length).toBe(1)
   })
 
   test('no fire while a turn is running', opts('toast'), async ($, on) => {
@@ -710,12 +783,40 @@ describe('idle handover', () => {
     expect(w.toasts).toEqual([])
   })
 
+  test('turns are a set of ids: a subagent turn ending does not end the main one', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'go', turnId: 't2' })
+    await $.turn.start({ text: 'sub', turnId: 'sub1' })
+    await $.turn.complete({ ...turn, turnId: 'sub1', agentId: 'a1' } as never)
+    await clock.advance(100 * S)
+    expect(w.toasts).toEqual([])
+  })
+
+  test('turns are a set of ids: a subagent turn.start alone is cleared by its own end', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'sub', turnId: 'sub1' })
+    await $.turn.complete({ ...turn, turnId: 'sub1', agentId: 'a1' } as never)
+    await clock.advance(70 * S)
+    expect(w.toasts.length).toBe(1)
+  })
+
   test('a subagent turn does not count as a reply', opts('toast'), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
     await clock.advance(50 * S)
     await $.turn.complete({ ...turn, agentId: 'a1' } as never)
     await clock.advance(20 * S)
+    expect(w.toasts.length).toBe(1)
+  })
+
+  test('an aborted turn does not refresh the reply time', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(40 * S)
+    await $.turn.complete({ ...turn, turnId: 't2', isAborted: true, reason: 'aborted' } as never)
+    await clock.advance(30 * S)
     expect(w.toasts.length).toBe(1)
   })
 
@@ -733,20 +834,70 @@ describe('idle handover', () => {
     expect(w.toasts.length).toBe(1)
   })
 
-  test('under the headless runner it never fires', opts('auto'), async ($, on) => {
-    const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+  test('state resets on every session end, not only /clear', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
     await $.turn.complete(turn)
-    await clock.advance(100 * S)
+    await clock.advance(40 * S)
+    await $.session.end({ ...cleared, reason: 'resume' } as never)
+    await clock.advance(40 * S)
+    expect(w.toasts).toEqual([])
+  })
+
+  test('state resets on a new session start', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(40 * S)
+    await $.session.start(start)
+    await clock.advance(40 * S)
+    expect(w.toasts).toEqual([])
+  })
+
+  test('state resets on compaction', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(40 * S)
+    await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'x', toolUses: [] }] } as never)
+    await clock.advance(40 * S)
+    expect(w.toasts).toEqual([])
+  })
+
+  test('a session that is not interactive never gets the message', opts('auto'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.session.start({ ...start, isInteractive: false })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
     expect(w.toasts).toEqual([])
     expect(w.prompts).toEqual([])
+  })
+
+  test('under the headless runner it never fires', auto(), async ($, on) => {
+    const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.toasts).toEqual([])
+    expect(w.prompts).toEqual([])
+  })
+
+  test('the counting hooks are registered only when idle_handover is on', async ($, on) => {
+    const off = world(on)
+    const before = off.w.status.length
+    await $.turn.start({ text: 'x', turnId: 't1' })
+    expect(off.w.status.length).toBe(before)
+  })
+
+  test('with idle_handover on, a turn start is seen by the counting hook', opts('toast'), async ($, on) => {
+    const { w } = world(on)
+    const before = w.status.length
+    await $.turn.start({ text: 'x', turnId: 't1' })
+    expect(w.status.length).toBe(before + 1)
   })
 
   test('without $.session.usage it reads the transcript the nudge reads', opts('toast'), async ($, on) => {
     const { w, clock, context, transcripts } = world(on, { CLAUDE_CONFIG_DIR: '/cfg' })
     context(null, 150_000)
     await $.turn.complete(turn)
-    expect(transcripts.map(t => t.split('\\').join('/'))).toEqual(['/cfg/projects/-repo/s1.jsonl'])
     await clock.advance(70 * S)
+    expect(transcripts[0].split('\\').join('/')).toBe('/cfg/projects/-repo/s1.jsonl')
     expect(w.toasts.length).toBe(1)
   })
 

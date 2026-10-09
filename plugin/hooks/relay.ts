@@ -42,6 +42,14 @@ export const IDLE_TICK_MS = 30_000
 export const DEFAULT_TTL_MIN = 60
 export const DEFAULT_IDLE_MIN_TOKENS = 100_000
 export type IdleMode = 'off' | 'toast' | 'auto'
+// auto submits a prompt while the user is away; with a short TTL the window is too
+// narrow to trust that, so it behaves as toast (see idleEffective).
+export const AUTO_MIN_TTL_MIN = 10
+
+// What the idle handover asks for. Unlike the 180k nudge nobody is at the keyboard,
+// so the fresh session must wait for the user rather than carry on.
+export const IDLE_HANDOVER_TEXT =
+  HANDOVER_TEXT + ' The user is away. If a question is open, the Next action is to wait for their answer; do not guess.'
 
 // "toast" or "auto"; anything else, or unset, is off.
 export function idleMode(raw: unknown): IdleMode {
@@ -67,9 +75,19 @@ export function idleDue(idleMs: number, ttlMin: number): boolean {
   return idleMs >= idleFireAfterMs(ttlMin) && idleMs < ttlMin * 60_000
 }
 
+// A gap far past one tick since the last look means the machine was asleep.
+export function idleWoke(lastTickAt: number | undefined, now: number): boolean {
+  return lastTickAt !== undefined && now - lastTickAt > 2 * IDLE_TICK_MS
+}
+
+// auto needs a TTL of at least AUTO_MIN_TTL_MIN; below that it is toast.
+export function idleEffective(mode: IdleMode, ttlMin: number): IdleMode {
+  return mode === 'auto' && ttlMin < AUTO_MIN_TTL_MIN ? 'toast' : mode
+}
+
 export const idleToast = (leftMin: number): string =>
   `clear-resume: the prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
-  'A handover now costs far less than resuming cold. Run /clear-resume:handover, then /clear.'
+  'Measured once: a handover now was about 5x cheaper than resuming cold. Run /clear-resume:handover, then /clear.'
 
 // "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
 export function budget(raw: unknown): number {
@@ -169,10 +187,21 @@ type Relay = {
   ttlMin: number
   minTokens: number
   lastReplyAt: number | undefined
-  tokens: number | undefined
+  // Tool calls in flight, and the ids of turns running (a Set: a subagent's turn
+  // can start and end inside the main one).
   tools: number
-  turning: boolean
+  turns: Set<string>
   ticking: boolean
+  // The clock reading at the last tick, to tell a machine that just woke.
+  lastTickAt: number | undefined
+  // False when session.start said this is not an interactive session.
+  interactive: boolean
+  // A save went through save.mjs this session, so idle has nothing to ask for.
+  saved: boolean
+  // The idle handover was asked for by prompt: its save clears and does not resume.
+  idleAsked: boolean
+  // The idle status entry is showing, until the next turn starts.
+  idleShown: boolean
 }
 
 // Told after a nudged turn ends with no save through save.mjs. Seen 2026-10-07: a
@@ -328,44 +357,71 @@ async function contextTokens($: Engine): Promise<number | undefined> {
   }
 }
 
-// Claim the once-per-session nudge mark that the 180k Stop nudge also claims
-// (scripts/lib/nudge.mjs claimNudge): true when this call made it, false when it
-// was there already or cannot be written (then do nothing rather than repeat).
-async function claimNudge($: Engine, id: string): Promise<boolean> {
+// Claim the idle handover's own once-per-session mark, <store>/.idle/<slug>. It is
+// not the .nudged mark: the 180k Stop nudge and this can each fire once. True when
+// this call made the mark; false when it was there already or cannot be written
+// (then do nothing rather than repeat).
+async function claimIdle($: Engine, id: string): Promise<boolean> {
   const dir = await relayDir($)
   const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
-  if (!dir || !slug || (await nudged($, id))) return false
+  if (!dir || !slug) return false
+  const mark = `${dir.replace(/[/\\]relay$/, '')}/.idle/${slug}`
   try {
-    await $.fs.write(`${dir.replace(/[/\\]relay$/, '')}/.nudged/${slug}`, new Date().toISOString())
+    await $.fs.read(mark)
+    return false
+  } catch {
+    // Not there yet: claim it.
+  }
+  try {
+    await $.fs.write(mark, new Date().toISOString())
     return true
   } catch {
     return false
   }
 }
 
+// Forget the idle state: a new conversation, or one just compacted, starts over.
+function resetIdle(r: Relay): void {
+  r.lastReplyAt = undefined
+  r.lastTickAt = undefined
+  r.turns.clear()
+  r.saved = false
+  r.idleAsked = false
+}
+
 // One look at the idle state. Acts at most once per session.
 async function idleCheck($: Engine, r: Relay): Promise<void> {
-  if (r.idle === 'off' || r.lastReplyAt === undefined || r.tokens === undefined) return
-  if (r.tokens < r.minTokens || r.turning || (await headlessRun($))) return
-  const idle = (await $.clock.now()) - r.lastReplyAt
-  const ttl = r.ttlMin * 60_000
-  if (!idleDue(idle, r.ttlMin)) return
+  const now = await $.clock.now()
+  // A gap far past one tick means the machine was asleep: the cache clock moved
+  // while this one did not, so nothing is submitted on that look.
+  const woke = idleWoke(r.lastTickAt, now)
+  r.lastTickAt = now
+  if (r.idle === 'off' || r.lastReplyAt === undefined || !r.interactive) return
+  if (r.turns.size > 0 || r.saved || r.pending || r.idleAsked) return
+  const idle = now - r.lastReplyAt
+  if (!idleDue(idle, r.ttlMin) || (await headlessRun($))) return
+  // Read the context size only now that everything else says to act.
+  const tokens = await contextTokens($)
+  if (tokens === undefined || tokens < r.minTokens) return
   const id = await $.session.id()
-  if (!id || !(await claimNudge($, id))) return
-  const left = Math.max(1, Math.round((ttl - idle) / 60_000))
+  if (!id || !(await claimIdle($, id))) return
+  const left = Math.max(1, Math.round((r.ttlMin * 60_000 - idle) / 60_000))
   // Auto needs a quiet session: a tool call in flight may be waiting on a
-  // permission prompt, and a submitted prompt would queue behind it. Toast then.
-  if (r.idle === 'auto' && r.tools === 0) {
+  // permission prompt, and a submitted prompt would queue behind it. Message then.
+  if (r.idle === 'auto' && r.tools === 0 && !woke) {
+    r.idleAsked = true
     $.ui.toast(`clear-resume: idle, the cache expires in about ${left} min. Writing a handover now.`, { timeoutMs: 10000 })
-    await $.prompt.submit({ text: HANDOVER_TEXT, asUser: true }).catch(err => {
+    await $.prompt.submit({ text: IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
+      r.idleAsked = false
       $.ui.toast(`clear-resume: idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
     })
     return
   }
-  // A toast is the user's to act on, so the "no handover saved" warning
-  // (warnUnarmed) would only nag them after they come back.
-  r.warned = id
-  $.ui.toast(idleToast(left), { timeoutMs: 30000 })
+  // The message stays in the status line until the next turn starts. It is the
+  // user's to act on, so the toast is only a nudge to look.
+  r.idleShown = true
+  $.ui.status(idleToast(left))
+  $.ui.toast(idleToast(left), { timeoutMs: 8000 })
 }
 
 // The idle check's timer, once per process. Not under the headless runner.
@@ -387,7 +443,27 @@ async function idleTick($: Engine, r: Relay): Promise<void> {
 
 // What the end of a main-thread turn does with a pending save.
 async function decide($: Engine, r: Relay, reason: string): Promise<void> {
-  if (!r.pending) return warnUnarmed($, r, reason)
+  if (!r.pending) {
+    // The turn the idle prompt started ended with nothing saved: drop the ask.
+    r.idleAsked = false
+    return warnUnarmed($, r, reason)
+  }
+  // An idle handover saves and clears, whatever the relay's budget, and does not
+  // continue: the user is away, so the fresh session waits for them. The saved
+  // handover still loads at the start of the new session.
+  if (r.idleAsked) {
+    r.idleAsked = false
+    r.pending = false
+    if (reason !== 'answer' || (await headlessRun($))) return
+    $.ui.status('clear-resume: clearing...')
+    $.clock.after(300, () => {
+      $.command.run({ command: 'clear' }).catch(err => {
+        $.ui.status(shown(r))
+        $.ui.toast(`clear-resume idle handover: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
+      })
+    })
+    return
+  }
   // Turned off for this window: drop the save quietly.
   if (r.limit === 0) {
     r.pending = false
@@ -451,22 +527,26 @@ export const register: Register = (on, options) => {
     asked: 0,
     polling: false,
     warned: undefined,
-    idle: idleMode(options.idle_handover),
+    idle: idleEffective(idleMode(options.idle_handover), positive(options.cache_ttl_minutes, DEFAULT_TTL_MIN)),
     ttlMin: positive(options.cache_ttl_minutes, DEFAULT_TTL_MIN),
     minTokens: positive(options.idle_min_tokens, DEFAULT_IDLE_MIN_TOKENS),
     lastReplyAt: undefined,
-    tokens: undefined,
     tools: 0,
-    turning: false,
+    turns: new Set(),
     ticking: false,
+    lastTickAt: undefined,
+    interactive: true,
+    saved: false,
+    idleAsked: false,
+    idleShown: false,
   }
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     r.headless = await headlessRun($)
-    r.lastReplyAt = undefined
-    r.tokens = undefined
-    r.turning = false
+    resetIdle(r)
+    // A session that is not interactive (-p, the SDK) has nobody to message.
+    r.interactive = (e as { isInteractive?: boolean }).isInteractive !== false
     await $.command.register({
       name: 'relay',
       description: 'Clear and continue by itself in this window: off, on, unlimited or a number',
@@ -493,20 +573,27 @@ export const register: Register = (on, options) => {
     return { text: relayStatus(r.limit, r.used) }
   })
 
-  // Tool calls in flight, any thread: one may be waiting on a permission prompt.
-  on('tool.call', async ($, e, next) => {
-    r.tools++
-    try {
-      return await next(e)
-    } finally {
-      r.tools = Math.max(0, r.tools - 1)
-    }
-  })
+  // Only with the idle handover on: count tool calls in flight, any thread (one
+  // may be waiting on a permission prompt), and turns running. With it off these
+  // hooks are not registered at all.
+  if (r.idle !== 'off') {
+    on('tool.call', async ($, e, next) => {
+      r.tools++
+      try {
+        return await next(e)
+      } finally {
+        r.tools = Math.max(0, r.tools - 1)
+      }
+    })
 
-  on('turn.start', async ($, e, next) => {
-    r.turning = true
-    return next(e)
-  })
+    on('turn.start', async ($, e, next) => {
+      r.turns.add(e.turnId)
+      // The idle message stays until the user is back and a turn starts.
+      r.idleShown = false
+      $.ui.status(shown(r))
+      return next(e)
+    })
+  }
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
@@ -518,18 +605,19 @@ export const register: Register = (on, options) => {
       (ran.text ?? '').includes(SAVED)
     ) {
       r.pending = true
+      r.saved = true
     }
     return ran
   })
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
+    // Any thread's turn ends here, so its id leaves the running set.
+    r.turns.delete(e.turnId)
     if (e.agentId !== undefined) return result
-    r.turning = false
-    if (r.idle !== 'off') {
-      r.lastReplyAt = await $.clock.now()
-      r.tokens = await contextTokens($)
-    }
+    // Only a turn that answered counts as the user's last reply: an aborted or
+    // failed one did not refresh the cache the way a finished request does.
+    if (r.idle !== 'off' && e.reason === 'answer') r.lastReplyAt = await $.clock.now()
     await takeOverride($, r)
     await decide($, r, e.reason)
     await publish($, r)
@@ -538,13 +626,16 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  // A compacted conversation is a new, small one: the idle state starts over.
+  on('session.compact', async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined) resetIdle(r)
+    return result
+  })
+
   on('session.end', async ($, e, next) => {
     const result = await next(e)
-    if (e.reason === 'clear') {
-      r.lastReplyAt = undefined
-      r.tokens = undefined
-      r.turning = false
-    }
+    resetIdle(r)
     if (e.reason !== 'clear' || !r.pending) return result
     r.pending = false
     $.ui.status('clear-resume: continuing...')
