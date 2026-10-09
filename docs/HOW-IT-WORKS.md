@@ -214,31 +214,38 @@ As a fallback, set auto-compaction to fire well before the context window is ful
 ### Idle handover: before the cache expires
 
 Off by default. Claude Code keeps your prompt in a cache that lasts `cache_ttl_minutes` after the
-last reply (60 on a subscription; 5 with an API key by default). Come back after it lapses and the
-first message pays for a full rewrite of the context. A handover written while the cache is still
-warm is read from the cache and costs much less.
+last reply. Only the 60 minute subscription cache was measured; 5 minutes is the documented default
+with an API key and was not measured. Come back after it lapses and the first message pays for a
+full rewrite of the context. A handover written while the cache is still warm is read from the
+cache and costs less, but only if you do come back.
 
-Measured once (`_ab` runs of 2026-10-09, n=1, Sonnet 5.5, one 390k-token session): the first
-message after 65 minutes away, and after 180 minutes, each wrote about 390k tokens and cost
-US$1.56. A handover written at +55 minutes cost US$0.20, and a fresh session reading it US$0.11,
-US$0.30 in all, about 5 times less. One run on one session; the handover path continues from a
-note, not from the whole conversation.
+Measured once (internal runs of 2026-10-09, n=1, Sonnet 5.5, one 390k-token session, 60 minute
+cache): the first message after 65 minutes away, and after 180 minutes, each wrote about 390k tokens
+and cost US$1.56. A handover written at +55 minutes cost US$0.20, and a fresh session reading it
+US$0.11, about US$0.31 in all, about 5 times less. One run on one session; the handover path
+continues from a note, not from the whole conversation.
 
 With `idle_handover` set to `toast` or `auto`, the relay mod checks every 30 seconds. It acts when
 all of these hold:
 
-- the last main-thread reply ended at least `cache_ttl_minutes` minus 5 minutes ago (half the TTL,
-  if the TTL is under 10 minutes), and less than the full TTL ago;
-- the context was at least `idle_min_tokens` at that reply (read from `$.session.usage()`, else from
-  the session transcript, as the nudge does);
-- no turn is running, and this session has not been nudged (the same once-per-session mark the
-  180k nudge uses, so the two never both fire);
-- it is not the headless runner.
+- the session is interactive (not `claude -p`, not the headless runner);
+- the last main-thread reply that finished normally ended at least `cache_ttl_minutes` minus 5
+  minutes ago (half the TTL, if the TTL is under 10 minutes), and less than the full TTL ago;
+- no turn is running and no handover was saved in this session;
+- the context is at least `idle_min_tokens`. It is read only at that point, from
+  `$.session.usage()`, else from the session transcript through `scripts/context-tokens.mjs`;
+- this session has not had its idle message yet. The mod keeps its own mark,
+  `<store>/.idle/<session id>`, so the 180k nudge (the `.nudged` mark) and this can each fire once.
 
-`toast` shows a message. `auto` submits the handover request as if you typed it, and with the relay
-on, the relay then clears and continues. If a tool call is running (it may be waiting on a
-permission prompt), `auto` shows the message instead. Idle time is the difference between clock
-readings, so a laptop that slept is judged by the real time that passed. State starts over on `/clear`.
+`toast` puts a message in the status line, which stays until your next turn starts, and shows a
+short toast too. `auto` asks Claude for the handover with a prompt that says you are away and that
+an open question is the next action; when the handover is saved the session is cleared, with the
+relay on or off, and the fresh session loads the handover and then waits for you. The relay's
+"Continue from..." prompt is not sent. `auto` shows the status message instead when a tool call is
+running (it may be waiting on a permission prompt), when the machine just woke (the gap since the
+last check is over 60 seconds), and always when `cache_ttl_minutes` is under 10. Idle time is the
+difference between clock readings, so a laptop that slept is judged by the real time that passed.
+State starts over on every session end, on compaction and on a new session start.
 
 ## Claude Code on the web (opt-in)
 

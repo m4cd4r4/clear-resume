@@ -35,13 +35,13 @@
     "idle_handover": {
       "type": "string",
       "title": "Idle handover: act before the prompt cache expires",
-      "description": "When you have been away long enough that the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it; a handover written first costs much less. off (the default), toast (show a message once per session) or auto (ask Claude for the handover itself; falls back to the message while a tool call is running). Anything else is off. Needs Claude Code 2.1.275 or later.",
+      "description": "When you have been away until the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it. Measured once (n=1, Sonnet 5.5, 60 minute cache): a handover written while warm was about 5x cheaper, and only if you come back. off (the default), toast (a status message that stays until your next turn) or auto (asks Claude for the handover, clears, and waits for you; it does not continue the work). auto needs cache_ttl_minutes of 10 or more, else it acts as toast; it acts as toast too while a tool call runs. Anything else is off. Needs Claude Code 2.1.275 or later.",
       "default": "off"
     },
     "cache_ttl_minutes": {
       "type": "number",
       "title": "Prompt cache lifetime (minutes)",
-      "description": "How long your prompt cache lasts after a reply: 60 on a subscription, 5 with an API key by default. Idle handover acts about 5 minutes before this (half of it, if shorter).",
+      "description": "How long your prompt cache lasts after a reply. Only the 60 minute subscription cache was measured. 5 minutes is the documented default with an API key and was not measured. Idle handover acts about 5 minutes before this (half of it, if shorter).",
       "default": 60,
       "min": 1,
       "max": 1440
