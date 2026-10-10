@@ -86,7 +86,7 @@ export function idleEffective(mode: IdleMode, ttlMin: number): IdleMode {
 }
 
 export const idleToast = (leftMin: number): string =>
-  `clear-resume: the prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
+  `The prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
   'Measured once: a handover now was about 5x cheaper than resuming cold. Run /clear-resume:handover, then /clear.'
 
 // "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
@@ -304,12 +304,12 @@ async function takeHandover($: Engine, r: Relay): Promise<void> {
   }
   if (typeof at !== 'number' || at <= r.asked) return
   r.asked = at
-  $.ui.toast('clear-resume: writing a handover', { timeoutMs: 5000 })
+  $.ui.toast('Writing a handover', { timeoutMs: 5000 })
   try {
     await $.command.run({ command: HANDOVER_COMMAND, args: '' })
   } catch {
     await $.prompt.submit({ text: HANDOVER_TEXT, asUser: true }).catch(err => {
-      $.ui.toast(`clear-resume: hand-over refused: ${String(err)}`, { timeoutMs: 15000 })
+      $.ui.toast(`Hand-over refused: ${String(err)}`, { timeoutMs: 15000 })
     })
   }
 }
@@ -410,10 +410,10 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
   // permission prompt, and a submitted prompt would queue behind it. Message then.
   if (r.idle === 'auto' && r.tools === 0 && !woke) {
     r.idleAsked = true
-    $.ui.toast(`clear-resume: idle, the cache expires in about ${left} min. Writing a handover now.`, { timeoutMs: 10000 })
+    $.ui.toast(`Idle, the cache expires in about ${left} min. Writing a handover now.`, { timeoutMs: 10000 })
     await $.prompt.submit({ text: IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
       r.idleAsked = false
-      $.ui.toast(`clear-resume: idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
+      $.ui.toast(`Idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
     })
     return
   }
@@ -455,7 +455,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     r.idleAsked = false
     r.pending = false
     if (reason !== 'answer' || (await headlessRun($))) return
-    $.ui.status('clear-resume: clearing...')
+    $.ui.status('Clearing...')
     $.clock.after(300, () => {
       $.command.run({ command: 'clear' }).catch(err => {
         $.ui.status(shown(r))
@@ -498,7 +498,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     return
   }
   r.used++
-  $.ui.status('clear-resume: clearing...')
+  $.ui.status('Clearing...')
   // Not awaited: command.run rejects inside a hook the turn is waiting on,
   // and the clear is queued until the session is idle anyway.
   $.clock.after(300, () => {
@@ -638,7 +638,7 @@ export const register: Register = (on, options) => {
     resetIdle(r)
     if (e.reason !== 'clear' || !r.pending) return result
     r.pending = false
-    $.ui.status('clear-resume: continuing...')
+    $.ui.status('Continuing...')
     $.clock.after(1000, () => {
       $.prompt
         .submit({ text: RESUME_TEXT, asUser: true })
