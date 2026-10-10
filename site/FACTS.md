@@ -295,3 +295,29 @@ F270 | page: "Source: the source files, the plugin README and How it works." | s
 
 F31 | page: "Built in {sessions} sessions and {clears} automatic clears, {commits} commits, {first} to {last} AWST, {date}. Build log" | source: "run on this build's transcripts" | site/buildstats.mjs:6 | source: "const sessions = out.length;" | site/buildstats.mjs:127 | source: "const clears = sessions - 1;" | site/buildstats.mjs:128 | source: "const commits = lines.length;" | site/buildstats.mjs:147 | source: "const awst = (iso) => {" | site/buildstats.mjs:134 | source: "date: commits ? awstDate(lines[0]) : \"n/a\"" | site/buildstats.mjs:149
 F50 | page: "MIT licence. Independent, not made or endorsed by Anthropic." | source: "MIT licence</a>. clear-resume is an independent project. It is not made or endorsed by Anthropic." | README.md:299
+
+## Results method (copied from RESULTS.md as-is)
+
+Source: I:/Scratch/_ab/RESULTS.md (the A/B write-up, outside this repo). Figures on the results page are slots filled from site/media/results/results.json (`source: "<value>" | results.json: <path>`), which site/extract-results.mjs builds from the transcripts and site/extract-results.test.mjs pins to the RESULTS.md tables.
+
+- Sonnet 5.5 site: n=3 relay vs n=3 auto-compaction at ~177k (2026-10-08)
+- Completion: relay 3 of 3; auto-compaction 2 of 3 (one run ended its turn after item 20 following its second compaction).
+- Completed runs only: relay mean 35.1M tokens, US$12.21, 50.0 min (n=3); auto-compaction mean 35.9M, US$13.03, 49.5 min (n=2). The gap is within run-to-run spread (relay ranges 31.2-37.2M).
+- Both clearing methods used fewer tokens than the one long 1M session (49.8M, n=1), about 1.4x, at similar cost.
+- n=3 per arm is small: "1 of 3 compaction runs stopped early" is an observation, not a rate.
+- Its lower token and cost totals are for two thirds of the work, so they are not a saving.
+- Against the prediction: tokens came in above it
+- Token ranges do not overlap between any two arms.
+- Sonnet 5.5, the same 390k-token site session (copy in switch/), subscription token, identical args on every call, n=1 per point.
+- Handover before expiry: US$0.30 (0.20 + 0.11). Cold return to the same session: US$1.56 (idle-gap table above). About 5x cheaper, n=1, Sonnet 5.5.
+
+## index.html: results (slots from results.json)
+
+F400 | page: "A {meta.planItems}-item website build, run {groups.relay.n} times with the relay and {groups.autocompact.n} times with Claude Code's auto-compaction, on Sonnet 5.5." | source: "Sonnet 5.5, the same 390k-token site session" | FACTS.md: Results method | source: "30" | results.json: meta.planItems | source: "3" | results.json: groups.relay.n | source: "3" | results.json: groups.autocompact.n
+F401 | page: "Relay: {groups.relay.finished} of {groups.relay.n} builds finished. Auto-compaction: {groups.autocompact.finished} of {groups.autocompact.n}." | source: "Completion: relay 3 of 3; auto-compaction 2 of 3" | FACTS.md: Results method | source: "3" | results.json: groups.relay.finished | source: "3" | results.json: groups.relay.n | source: "2" | results.json: groups.autocompact.finished | source: "3" | results.json: groups.autocompact.n
+F402 | page: "One compaction run ended its turn after item {runs.compact200.planTicked}, with {runs.compact200.planOpen} items open. {groups.autocompact.n} runs per arm is a small sample." | source: "one run ended its turn after item 20 following its second compaction" | FACTS.md: Results method | source: "n=3 per arm is small" | FACTS.md: Results method | source: "20" | results.json: runs.compact200.planTicked | source: "10" | results.json: runs.compact200.planOpen | source: "3" | results.json: groups.autocompact.n
+F403 | page: "One long session used about {groups.relay.vsLong}x the tokens of either clearing method (n={groups.long.n})." | source: "Both clearing methods used fewer tokens than the one long 1M session (49.8M, n=1), about 1.4x" | FACTS.md: Results method | source: "1.4" | results.json: groups.relay.vsLong | source: "1.4" | results.json: groups.autocompact.vsLong | source: "1" | results.json: groups.long.n
+F404 | page: "Median cost: US${groups.relay.medianCostUsd} relay, US${groups.autocompact.medianCostUsd} auto-compaction." | source: "12.54" | results.json: groups.relay.medianCostUsd | source: "13.03" | results.json: groups.autocompact.medianCostUsd
+F405 | page: "The gap is within run-to-run spread." | source: "The gap is within run-to-run spread" | FACTS.md: Results method
+F406 | page: "Median tokens rose with the starting context: {floor.relay.medianTokensM}M at {floor.relay.floorK}k, {floor.trim.medianTokensM}M at {floor.trim.floorK}k, {floor.old.medianTokensM}M at {floor.old.floorK}k." | source: "Token ranges do not overlap between any two arms." | FACTS.md: Results method | source: "36.9" | results.json: floor.relay.medianTokensM | source: "22.1" | results.json: floor.relay.floorK | source: "48.5" | results.json: floor.trim.medianTokensM | source: "45.9" | results.json: floor.trim.floorK | source: "52.7" | results.json: floor.old.medianTokensM | source: "67.9" | results.json: floor.old.floorK
+F407 | page: "Back in a {idle.contextTokens}k session: US${idle.coldReturn.costUsd} cold, US${idle.warmHandover.totalUsd} with a handover (n={idle.n})." | source: "About 5x cheaper, n=1, Sonnet 5.5." | FACTS.md: Results method | source: "390352" | results.json: idle.contextTokens | source: "1.56" | results.json: idle.coldReturn.costUsd | source: "0.3" | results.json: idle.warmHandover.totalUsd | source: "1" | results.json: idle.n

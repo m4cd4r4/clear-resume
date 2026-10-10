@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "JetBrains Mono"; src: url("assets/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; }
+      @font-face { font-family: "JetBrains Mono"; src: url("assets/fonts/jetbrains-mono-700.woff2") format("woff2"); font-weight: 700; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-400.woff2") format("woff2"); font-weight: 400; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-600.woff2") format("woff2"); font-weight: 600; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-700.woff2") format("woff2"); font-weight: 700; }
+
+      /* Tokens copied from ../styles.css; video-check.mjs fails if any value drifts. */
+      :root {
+        --bg: #0a0a0a;
+        --surface: #121212;
+        --hairline: #262626;
+        --text: #f2f2f2;
+        --text-2: #8c8c8c;
+        --ghost: #5a5a5a;
+        --ghost-text: #808080;
+        --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+        --sans: "Montserrat", system-ui, sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--text); }
+      #root { position: relative; width: 1920px; height: 1080px; font-family: var(--sans); }
+      .scene { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 120px; }
+      .kicker { font: 700 26px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+      .brand { font: 700 26px/1 var(--mono); color: var(--text-2); }
+      h1 { margin-top: 28px; font-size: 108px; white-space: nowrap; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+      h2 { max-width: 1500px; margin-top: 22px; font-size: 60px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+      h2 [data-res] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+      .setup { max-width: 1400px; margin-top: 40px; font-size: 38px; line-height: 1.4; color: var(--text-2); }
+      .scene .note { max-width: 1500px; margin-top: 30px; font: 400 28px/1.5 var(--mono); color: var(--text-2); }
+      .chart { width: 1680px; margin-top: 44px; }
+      .chart .chart-svg { width: 100%; height: auto; }
+      .race-box { width: 1560px; padding: 24px 28px 20px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+      .hl.c-relay { color: var(--c-relay); }
+      .hl.c-auto { color: var(--c-auto); }
+      .hl.c-long { color: var(--c-long); }
+      .url { margin-top: 56px; font: 700 40px/1 var(--mono); color: var(--text); }
+    </style>
+    <link rel="stylesheet" href="assets/results/results.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="41.5" data-width="1920" data-height="1080">
+
+      <section class="scene clip" data-start="0" data-duration="4" data-track-index="0" id="s-title">
+        <p class="kicker reveal">clear-resume, measured results</p>
+        <h1 class="reveal">Clear the chat. Keep the work.</h1>
+        <p class="setup reveal">A <span data-res="meta.planItems"></span>-item website build, run <span data-res="groups.relay.n"></span> times with the relay and <span data-res="groups.autocompact.n"></span> times with Claude Code's auto-compaction, on <span data-lit>Sonnet 5.5</span>.</p>
+      </section>
+
+      <section class="scene clip" data-start="4" data-duration="14.5" data-track-index="0" id="s-race">
+        <p class="kicker reveal">The race</p>
+        <h2 class="reveal">One build, one clock. Every point is a real reply.</h2>
+        <div class="chart race-box reveal" id="c-race"></div>
+        <p class="note reveal">Relay run <span data-res="runs.relay.run"></span> against compaction run <span data-res="runs.compact200.run"></span>, of <span data-res="groups.relay.n"></span> per arm.</p>
+      </section>
+
+      <section class="scene clip" data-start="18.5" data-duration="5" data-track-index="0" id="s-finish">
+        <p class="kicker reveal">Finish</p>
+        <h2 class="reveal">Relay: <span class="hl c-relay" data-res="groups.relay.finished"></span> of <span data-res="groups.relay.n"></span> builds finished. Auto-compaction: <span class="hl c-auto" data-res="groups.autocompact.finished"></span> of <span data-res="groups.autocompact.n"></span>.</h2>
+        <div class="chart reveal" id="c-finish"></div>
+        <p class="note reveal">One compaction run ended its turn after item <span data-res="runs.compact200.planTicked"></span>, with <span data-res="runs.compact200.planOpen"></span> items open. <span data-res="groups.autocompact.n"></span> runs per arm is a small sample.</p>
+      </section>
+
+      <section class="scene clip" data-start="23.5" data-duration="4.5" data-track-index="0" id="s-tokens">
+        <p class="kicker reveal">Tokens</p>
+        <h2 class="reveal">One long session used about <span class="hl c-long" data-res="groups.relay.vsLong"></span>x the tokens of either clearing method (n=<span data-res="groups.long.n"></span>).</h2>
+        <div class="chart reveal" id="c-tokens"></div>
+      </section>
+
+      <section class="scene clip" data-start="28" data-duration="4.5" data-track-index="0" id="s-cost">
+        <p class="kicker reveal">Cost</p>
+        <h2 class="reveal">Median cost: US$<span class="hl c-relay" data-res="groups.relay.medianCostUsd" data-fixed="2"></span> relay, US$<span class="hl c-auto" data-res="groups.autocompact.medianCostUsd" data-fixed="2"></span> auto-compaction.</h2>
+        <div class="chart reveal" id="c-cost"></div>
+        <p class="note reveal">The gap is within run-to-run spread.</p>
+      </section>
+
+      <section class="scene clip" data-start="32.5" data-duration="5" data-track-index="0" id="s-idle">
+        <p class="kicker reveal">Idle return</p>
+        <h2 class="reveal">Back in a <span data-res="idle.contextTokens" data-k="1"></span>k session: US$<span class="hl c-long" data-res="idle.coldReturn.costUsd" data-fixed="2"></span> cold, US$<span class="hl c-relay" data-res="idle.warmHandover.totalUsd" data-fixed="2"></span> with a handover (n=<span data-res="idle.n"></span>).</h2>
+        <div class="chart reveal" id="c-idle"></div>
+        <p class="note reveal">A handover continues from a note and a cold return keeps the whole conversation, so this compares cost only.</p>
+      </section>
+
+      <section class="scene clip" data-start="37.5" data-duration="4" data-track-index="0" id="s-end">
+        <p class="kicker reveal">clear-resume</p>
+        <h1 class="reveal">Clear the chat. Keep the work.</h1>
+        <p class="setup reveal"><span data-res="groups.relay.n"></span> runs per arm is a small sample. Idle and long-session figures are n=<span data-res="idle.n"></span>. <span data-lit>Sonnet 5.5</span>.</p>
+        <p class="url reveal" data-lit>github.com/m4cd4r4/clear-resume</p>
+      </section>
+    </div>
+
+    <script src="assets/results/results.js"></script>
+    <script src="assets/results/charts-core.js"></script>
+    <script src="assets/results/chart-race.js"></script>
+    <script src="assets/results/chart-dots.js"></script>
+    <script src="assets/results/chart-specs.js"></script>
+    <script>
+      (function () {
+        var D = window.crResults, C = window.crCharts, S = C.specs(D), runs = D.runs;
+        var END = 41.5;
+        var $ = function (s, r) { return (r || document).querySelector(s); };
+        var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+        var linear = function (x) { return x; };
+
+        $$("[data-res]").forEach(function (el) {
+          var v = C.get(D, el.getAttribute("data-res"));
+          if (v !== undefined) el.textContent = C.fmt(v, el.getAttribute("data-fixed"), el.getAttribute("data-k"));
+        });
+
+        /* charts: p is a pure function of the clock, so seeking anywhere draws the right frame */
+        var W = 960;
+        var charts = [
+          { id: "c-race", t0: 5, dur: 12.5, ease: linear, build: function (w, p) { return C.race(D, { a: runs.relay, b: runs.compact200 }, w, p); } },
+          { id: "c-finish", t0: 19.2, dur: 2.6, ease: linear, build: S.draw.finish },
+          { id: "c-tokens", t0: 24.0, dur: 2.6, ease: linear, build: S.draw.tokens },
+          { id: "c-cost", t0: 28.5, dur: 2.6, ease: linear, build: S.draw.cost },
+          { id: "c-idle", t0: 33.0, dur: 2.6, ease: linear, build: S.draw.idle }
+        ];
+        charts.forEach(function (c) { c.el = $("#" + c.id); c.last = -1; });
+
+        /* claim numbers count up when their scene opens */
+        var counts = [];
+        $$(".scene").forEach(function (sc) {
+          var t0 = parseFloat(sc.getAttribute("data-start")) + 0.6;
+          $$("h2 [data-res]", sc).forEach(function (el) {
+            var fin = el.textContent;
+            counts.push({ el: el, fin: fin, target: parseFloat(fin), dec: (fin.split(".")[1] || "").length, t0: t0 });
+          });
+        });
+
+        function render(t) {
+          charts.forEach(function (c) {
+            var p = Math.round(c.ease(C.span(t, c.t0, c.t0 + c.dur)) * 1000) / 1000;
+            if (p === c.last) return;
+            c.last = p;
+            c.el.innerHTML = c.build(W, p);
+          });
+          counts.forEach(function (n) {
+            var e = C.ease(C.span(t, n.t0, n.t0 + 1.1));
+            n.el.textContent = e >= 1 ? n.fin : (n.target * e).toFixed(n.dec);
+          });
+        }
+
+        var clock = {};
+        var tv = 0;
+        Object.defineProperty(clock, "t", { get: function () { return tv; }, set: function (v) { tv = v; render(v); } });
+
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        tl.to(clock, { t: END, duration: END, ease: "none" }, 0);
+        $$(".scene").forEach(function (sc) {
+          var t0 = parseFloat(sc.getAttribute("data-start"));
+          tl.fromTo($$(".reveal", sc), { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.12, ease: "power2.out" }, t0 + 0.05);
+        });
+        window.__timelines["main"] = tl;
+        render(0);
+        tl.seek(0);
+      })();
+    </script>
+  </body>
+</html>

@@ -87,3 +87,20 @@ It says "Nothing is uploaded and nothing syncs." That is true of the extension i
 and false of the store it reads: the plugin syncs it to a git remote when
 `scripts/sync.mjs init` has been run, and the extension's own pin, delete and archive push in
 that case too. Reword to scope the claim to the extension's own behaviour.
+
+## 6. Site gates and the video are not run by CI
+
+`.github/workflows/pages.yml` copies only `site/*.html`, the CSS, scripts, `fonts/` and `media/`, and runs
+none of `site/check.mjs`, `copycheck.mjs`, `factcheck.mjs`, `extract-results.test.mjs` or
+`site/video/video-check.mjs`. They pass locally; nothing stops a merge that breaks them. Wiring them into a
+CI job is a workflow change, so it was left out of the results-infographics PR.
+
+## 7. 1:1 cut of the results video
+
+`site/video/index.html` is 1920x1080 only. A 1080x1080 cut for LinkedIn needs the narrow chart layouts
+(width under 600) scaled up and a second root. Not built; the 16:9 file is `site/media/results-video.mp4`.
+
+## 8. The video is a scene list written by hand
+
+When the final cut of findings is decided, the scene list in `site/video/index.html` and the `show` list in
+`site/media/results/page.js` have to be edited separately. A shared list would remove the second edit.

@@ -96,18 +96,22 @@ function checkFacts() {
 }
 
 function checkScript() {
-  const file = path.join(SITE, "app.js");
-  if (!fs.existsSync(file)) return;
-  read(file).split("\n").forEach((l, i) => {
-    for (const [, s] of l.matchAll(/"((?:[^"\\]|\\.)*)"/g)) if (/[a-z] [a-z]/i.test(s)) checkText("app.js:" + (i + 1), s);
-    for (const [ch, name] of BANNED_CHARS) if (l.includes(ch)) fail("app.js:" + (i + 1), name);
-  });
+  const res = path.join(SITE, "media", "results");
+  const files = ["app.js", ...(fs.existsSync(res) ? fs.readdirSync(res).filter((f) => f.endsWith(".js")).map((f) => "media/results/" + f) : [])];
+  for (const f of files) {
+    const file = path.join(SITE, f);
+    if (!fs.existsSync(file)) continue;
+    read(file).split("\n").forEach((l, i) => {
+      for (const [, s] of l.matchAll(/"((?:[^"\\]|\\.)*)"/g)) if (/[a-z] [a-z]/i.test(s)) checkText(f + ":" + (i + 1), s);
+      for (const [ch, name] of BANNED_CHARS) if (l.includes(ch)) fail(f + ":" + (i + 1), name);
+    });
+  }
 }
 
 function main() {
   const args = process.argv.slice(2);
   const pages = args.length ? args.map((p) => path.basename(p))
-    : ["index.html", "how-it-works.html", "changelog.html"].filter((p) => fs.existsSync(path.join(SITE, p)));
+    : ["index.html", "replay-archive.html", "how-it-works.html", "changelog.html"].filter((p) => fs.existsSync(path.join(SITE, p)));
   for (const p of pages) checkPage(p);
   checkFacts();
   checkScript();
