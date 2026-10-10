@@ -137,8 +137,10 @@ export function extractRun(ab, arm) {
     outputK: Math.round(all.reduce((n, x) => n + x.out, 0) / 1e3),
     wallMin: r1((Date.parse(ended) - startMs) / 60000),
     peakContext: Math.max(...all.map((x) => x.ctx)),
+    run: Number((arm.match(/-r(\d+)$/) || [0, 1])[1]), // relay is run 1, relay-r2 is run 2
     planTicked: planTicked(path.join(root, "cr-e2e")),
     planTotal: PLAN_ITEMS,
+    planOpen: PLAN_ITEMS - planTicked(path.join(root, "cr-e2e")),
     endT: t(all[all.length - 1].ts),
     clearsAt: sessions.slice(1).map((s) => t(s.t0)),
     compactionEvents: compactions,
@@ -153,6 +155,7 @@ export function extractRun(ab, arm) {
 }
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 function groupStats(runs) {
   const done = runs.filter((r) => r.finished);
   const over = (key) => ({ mean: mean(done.map((r) => r[key])), min: Math.min(...done.map((r) => r[key])), max: Math.max(...done.map((r) => r[key])) });
@@ -166,6 +169,8 @@ function groupStats(runs) {
     meanTokensM: r1(tok.mean / 1e6), minTokensM: r1(tok.min / 1e6), maxTokensM: r1(tok.max / 1e6),
     meanCostUsd: r2(cost.mean), meanWallMin: r1(wall.mean),
     meanReplies: Math.round(rep.mean), meanSessions: r1(ses.mean),
+    // the page marks the median of the runs that finished, the figure no single best run can move
+    medianTokensM: r1(median(done.map((r) => r.tokens)) / 1e6), medianCostUsd: r2(median(done.map((r) => r.costUsd))), medianWallMin: r1(median(done.map((r) => r.wallMin))),
   };
 }
 
@@ -214,7 +219,7 @@ export function extractAll(ab) {
   groups.autocompact.vsLong = r1(runs.compact.tokensM / groups.autocompact.meanTokensM);
   const floor = {};
   for (const g of ["relay", "trim", "old"]) {
-    floor[g] = { floorK: FLOORS[g], runs: groups[g].runs, tokensM: groups[g].meanTokensM, minTokensM: groups[g].minTokensM, maxTokensM: groups[g].maxTokensM,
+    floor[g] = { floorK: FLOORS[g], runs: groups[g].runs, tokensM: groups[g].meanTokensM, medianTokensM: groups[g].medianTokensM, minTokensM: groups[g].minTokensM, maxTokensM: groups[g].maxTokensM,
       costUsd: groups[g].meanCostUsd, wallMin: groups[g].meanWallMin, replies: groups[g].meanReplies, sessions: groups[g].meanSessions };
     if (PREDICTIONS[g]) floor[g].prediction = PREDICTIONS[g];
   }
