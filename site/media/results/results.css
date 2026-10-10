@@ -1,0 +1,97 @@
+/* Results page and video: data colours and chart marks. Neutral tokens come from ../../styles.css.
+   The only hues on the site live here, as --c-* tokens, used on data marks and their direct labels.
+   check.mjs proves each --c-* token reaches 4.5:1 on --bg and --surface. */
+:root {
+  --c-relay: #2dd4bf;
+  --c-auto: #f5a524;
+  --c-long: #94a3b8;
+}
+
+/* ---- charts (SVG strings from charts-core.js and friends) ---- */
+.chart-svg { display: block; width: 100%; height: auto; overflow: visible; --c: var(--text-2); }
+.chart-svg text { font-family: var(--mono); }
+.c-relay { --c: var(--c-relay); }
+.c-auto { --c: var(--c-auto); }
+.c-long { --c: var(--c-long); }
+.grid { stroke: var(--hairline); stroke-width: 1; }
+.axis { stroke: var(--ghost); stroke-width: 1; }
+.nudge { stroke: var(--ghost); stroke-width: 1; stroke-dasharray: 4 4; }
+.cursor { stroke: var(--text-2); stroke-width: 1; }
+.ax { font-size: 11px; fill: var(--ghost-text); }
+.pt { font-size: 13px; font-weight: 700; fill: var(--c); }
+.ro { font-size: 12px; fill: var(--text-2); }
+.rl { font-size: 12px; font-weight: 700; fill: var(--c); }
+.rv { font-size: 13px; font-weight: 700; fill: var(--text); }
+.evl { font-size: 11px; fill: var(--c); }
+.flag { font-size: 12px; font-weight: 700; fill: var(--c); }
+.series { fill: none; stroke: var(--c); stroke-width: 1.75; stroke-linejoin: round; }
+.series.c-auto { stroke-dasharray: 6 3; }
+.ev { stroke: var(--c); stroke-width: 1; opacity: 0.55; }
+.end { stroke: var(--c); stroke-width: 2; }
+.dot { fill: var(--c); }
+.dot.hollow { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
+.range { stroke: var(--c); stroke-width: 3; opacity: 0.45; }
+.median { stroke: var(--text); stroke-width: 2.5; }
+.ring { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.cell { fill: var(--hairline); }
+.cell.on { fill: var(--c); }
+.cell.open { fill: none; stroke: var(--c); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.8; }
+.bar { fill: var(--c); }
+
+/* ---- page ---- */
+.hero .setup { max-width: 58ch; margin-top: 14px; color: var(--text-2); }
+.hero .jump { display: inline-flex; align-items: center; min-height: 44px; margin-left: 14px; font: 700 13px var(--mono); }
+.race { margin: 24px 0 0; padding: 14px 16px 12px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; }
+.race-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.race-pick { display: contents; }
+.pick { display: flex; align-items: center; gap: 4px; font: 400 12px var(--mono); color: var(--text-2); }
+.pick-name { margin-right: 4px; font-weight: 700; }
+.pick-name.c-relay { color: var(--c-relay); }
+.pick-name.c-auto { color: var(--c-auto); }
+.pick button, .race-play {
+  min-width: 44px; min-height: 44px; margin: 0; padding: 0 8px; border: 1px solid var(--hairline); border-radius: 6px;
+  background: transparent; color: var(--text-2); font: 700 12px var(--mono); cursor: pointer;
+}
+.pick button[aria-pressed="true"] { color: var(--bg); background: var(--text); border-color: var(--text); }
+.pick button:hover, .race-play:hover { border-color: var(--text); color: var(--text); }
+.pick button[aria-pressed="true"]:hover { color: var(--bg); }
+.race-play { margin-left: auto; padding: 0 16px; color: var(--text); }
+.race-scrub { display: block; width: 100%; min-height: 44px; margin: 4px 0 0; accent-color: var(--text); }
+.race-chart { margin-top: 4px; }
+.reading { margin-top: 10px; font: 400 12px/1.5 var(--mono); color: var(--text-2); }
+.reading b { color: var(--text); }
+
+.finding .kicker { font: 700 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
+.finding .claim { max-width: 28ch; margin-top: 12px; font-size: clamp(24px, 3.6vw, 40px); text-wrap: balance; }
+.finding .claim [data-res] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.hl.c-relay { color: var(--c-relay); }
+.hl.c-auto { color: var(--c-auto); }
+.hl.c-long { color: var(--c-long); }
+.fig { margin: 24px 0 0; }
+.fig-chart { min-height: 120px; }
+.note { max-width: 62ch; margin-top: 14px; font: 400 13px/1.55 var(--mono); color: var(--text-2); text-wrap: pretty; }
+.finding.is-off { display: none; }
+
+.runs { margin-top: 28px; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+.runs summary { min-height: 44px; display: flex; align-items: center; gap: 12px; font-weight: 600; cursor: pointer; list-style: none; }
+.runs summary::-webkit-details-marker { display: none; }
+.runs summary::before { content: "+"; flex: none; width: 14px; font: 700 15px var(--mono); color: var(--text-2); }
+.runs[open] summary::before { content: "-"; }
+.runs-scroll { overflow-x: auto; margin-bottom: 14px; }
+.runs table { width: 100%; min-width: 560px; border-collapse: collapse; font: 400 12px var(--mono); }
+.runs th, .runs td { padding: 7px 14px 7px 0; text-align: left; border-bottom: 1px solid var(--hairline); color: var(--text-2); white-space: nowrap; }
+.runs th { font-weight: 700; color: var(--text); }
+.runs td.num { text-align: right; }
+
+.archive-note { margin: 0 0 20px; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 6px; background: var(--surface); color: var(--text-2); }
+.archive-note a { color: var(--text); }
+
+@media (max-width: 600px) {
+  .race { padding: 10px 10px 8px; }
+  .pick { flex: 1 1 100%; }
+  .race-play { margin-left: 0; }
+  .hero .jump { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .race-scrub { accent-color: var(--text); }
+}
