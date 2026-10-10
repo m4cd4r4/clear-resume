@@ -60,9 +60,8 @@
       var stopped = run.planTicked < run.planTotal;
       if (stopped) {
         out += C.line(X(run.endT), py0, X(run.endT), py0 + o.plotH, "end " + cls);
-        out += C.text(X(run.endT) + 6, py0 + o.plotH - 8, "stopped after item " + run.planTicked + ", " + run.planOpen + " open", "flag " + cls);
-      } else {
-        out += C.text(X(run.endT) - 6, py0 + 11, run.planTicked + " of " + run.planTotal + " items", "flag " + cls, "end");
+        out += C.text(X(run.endT) + 6, py0 + o.plotH * 0.45, "stopped after item " + run.planTicked, "flag " + cls);
+        out += C.text(X(run.endT) + 6, py0 + o.plotH * 0.45 + 15, run.planOpen + " items open", "flag " + cls);
       }
     }
 

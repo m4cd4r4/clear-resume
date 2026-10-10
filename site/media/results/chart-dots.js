@@ -50,7 +50,7 @@
       (row.rings || []).forEach(function (ring) {
         if (p < 0.9) return;
         out += C.circle(X(ring.v), cy, rad + 3, "ring");
-        out += C.text(X(ring.v), cy - rad - 9, ring.label, "evl", "middle");
+        out += C.text(X(ring.v), cy + rad + 17, ring.label, "evl", "middle");
       });
     });
     return C.svg(width, H, out, "chart-svg dots-svg");

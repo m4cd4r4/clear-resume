@@ -242,9 +242,9 @@
     if (!slots.length) return;
     var finals = slots.map(function (s) { return s.textContent; });
     var dec = finals.map(function (t) { return (t.split(".")[1] || "").length; });
-    if (!reduced && io) slots.forEach(function (s, i) { s.textContent = (0).toFixed(dec[i]); });
     sec._count = function () {
       if (reduced) return;
+      slots.forEach(function (s, i) { s.textContent = (0).toFixed(dec[i]); });
       var t0 = null;
       var step = function (t) {
         if (t0 === null) t0 = t;
