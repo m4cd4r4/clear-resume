@@ -44,6 +44,8 @@ If anything in this brief contradicts those files, the files win.
 - Model switch at 390k: `_ab/switch/results.json`, `results-warm.json`.
 - Config-floor runs: `_ab/site-sonnet/measure-2026-10-08-floor.json`.
 - Token method: dedupe assistant messages by id; sum input + cache read + cache creation (same as `site/buildstats.mjs` `measure()`).
+- `measure-2026-10-08.json` (and its `-floor` sibling) hold several JSON objects back to back, not one document: split before parsing.
+- `_ab/RESULTS.md` now ends with "Planned tests" P1-P5, predictions written before the runs. Build a predicted-vs-measured component that reads them.
 
 ## What's in scope
 
