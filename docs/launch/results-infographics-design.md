@@ -23,7 +23,7 @@ carry the comparison, a third is neutral, and one marks a prediction:
 | prediction | White ring | `#f2f2f2` stroke only | a prediction is a mark, not a result |
 
 Clay, maroon and any brown are out. Colour is used on data marks only; text stays on the neutral text
-tokens. Teal 11.3:1 and amber 9.6:1 on the ground, both pass 4.5:1, and `check.mjs` is extended to prove it.
+tokens. Measured on `--bg`: teal 10.64:1, amber 9.70:1, slate 7.72:1, all above 4.5:1, and `check.mjs` proves it.
 Colour-blind safety: teal against amber differs in hue (blue against yellow for deuteranopes), and every
 series is also told apart by line style and mark shape and by a direct label, never a legend alone.
 
@@ -47,9 +47,11 @@ One column, `--max 1120px`, 56 px section rhythm already in `styles.css`.
    predicted against measured), `idle` (cold return against warm handover, n=1).
 6. Install, FAQ, footer (existing blocks) and a link to the earlier demo.
 
-Findings are components. Which ones show is `site/media/results/page.json` (`show`), read by the page and
-by the video. A finding left out of `show` is removed from the page by `results.js`; its static HTML and
-FACTS rows can be deleted when the final cut is made.
+Findings are components. Which ones show is `site/media/results/page.js` (`crPage.show`), read by the page.
+A finding left out of `show` is removed from the page by `results-page.js`; its static HTML and FACTS rows
+can be deleted when the final cut is made. The video lists its scenes in `site/video/index.html` and has to
+be edited by hand to match the final cut. Headline figures are medians of finished runs (the 1.4x ratio is
+from means, as in RESULTS.md).
 
 ## The race (the hero visual)
 
@@ -69,8 +71,9 @@ lines draw with it, cells fill at their real commit times, read-outs count. Dot 
 place in run order, then the median tick and the range line draw. Numbers count up once on first view.
 `IntersectionObserver` starts each chart. A replay button and a scrubber (a labelled range input) sit on the
 race. `prefers-reduced-motion: reduce` renders the final frame of every chart, complete, with no sweep.
-One shared renderer module (`charts.js`) draws every chart from `crResults` at a progress value, and the
-video calls the same functions, so the page and the MP4 cannot disagree.
+Shared renderers (`charts-core.js`, `chart-race.js`, `chart-dots.js`) draw every chart from `crResults` at a
+progress value, and `chart-specs.js` builds each finding's chart spec. The video calls the same functions,
+so the page and the MP4 cannot disagree.
 
 ## Honesty rules in the UI
 
@@ -93,9 +96,15 @@ RESULTS.md method text copied into FACTS.md.
 
 ## Video
 
-HyperFrames, 1920x1080, about 38 s, 30 fps, reading `results.js` and `charts.js` (and a 1080x1080 cut if
-cheap): title, setup, the race with the stop at 20, dots for tokens and cost, idle handover, end card with
-n and caveats on screen.
+HyperFrames, 1920x1080, 41.5 s, 30 fps, in `site/video/`: title, the race with the stop at 20, finish cells,
+dots for tokens and cost, idle handover, end card with n and caveats on screen. It reads the page's own
+chart files, copied into the gitignored `site/video/assets/` by `build.mjs` (HyperFrames rejects `../`
+paths). Every figure is a `data-res` slot filled from `results.js`; `video-check.mjs` fails on a digit
+outside a slot, a path missing from `results.json`, the `copycheck` wording rules, and token drift from
+`styles.css`. The chart clock is a pure function of the timeline time, so seeking draws the right frame.
+Render: `node site/video/build.mjs`, then `npx hyperframes@0.8.144 render site/video --output
+site/media/results-video.mp4 --quality delivery`. The 1080x1080 cut is not built (follow-up in
+`docs/CLAUDE-TODO.md`).
 
 ## Placeholders
 

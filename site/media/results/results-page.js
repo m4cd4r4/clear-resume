@@ -9,10 +9,9 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var runs = D.runs;
-  var SHORT = { relay: "relay", autocompact: "compaction", long: "long session", trim: "trimmed rules", old: "old rules" };
+  var SHORT = C.short;
+  var S = C.specs(D);
 
-  function groupRuns(g) { return D.groups[g].runs.map(function (k) { return runs[k]; }); }
-  function usd(v) { return "US$" + v.toFixed(2); }
   function runKeys(group) {
     return Object.keys(runs).filter(function (k) { return runs[k].group === group && runs[k].series; })
       .sort(function (a, b) { return runs[a].run - runs[b].run; });
@@ -146,84 +145,8 @@
     window.addEventListener("resize", function () { if (raceHost.clientWidth !== rw) { rw = raceHost.clientWidth; drawRace(); } });
   }
 
-  /* ---- finding charts ---- */
-  function finishRows() {
-    var rows = [];
-    ["relay", "autocompact"].forEach(function (g) {
-      groupRuns(g).forEach(function (r) {
-        rows.push({
-          label: SHORT[g] + " " + r.run, cls: C.armClass(g), ticked: r.planTicked, total: r.planTotal,
-          text: r.planTicked + " of " + r.planTotal + (r.finished ? "" : ", stopped")
-        });
-      });
-    });
-    return rows;
-  }
-  function dotRow(label, cls, list, key, fin, med, fmt, tagged) {
-    var finished = list.filter(function (r) { return r.finished; }).length;
-    return {
-      label: label, cls: cls,
-      runs: list.map(function (r) {
-        return { v: r[key], hollow: !r.finished, tag: !r.finished && tagged ? "stopped, item " + r.planTicked : "" };
-      }),
-      median: finished > 1 ? med : null,
-      text: finished > 1 ? "median " + fmt(med) + ", n=" + finished : "n=" + list.length
-    };
-  }
-  var tokM = function (v) { return v + "M"; };
-  var G = D.groups;
-  function tokenSpec() {
-    return {
-      lo: 0, hi: 60, ticks: [0, 10, 20, 30, 40, 50, 60], tick: tokM,
-      rows: [
-        dotRow(SHORT.relay, "c-relay", groupRuns("relay"), "tokensM", 0, G.relay.medianTokensM, tokM, true),
-        dotRow(SHORT.autocompact, "c-auto", groupRuns("autocompact"), "tokensM", 0, G.autocompact.medianTokensM, tokM, true),
-        dotRow(SHORT.long, "c-long", groupRuns("long"), "tokensM", 0, null, tokM, false)
-      ]
-    };
-  }
-  function costSpec() {
-    return {
-      lo: 0, hi: 20, ticks: [0, 5, 10, 15, 20], tick: function (v) { return "US$" + v; },
-      rows: [
-        dotRow(SHORT.relay, "c-relay", groupRuns("relay"), "costUsd", 0, G.relay.medianCostUsd, usd, true),
-        dotRow(SHORT.autocompact, "c-auto", groupRuns("autocompact"), "costUsd", 0, G.autocompact.medianCostUsd, usd, true),
-        dotRow(SHORT.long, "c-long", groupRuns("long"), "costUsd", 0, null, usd, false)
-      ]
-    };
-  }
-  function floorSpec() {
-    var rows = [["relay", "empty config"], ["trim", "trimmed rules"], ["old", "old rules"]].map(function (k) {
-      var f = D.floor[k[0]];
-      var list = f.runs.map(function (id) { return runs[id]; });
-      var row = dotRow(k[1] + " " + f.floorK + "k", k[0] === "relay" ? "c-relay" : "c-long", list, "tokensM", 0, f.medianTokensM, tokM, false);
-      if (f.prediction) row.rings = [{ v: f.prediction.predictedTokensM, label: "predicted " + f.prediction.predictedTokensM + "M" }];
-      return row;
-    });
-    return { lo: 30, hi: 60, ticks: [30, 40, 50, 60], tick: tokM, rows: rows };
-  }
-  function idleGroups() {
-    var I = D.idle, M = D.modelSwitch;
-    var k = function (v) { return Math.round(v / 1000) + "k"; };
-    return [
-      { title: I.model + ", " + k(I.contextTokens) + " context, n=" + I.n, bars: [
-        { label: "cold return after " + I.coldReturn.idleMin + " min idle", parts: [{ v: I.coldReturn.costUsd, cls: "c-long" }], text: usd(I.coldReturn.costUsd) },
-        { label: "handover before the cache expires", parts: [{ v: I.warmHandover.totalUsd, cls: "c-relay" }], text: usd(I.warmHandover.totalUsd) }
-      ] },
-      { title: M.model + ", model switch at " + k(M.contextTokens) + ", n=" + M.n, bars: [
-        { label: "switch model in the same session", parts: [{ v: M.coldReturn.costUsd, cls: "c-long" }], text: usd(M.coldReturn.costUsd) },
-        { label: "handover, then switch", parts: [{ v: M.warmHandover.totalUsd, cls: "c-relay" }], text: usd(M.warmHandover.totalUsd) }
-      ] }
-    ];
-  }
-
-  var charts = {
-    finish: function (w, p) { return C.cells(finishRows(), w, p); },
-    tokens: function (w, p) { return C.dots(tokenSpec(), w, p); },
-    cost: function (w, p) { return C.dots(costSpec(), w, p); },
-    floor: function (w, p) { return C.dots(floorSpec(), w, p); },
-    idle: function (w, p) { return C.bars(idleGroups(), D.modelSwitch.coldReturn.costUsd, w, p); }
-  };
+  /* ---- finding charts (specs live in chart-specs.js, shared with the video) ---- */
+  var charts = S.draw;
   Object.keys(charts).forEach(function (id) {
     var m = mount(id, charts[id], 1800);
     if (m) watch(m.host, m);
