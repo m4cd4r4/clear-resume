@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import { fails, parseFacts, checkSources, checkPage, checkGit, parseHtml } from "./factcheck.mjs";
 
-const OFF = "They belong to the nudge and the relay, which are both off by default.";
+const OFF = "They belong to the nudge, the relay and the idle handover, which are all off by default.";
 const RELAY = "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.";
 // Line numbers are read from the README, so a README edit cannot break the known-good cases.
 const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8").split("\n");
