@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clear-resume: earlier demo</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="media/results/results.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html">clear-resume</a>
+    <nav aria-label="Site">
+      <ul class="nav">
+        <li><a href="index.html">Results</a></li>
+        <li><a href="#what">What it does</a></li>
+        <li><a href="#relay">The relay</a></li>
+        <li><a href="#proof">Proof</a></li>
+        <li><a href="#install">Install</a></li>
+        <li class="sep" aria-hidden="true"></li>
+        <li><a href="how-it-works.html">How it works</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top" aria-labelledby="h-top">
+    <div class="wrap">
+      <p class="archive-note">Earlier demo: the replay of the run that built this site. The measured A/B results are on the <a href="index.html">results page</a>.</p>
+      <h1 id="h-top">Clear the chat. Keep the work.</h1>
+      <p class="sub" data-fact="F4">A free, open-source Claude Code plugin.</p>
+      <figure class="media" id="media">
+        <div class="media-box" id="media-box">
+          <video id="replay" src="media/replay.mp4" poster="media/replay-poster.jpg" muted playsinline autoplay loop preload="metadata" aria-label="Replay of the run that built this page." data-fact="F60"></video>
+          <button class="mbtn" id="mbtn" type="button" aria-label="Pause replay" data-paused="false"><span class="mbtn-icon" aria-hidden="true"></span></button>
+          <button class="mbtn mbtn-big" id="mbig" type="button" aria-label="Expand replay, with sound"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+          <div class="feed" id="feed" hidden>
+            <pre><span class="ln note" data-fact="F62"># with the relay on, context passes the nudge size</span><span class="ln bar" aria-hidden="true" data-bar="24"></span><span class="ln out" data-fact="F63">clear-resume: context is about 182k tokens (nudge at 180k).</span><span class="ln note" data-fact="F64"># Claude is asked to save a handover</span><span class="ln out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="ln out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="ln note" data-fact="F65"># the plugin runs /clear when the turn ends</span><span class="ln bar" aria-hidden="true" data-bar="3"></span><span class="ln out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="ln note" data-fact="F17"># Claude carries on from the handover.</span></pre>
+          </div>
+        </div>
+        <figcaption class="media-cap" id="media-cap" data-fact="F60" hidden>Replay of the run that built this page.</figcaption>
+      </figure>
+      <dialog class="media-full" id="media-full" aria-labelledby="media-cap">
+        <button class="mclose" id="mclose" type="button">Close</button>
+        <video id="replay-full" playsinline controls preload="none" aria-label="Replay of the run that built this page." data-fact="F60"></video>
+      </dialog>
+      <div class="cmds">
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="what" aria-labelledby="h-what">
+    <div class="wrap">
+      <h2 id="h-what">What it does</h2>
+      <div class="term transcript lines">
+        <pre><span class="note" data-fact="F16"># the README's example, in a widget-shop repo</span><span class="in" data-fact="F19">/clear-resume:handover</span><span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="in step" data-fact="F6">/clear</span><span class="out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="out" data-fact="F15">A copy to read or share: ~/.clear-resume/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span><span class="in step" data-fact="F7">go</span><span class="note" data-fact="F17"># Claude carries on from the handover.</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="relay" aria-labelledby="h-relay">
+    <div class="wrap">
+      <h2 id="h-relay">The relay</h2>
+      <div class="prose">
+        <p data-fact="F20">Past a size you choose, Claude saves a handover and the plugin runs /clear when the turn ends.</p>
+        <p data-fact="F21"><strong>Off by default.</strong> Needs Claude Code 2.1.275 or later; works in a terminal and in the VS Code chat panel.</p>
+      </div>
+      <figure class="chart" id="saw">
+        <div class="chart-svg" id="saw-svg"></div>
+        <p class="chart-key"><span class="key-dash" aria-hidden="true"></span><span id="saw-nudge" data-fact="F23">plugin default, 180k (this run's setting is not recorded)</span></p>
+        <p class="chart-alt" data-fact="F25"><span data-run="sessions">0</span> sessions. Peaks: <span data-run="peakLo">0</span> to <span data-run="peakHi">0</span> tokens.</p>
+        <p class="src" data-when="run" data-fact="F27">Source: this site's build transcripts (buildstats.mjs)</p>
+        <p class="src" data-when="fixture" data-fact="F28">Source: transcripts of an earlier relay run (site/source/fixture), buildstats.mjs</p>
+        <p class="sample" data-when="fixture" data-fact="F29">Sample data from an earlier run. Replaced after this build.</p>
+      </figure>
+    </div>
+  </section>
+
+  <section id="proof" aria-labelledby="h-proof">
+    <div class="wrap">
+      <h2 id="h-proof"><span data-when="run">Proof</span><span data-when="fixture">Sample data</span></h2>
+      <h3 class="sub-h"><span data-when="run">This site's build</span><span data-when="fixture">Sample: an earlier relay run</span></h3>
+      <!-- buildstats:begin -->
+      <div class="strip">
+        <p data-fact="F90"><span class="n" data-stat="sessions">15</span> <span class="l">sessions</span></p>
+        <p data-fact="F91"><span class="n" data-stat="clears">14</span> <span class="l">automatic clears</span></p>
+        <p data-fact="F92"><span class="n" data-stat="commits">42</span> <span class="l">site: commits</span></p>
+        <p data-fact="F93"><span class="n" data-stat="minutes">94.1</span> <span class="l">minutes</span></p>
+        <p data-fact="F94"><span class="n" data-stat="tokens">91.0M</span> <span class="l">tokens sent</span></p>
+      </div>
+      <!-- buildstats:end -->
+      <p class="src" data-when="run" data-fact="F30">Source: this site's build transcripts and git log (buildstats.mjs)</p>
+      <p class="src" data-when="fixture" data-fact="F28">Source: transcripts of an earlier relay run (site/source/fixture), buildstats.mjs</p>
+      <p class="sample" data-when="fixture" data-fact="F29">Sample data from an earlier run. Replaced after this build.</p>
+
+      <h3 class="sub-h" data-fact="F35">Context per /clear, a separate <span class="nw">2026-10-03</span> run</h3>
+      <div class="strip">
+        <p data-fact="F36"><span class="n">191</span> <span class="l">/clear loads</span></p>
+        <p data-fact="F37"><span class="n">195k</span> <span class="l">median before</span></p>
+        <p data-fact="F38"><span class="n">97k</span> <span class="l">median after</span></p>
+        <p data-fact="F39"><span class="n">101k</span> <span class="l">median drop</span></p>
+      </div>
+      <p class="src" data-fact="F40">Source: STATUS.md. As of 2026-10-05, scripts/measure.mjs is on the open PR #57, not in the released plugin.</p>
+    </div>
+  </section>
+
+  <section id="install" aria-labelledby="h-install">
+    <div class="wrap">
+      <h2 id="h-install">Install</h2>
+      <p class="label" data-fact="F5">Relay on, in your terminal:</p>
+      <div class="cmds">
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
+      </div>
+      <p class="label" data-fact="F42">Manual (the default): install, then /clear-resume:handover, /clear, go.</p>
+      <div class="cmds">
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F3">claude plugin install <span class="nw">clear-resume@clear-resume</span></code><button class="copy" type="button">Copy</button></div>
+      </div>
+      <p class="label" data-fact="F43">Optional: VS Code extension; needs the plugin.</p>
+      <div class="cmds">
+        <div class="cmd"><code data-fact="F44">code --install-extension macdara.clear-resume</code><button class="copy" type="button">Copy</button></div>
+      </div>
+      <p class="src" data-fact="F256"><a href="https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume">Marketplace</a>, <a href="https://open-vsx.org/extension/macdara/clear-resume">Open VSX</a>, <a href="https://github.com/m4cd4r4/clear-resume/releases/latest">releases</a>.</p>
+
+      <div class="faq">
+        <details>
+          <summary>Does anything leave my machine?</summary>
+          <p data-fact="F46">Handovers are plain text files on your disk, in ~/.clear-resume. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
+        </details>
+        <details>
+          <summary>What does it need?</summary>
+          <p data-fact="F47">Node 18 or later and git. On Windows, Claude Code runs plugin hooks through Git Bash, which comes with Git for Windows.</p>
+          <p data-fact="F48">The relay needs Claude Code 2.1.275 or later and works in a terminal and in the VS Code chat panel.</p>
+        </details>
+        <details>
+          <summary>When does the relay stop?</summary>
+          <p data-fact="F49">When it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). It says why. When the task is finished, Claude ends without a handover, so there is nothing to continue.</p>
+          <p data-fact="F45">It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <!-- buildstats:begin -->
+    <p class="colophon" data-when="run" data-fact="F31">Built in <span data-stat="sessions">15</span> sessions and <span data-stat="clears">14</span> automatic clears, <span data-stat="commits">42</span> commits, <span data-stat="first">07:36</span> to <span data-stat="last">09:05</span> AWST, <span data-stat="date">5 Oct 2026</span>. <a href="changelog.html#build-log">Build log</a></p>
+    <!-- buildstats:end -->
+    <p data-fact="F50">MIT licence. Independent, not made or endorsed by Anthropic.</p>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="changelog.html">Changelog</a></li>
+      <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="runstats.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -210,7 +210,7 @@ function main() {
 
   const values = { ...m.totals, commits: g.commits, first: g.first, last: g.last, date: g.date };
   let slots = 0;
-  for (const page of ["index.html", "how-it-works.html", "changelog.html"]) slots += fillSlots(page, values);
+  for (const page of ["replay-archive.html", "how-it-works.html", "changelog.html"]) slots += fillSlots(page, values);
 
   const fp = path.join(SITE, "FACTS.md");
   fs.writeFileSync(fp, between(fs.readFileSync(fp, "utf8"), "<!-- buildstats:begin -->", "<!-- buildstats:end -->",

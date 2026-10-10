@@ -7,8 +7,10 @@ import { fileURLToPath } from "node:url";
 import { parseHtml, textOf, walk } from "./factcheck.mjs";
 
 const SITE = path.dirname(fileURLToPath(import.meta.url));
-const PAGES = ["index.html", "how-it-works.html", "changelog.html"];
-const SCRIPTS = ["app.js", "model.js", "runstats.js"];
+const PAGES = ["index.html", "replay-archive.html", "how-it-works.html", "changelog.html"];
+const RES = "media/results";
+const SCRIPTS = ["app.js", "model.js", "runstats.js",
+  ...(fs.existsSync(path.join(SITE, RES)) ? fs.readdirSync(path.join(SITE, RES)).filter((f) => f.endsWith(".js")).map((f) => RES + "/" + f) : [])];
 const fails = [];
 const fail = (where, msg) => fails.push(where + ": " + msg);
 const read = (f) => fs.readFileSync(path.join(SITE, f), "utf8");
@@ -64,6 +66,37 @@ function checkCss() {
   for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/g)) if (/^(?:https?:|\/\/)/.test(m[1])) fail("styles.css", "external url(" + m[1] + ")");
 }
 
+// results.css is the one file allowed hue: --c-* tokens, used on data marks and their direct labels.
+// Each must reach 4.5:1 on --bg and --surface; every other colour is a token from styles.css or --c.
+function checkResultsCss() {
+  const file = RES + "/results.css";
+  if (!fs.existsSync(path.join(SITE, file))) return;
+  const css = read(file).replace(/\/\*[\s\S]*?\*\//g, "");
+  const root = css.match(/:root\s*\{([^}]*)\}/);
+  if (!root) return fail(file, "no :root block");
+  const base = {};
+  for (const m of read("styles.css").match(/:root\s*\{([^}]*)\}/)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})\s*;/gi)) base[m[1]] = m[2].toLowerCase();
+  const data = [];
+  for (const m of root[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})\s*;/gi)) {
+    if (!m[1].startsWith("c-")) { fail(file, "--" + m[1] + " is not a --c-* data token"); continue; }
+    data.push(m[1]);
+    for (const g of ["bg", "surface"]) {
+      const r = ratio(m[2], base[g]);
+      console.log("contrast  --" + m[1].padEnd(10) + " on --" + g.padEnd(8) + r.toFixed(2) + ":1");
+      if (r < 4.5) fail(file, "--" + m[1] + " on --" + g + " is " + r.toFixed(2) + ":1, under 4.5:1");
+    }
+  }
+  const body = css.replace(root[0], "");
+  for (const m of body.matchAll(/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\(/gi)) fail(file, "colour " + m[0] + " outside :root");
+  const allowed = (t) => t === "c" || data.includes(t) || TEXT_TOKENS.has(t) || ["surface", "hairline", "ghost", "text", "bg"].includes(t);
+  for (const m of body.matchAll(/(?:^|[;{\s])(color|fill|stroke|background|border-color|border|accent-color)\s*:\s*([^;}]+)/g)) {
+    for (const v of m[2].matchAll(/var\(--([\w-]+)\)/g)) if (!allowed(v[1])) fail(file, m[1] + " uses --" + v[1]);
+    if (!/var\(/.test(m[2]) && !/^(inherit|currentColor|transparent|none|0|1px solid|\d)/i.test(m[2].trim())) fail(file, m[1] + ": " + m[2].trim() + " is not a token");
+  }
+  if (!/@media \(prefers-reduced-motion: reduce\)/.test(css)) fail(file, "no prefers-reduced-motion block");
+  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/g)) if (/^(?:https?:|\/\/)/.test(m[1])) fail(file, "external url(" + m[1] + ")");
+}
+
 // ---- pages -------------------------------------------------------------------------------
 
 const RESOURCE = { src: true, poster: true, srcset: true, data: true };
@@ -108,12 +141,15 @@ function checkScripts() {
   }
   const app = fs.existsSync(path.join(SITE, "app.js")) ? read("app.js") : "";
   if (app && !/prefers-reduced-motion: reduce/.test(app)) fail("app.js", "never reads prefers-reduced-motion");
+  const rp = RES + "/results-page.js";
+  if (fs.existsSync(path.join(SITE, rp)) && !/prefers-reduced-motion: reduce/.test(read(rp))) fail(rp, "never reads prefers-reduced-motion");
 }
 
 function main() {
   const args = process.argv.slice(2);
   const pages = args.length ? args.map((p) => path.basename(p)) : PAGES.filter((p) => fs.existsSync(path.join(SITE, p)));
   checkCss();
+  checkResultsCss();
   for (const p of pages) checkPage(p);
   checkScripts();
   console.log("pages  " + pages.join(", "));

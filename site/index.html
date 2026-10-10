@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>clear-resume</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="media/results/results.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -13,13 +14,12 @@
     <a class="brand" href="index.html">clear-resume</a>
     <nav aria-label="Site">
       <ul class="nav">
-        <li><a href="#what">What it does</a></li>
-        <li><a href="#relay">The relay</a></li>
-        <li><a href="#proof">Proof</a></li>
+        <li><a href="#race">Results</a></li>
         <li><a href="#install">Install</a></li>
         <li class="sep" aria-hidden="true"></li>
         <li><a href="how-it-works.html">How it works</a></li>
         <li><a href="changelog.html">Changelog</a></li>
+        <li><a href="replay-archive.html">Earlier demo</a></li>
       </ul>
     </nav>
   </div>
@@ -29,81 +29,62 @@
   <section class="hero" id="top" aria-labelledby="h-top">
     <div class="wrap">
       <h1 id="h-top">Clear the chat. Keep the work.</h1>
-      <p class="sub" data-fact="F4">A free, open-source Claude Code plugin.</p>
-      <figure class="media" id="media">
-        <div class="media-box" id="media-box">
-          <video id="replay" src="media/replay.mp4" poster="media/replay-poster.jpg" muted playsinline autoplay loop preload="metadata" aria-label="Replay of the run that built this page." data-fact="F60"></video>
-          <button class="mbtn" id="mbtn" type="button" aria-label="Pause replay" data-paused="false"><span class="mbtn-icon" aria-hidden="true"></span></button>
-          <button class="mbtn mbtn-big" id="mbig" type="button" aria-label="Expand replay, with sound"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
-          <div class="feed" id="feed" hidden>
-            <pre><span class="ln note" data-fact="F62"># with the relay on, context passes the nudge size</span><span class="ln bar" aria-hidden="true" data-bar="24"></span><span class="ln out" data-fact="F63">clear-resume: context is about 182k tokens (nudge at 180k).</span><span class="ln note" data-fact="F64"># Claude is asked to save a handover</span><span class="ln out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="ln out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="ln note" data-fact="F65"># the plugin runs /clear when the turn ends</span><span class="ln bar" aria-hidden="true" data-bar="3"></span><span class="ln out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="ln note" data-fact="F17"># Claude carries on from the handover.</span></pre>
+      <p class="sub"><span data-fact="F4">A free, open-source Claude Code plugin.</span><a class="jump" href="#install">Install</a></p>
+      <p class="setup" data-fact="F400">A <span data-res="meta.planItems">30</span>-item website build, run <span data-res="groups.relay.n">3</span> times with the relay and <span data-res="groups.autocompact.n">3</span> times with Claude Code's auto-compaction, on Sonnet 5.5.</p>
+      <figure class="race" id="race" data-finding="race">
+        <div id="race-fig">
+          <div class="race-bar">
+            <div id="race-pick" class="race-pick"></div>
+            <button class="race-play" id="race-play" type="button">Play</button>
           </div>
+          <input class="race-scrub" id="race-scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="Move through the run">
+          <div class="race-chart" id="race-chart"></div>
         </div>
-        <figcaption class="media-cap" id="media-cap" data-fact="F60" hidden>Replay of the run that built this page.</figcaption>
-      </figure>
-      <dialog class="media-full" id="media-full" aria-labelledby="media-cap">
-        <button class="mclose" id="mclose" type="button">Close</button>
-        <video id="replay-full" playsinline controls preload="none" aria-label="Replay of the run that built this page." data-fact="F60"></video>
-      </dialog>
-      <div class="cmds">
-        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
-        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="what" aria-labelledby="h-what">
-    <div class="wrap">
-      <h2 id="h-what">What it does</h2>
-      <div class="term transcript lines">
-        <pre><span class="note" data-fact="F16"># the README's example, in a widget-shop repo</span><span class="in" data-fact="F19">/clear-resume:handover</span><span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="in step" data-fact="F6">/clear</span><span class="out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="out" data-fact="F15">A copy to read or share: ~/.clear-resume/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span><span class="in step" data-fact="F7">go</span><span class="note" data-fact="F17"># Claude carries on from the handover.</span></pre>
-      </div>
-    </div>
-  </section>
-
-  <section id="relay" aria-labelledby="h-relay">
-    <div class="wrap">
-      <h2 id="h-relay">The relay</h2>
-      <div class="prose">
-        <p data-fact="F20">Past a size you choose, Claude saves a handover and the plugin runs /clear when the turn ends.</p>
-        <p data-fact="F21"><strong>Off by default.</strong> Needs Claude Code 2.1.275 or later; works in a terminal and in the VS Code chat panel.</p>
-      </div>
-      <figure class="chart" id="saw">
-        <div class="chart-svg" id="saw-svg"></div>
-        <p class="chart-key"><span class="key-dash" aria-hidden="true"></span><span id="saw-nudge" data-fact="F23">plugin default, 180k (this run's setting is not recorded)</span></p>
-        <p class="chart-alt" data-fact="F25"><span data-run="sessions">0</span> sessions. Peaks: <span data-run="peakLo">0</span> to <span data-run="peakHi">0</span> tokens.</p>
-        <p class="src" data-when="run" data-fact="F27">Source: this site's build transcripts (buildstats.mjs)</p>
-        <p class="src" data-when="fixture" data-fact="F28">Source: transcripts of an earlier relay run (site/source/fixture), buildstats.mjs</p>
-        <p class="sample" data-when="fixture" data-fact="F29">Sample data from an earlier run. Replaced after this build.</p>
+        <p class="reading">One dot per run. Tick: median of finished runs. Hollow: did not finish.</p>
       </figure>
     </div>
   </section>
 
-  <section id="proof" aria-labelledby="h-proof">
+  <section class="finding" id="finish" data-finding="finish" aria-labelledby="h-finish">
     <div class="wrap">
-      <h2 id="h-proof"><span data-when="run">Proof</span><span data-when="fixture">Sample data</span></h2>
-      <h3 class="sub-h"><span data-when="run">This site's build</span><span data-when="fixture">Sample: an earlier relay run</span></h3>
-      <!-- buildstats:begin -->
-      <div class="strip">
-        <p data-fact="F90"><span class="n" data-stat="sessions">15</span> <span class="l">sessions</span></p>
-        <p data-fact="F91"><span class="n" data-stat="clears">14</span> <span class="l">automatic clears</span></p>
-        <p data-fact="F92"><span class="n" data-stat="commits">42</span> <span class="l">site: commits</span></p>
-        <p data-fact="F93"><span class="n" data-stat="minutes">94.1</span> <span class="l">minutes</span></p>
-        <p data-fact="F94"><span class="n" data-stat="tokens">91.0M</span> <span class="l">tokens sent</span></p>
-      </div>
-      <!-- buildstats:end -->
-      <p class="src" data-when="run" data-fact="F30">Source: this site's build transcripts and git log (buildstats.mjs)</p>
-      <p class="src" data-when="fixture" data-fact="F28">Source: transcripts of an earlier relay run (site/source/fixture), buildstats.mjs</p>
-      <p class="sample" data-when="fixture" data-fact="F29">Sample data from an earlier run. Replaced after this build.</p>
+      <p class="kicker">Finish</p>
+      <h2 class="claim" id="h-finish" data-fact="F401">Relay: <span class="hl c-relay" data-res="groups.relay.finished">3</span> of <span data-res="groups.relay.n">3</span> builds finished. Auto-compaction: <span class="hl c-auto" data-res="groups.autocompact.finished">2</span> of <span data-res="groups.autocompact.n">3</span>.</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="finish"></div></figure>
+      <p class="note" data-fact="F402">One compaction run ended its turn after item <span data-res="runs.compact200.planTicked">20</span>, with <span data-res="runs.compact200.planOpen">10</span> items open. <span data-res="groups.autocompact.n">3</span> runs per arm is a small sample.</p>
+    </div>
+  </section>
 
-      <h3 class="sub-h" data-fact="F35">Context per /clear, a separate <span class="nw">2026-10-03</span> run</h3>
-      <div class="strip">
-        <p data-fact="F36"><span class="n">191</span> <span class="l">/clear loads</span></p>
-        <p data-fact="F37"><span class="n">195k</span> <span class="l">median before</span></p>
-        <p data-fact="F38"><span class="n">97k</span> <span class="l">median after</span></p>
-        <p data-fact="F39"><span class="n">101k</span> <span class="l">median drop</span></p>
-      </div>
-      <p class="src" data-fact="F40">Source: STATUS.md. As of 2026-10-05, scripts/measure.mjs is on the open PR #57, not in the released plugin.</p>
+  <section class="finding" id="tokens" data-finding="tokens" aria-labelledby="h-tokens">
+    <div class="wrap">
+      <p class="kicker">Tokens</p>
+      <h2 class="claim" id="h-tokens" data-fact="F403">One long session used about <span class="hl c-long" data-res="groups.relay.vsLong">1.4</span>x the tokens of either clearing method (n=<span data-res="groups.long.n">1</span>).</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="tokens"></div></figure>
+    </div>
+  </section>
+
+  <section class="finding" id="cost" data-finding="cost" aria-labelledby="h-cost">
+    <div class="wrap">
+      <p class="kicker">Cost</p>
+      <h2 class="claim" id="h-cost" data-fact="F404">Median cost: US$<span class="hl c-relay" data-res="groups.relay.medianCostUsd" data-fixed="2">12.54</span> relay, US$<span class="hl c-auto" data-res="groups.autocompact.medianCostUsd" data-fixed="2">13.03</span> auto-compaction.</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="cost"></div></figure>
+      <p class="note" data-fact="F405">The gap is within run-to-run spread.</p>
+    </div>
+  </section>
+
+  <section class="finding" id="floor" data-finding="floor" aria-labelledby="h-floor">
+    <div class="wrap">
+      <p class="kicker">Starting context</p>
+      <h2 class="claim" id="h-floor" data-fact="F406">Median tokens rose with the starting context: <span class="hl c-relay" data-res="floor.relay.medianTokensM">36.9</span>M at <span data-res="floor.relay.floorK">22.1</span>k, <span class="hl c-long" data-res="floor.trim.medianTokensM">48.5</span>M at <span data-res="floor.trim.floorK">45.9</span>k, <span class="hl c-long" data-res="floor.old.medianTokensM">52.7</span>M at <span data-res="floor.old.floorK">67.9</span>k.</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="floor"></div></figure>
+    </div>
+  </section>
+
+  <section class="finding" id="idle" data-finding="idle" aria-labelledby="h-idle">
+    <div class="wrap">
+      <p class="kicker">Idle return</p>
+      <h2 class="claim" id="h-idle" data-fact="F407">Back in a <span data-res="idle.contextTokens" data-k="1">390</span>k session: US$<span class="hl c-long" data-res="idle.coldReturn.costUsd" data-fixed="2">1.56</span> cold, US$<span class="hl c-relay" data-res="idle.warmHandover.totalUsd" data-fixed="2">0.30</span> with a handover (n=<span data-res="idle.n">1</span>).</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="idle"></div></figure>
+      <p class="note">A handover continues from a note and a cold return keeps the whole conversation, so this compares cost only.</p>
     </div>
   </section>
 
@@ -117,14 +98,14 @@
       </div>
       <p class="label" data-fact="F42">Manual (the default): install, then /clear-resume:handover, /clear, go.</p>
       <div class="cmds">
-        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
         <div class="cmd"><code data-fact="F3">claude plugin install <span class="nw">clear-resume@clear-resume</span></code><button class="copy" type="button">Copy</button></div>
       </div>
-      <p class="label" data-fact="F43">Optional: VS Code extension; needs the plugin.</p>
-      <div class="cmds">
-        <div class="cmd"><code data-fact="F44">code --install-extension macdara.clear-resume</code><button class="copy" type="button">Copy</button></div>
-      </div>
       <p class="src" data-fact="F256"><a href="https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume">Marketplace</a>, <a href="https://open-vsx.org/extension/macdara/clear-resume">Open VSX</a>, <a href="https://github.com/m4cd4r4/clear-resume/releases/latest">releases</a>.</p>
+
+      <details class="runs">
+        <summary>Every run</summary>
+        <div class="runs-scroll" id="runs-table"></div>
+      </details>
 
       <div class="faq">
         <details>
@@ -136,11 +117,6 @@
           <p data-fact="F47">Node 18 or later and git. On Windows, Claude Code runs plugin hooks through Git Bash, which comes with Git for Windows.</p>
           <p data-fact="F48">The relay needs Claude Code 2.1.275 or later and works in a terminal and in the VS Code chat panel.</p>
         </details>
-        <details>
-          <summary>When does the relay stop?</summary>
-          <p data-fact="F49">When it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). It says why. When the task is finished, Claude ends without a handover, so there is nothing to continue.</p>
-          <p data-fact="F45">It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless runs.</p>
-        </details>
       </div>
     </div>
   </section>
@@ -148,19 +124,23 @@
 
 <footer class="site-foot">
   <div class="wrap">
-    <!-- buildstats:begin -->
-    <p class="colophon" data-when="run" data-fact="F31">Built in <span data-stat="sessions">15</span> sessions and <span data-stat="clears">14</span> automatic clears, <span data-stat="commits">42</span> commits, <span data-stat="first">07:36</span> to <span data-stat="last">09:05</span> AWST, <span data-stat="date">5 Oct 2026</span>. <a href="changelog.html#build-log">Build log</a></p>
-    <!-- buildstats:end -->
     <p data-fact="F50">MIT licence. Independent, not made or endorsed by Anthropic.</p>
     <ul>
       <li><a href="index.html">Home</a></li>
       <li><a href="how-it-works.html">How it works</a></li>
       <li><a href="changelog.html">Changelog</a></li>
+      <li><a href="replay-archive.html">Earlier demo</a></li>
       <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
     </ul>
   </div>
 </footer>
 <script src="runstats.js"></script>
 <script src="app.js"></script>
+<script src="media/results/results.js"></script>
+<script src="media/results/page.js"></script>
+<script src="media/results/charts-core.js"></script>
+<script src="media/results/chart-race.js"></script>
+<script src="media/results/chart-dots.js"></script>
+<script src="media/results/results-page.js"></script>
 </body>
 </html>

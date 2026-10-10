@@ -89,8 +89,7 @@
     out += panel(state.b, 1, tcur, o);
     var step = narrow ? 20 : 10;
     var ay = H - 6;
-    for (var t = 0; t <= o.xMax; t += step) out += C.text(o.l + (t / o.xMax) * o.pw, ay, String(t), "ax", "middle");
-    out += C.text(o.l + o.pw, ay, "minutes", "ax", "end");
+    for (var t = 0; t <= o.xMax; t += step) out += C.text(o.l + (t / o.xMax) * o.pw, ay, t === 0 ? t + " min" : String(t), "ax", t === 0 ? "start" : "middle");
     if (p > 0 && p < 1) {
       var cx = o.l + (tcur / o.xMax) * o.pw;
       out += C.line(cx, o.top, cx, o.top + o.panelH * 2 - 18, "cursor");

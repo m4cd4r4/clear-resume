@@ -7,7 +7,7 @@
   /* spec: { lo, hi, ticks: [v], tick: fn(v) -> text, rows: [{ label, cls, runs: [{ v, hollow, tag }], median, text, rings: [{ v, label }] }] } */
   C.dots = function (spec, width, p) {
     var narrow = width < 600;
-    var labelW = narrow ? 0 : 168, textW = narrow ? 0 : 128;
+    var labelW = narrow ? 0 : 168, textW = narrow ? 0 : 150;
     var l = labelW + (narrow ? 10 : 8), r = textW + 14;
     var pw = width - l - r;
     var rowH = narrow ? 74 : 54;

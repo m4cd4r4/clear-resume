@@ -10,7 +10,8 @@ import { awst, awstDate } from "./buildstats.mjs";
 
 const SITE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(SITE);
-const PAGES = ["index.html", "how-it-works.html", "changelog.html"];
+const PAGES = ["index.html", "replay-archive.html", "how-it-works.html", "changelog.html"];
+const RESULTS = path.join(SITE, "media", "results");
 const STRONG = ["real", "actual", "live", "same", "measured", "always", "never", "only", "every", "all", "nothing"];
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 // Control names (what a button or link does) are not claims; they are checked only for numbers.
@@ -19,7 +20,7 @@ const CONTROLS = new Set(["a", "button", "nav", "input", "select", "textarea", "
 const fails = [];
 const fail = (where, msg) => fails.push(where + ": " + msg);
 const norm = (s) => s.replace(/\s+/g, " ").trim();
-const numbers = (s) => s.replace(/\{\w+\}/g, "").match(/\d+(?:[.,]\d+)*/g) || [];
+const numbers = (s) => s.replace(/\{[\w.]+\}/g, "").match(/\d+(?:[.,]\d+)*/g) || [];
 const read = (p) => fs.readFileSync(p, "utf8");
 
 // ---- FACTS.md ----------------------------------------------------------------------------
@@ -71,12 +72,28 @@ function section(text, name) {
   return lines.slice(i + 1, j < 0 ? undefined : j).join("\n");
 }
 
+// ---- results.json: the one data file behind the results page and video ---------------------
+
+const resultsData = () => JSON.parse(read(path.join(RESULTS, "results.json")));
+const resultsLib = () => {
+  const ctx = {};
+  vm.runInNewContext(read(path.join(RESULTS, "charts-core.js")), ctx);
+  return ctx.crCharts;
+};
+
 function checkSources(row) {
   const where = "FACTS.md " + row.id;
   if (row.page === null) return fail(where, "no page quote");
   if (!row.sources.length) return fail(where, "no source");
   for (const s of row.sources) {
     if (!s.ref) { fail(where, "source without a file:line"); continue; }
+    const rj = s.ref.match(/^results\.json: (.+)$/);
+    if (rj) {
+      const v = resultsLib().get(resultsData(), rj[1]);
+      if (v === undefined) fail(where, "no path " + rj[1] + " in results.json");
+      else if (String(v) !== norm(s.quote)) fail(where, "quote \"" + s.quote + "\" is not the value of " + rj[1] + " (" + v + ")");
+      continue;
+    }
     const loc = sourceFile(s.ref);
     if (!loc) { fail(where, "unreadable ref " + s.ref); continue; }
     if (!fs.existsSync(loc.file)) { fail(where, "missing file " + s.ref); continue; }
@@ -146,7 +163,7 @@ function textOf(el) {
   for (const c of el.children) {
     if (c.text !== undefined) { out += c.text; continue; }
     if (hiddenFromAT(c) || c.tag === "script" || c.tag === "style") continue;
-    const slot = c.attrs["data-stat"] || c.attrs["data-run"];
+    const slot = c.attrs["data-stat"] || c.attrs["data-run"] || c.attrs["data-res"];
     if (slot) out += "{" + slot + "}";
     else if (c.tag === "br") out += " ";
     else out += textOf(c);
@@ -209,6 +226,32 @@ function checkPage(page, facts, html = read(path.join(SITE, page))) {
     }
   }
   return root;
+}
+
+// A data-res slot names a path in results.json; its static text must be what the script would write.
+function checkResSlots(page, root) {
+  let data = null, lib = null;
+  for (const el of walk(root)) {
+    const p = el.attrs["data-res"];
+    if (p === undefined) continue;
+    data = data || resultsData();
+    lib = lib || resultsLib();
+    const v = lib.get(data, p);
+    if (v === undefined) { fail(page, "data-res " + p + " is not in results.json"); continue; }
+    const want = lib.fmt(v, el.attrs["data-fixed"] ?? null, el.attrs["data-k"] ?? null);
+    const shown = norm(el.children.map((c) => c.text ?? "").join(""));
+    if (shown !== want) fail(page, "data-res " + p + " shows \"" + shown + "\", results.json gives \"" + want + "\"");
+  }
+}
+
+// Strings in the results scripts that carry a figure would bypass the ledger; numbers come from the data file.
+function checkResultsScripts() {
+  for (const f of fs.readdirSync(RESULTS).filter((n) => n.endsWith(".js") && !["results.js", "page.js"].includes(n))) {
+    read(path.join(RESULTS, f)).split("\n").forEach((l, i) => {
+      for (const [, s] of l.matchAll(/"((?:[^"\\]|\\.)*)"/g))
+        if (/[a-z]{3}/i.test(s) && /\d/.test(s) && !/[<=>]/.test(s) && !/^[\w-]+$/.test(s)) fail("media/results/" + f + ":" + (i + 1), "a string with a figure: \"" + s + "\"");
+    });
+  }
 }
 
 // Copy written by app.js: a data-fact set in code, then the text on the next line.
@@ -296,6 +339,8 @@ function main() {
   const facts = parseFacts(read(path.join(SITE, "FACTS.md")));
   for (const row of facts.values()) checkSources(row);
   const roots = pages.map((p) => [p, checkPage(p, facts)]);
+  for (const [p, root] of roots) checkResSlots(p, root);
+  checkResultsScripts();
   checkScriptCopy(facts);
   const run = loadRun();
   checkGit(run, roots);
