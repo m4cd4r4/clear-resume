@@ -87,6 +87,20 @@ check("Sonnet 10 Oct cost: relay US$9.53 (n=2 finished), auto-compaction US$9.02
 check("Opus 10 Oct cost: relay US$25.93, auto-compaction US$24.22 (n=3 each), 7% apart, auto-compaction cheaper",
   same([K.opus.relay.meanCostUsd, K.opus.autocompact.meanCostUsd, K.opus.relay.finished, K.opus.autocompact.finished, K.opus.gapPct, K.opus.autoCheaper], [25.93, 24.22, 3, 3, 7, true]));
 
+// cost at today's list price, every date (RESULTS.md, "All runs re-costed at today's list price")
+const LC = data.listCost;
+const cell = (g) => [g.meanUsd, g.medianUsd, g.finished];
+check("list price, Sonnet: relay 9.08/8.94 (n=5), auto-compaction 9.19/8.87 (n=5), long 9.66/10.27 (n=3), long 6% over relay",
+  same([...cell(LC.sonnet.relay), ...cell(LC.sonnet.autocompact), ...cell(LC.sonnet.long), LC.sonnet.longOverRelayPct], [9.08, 8.94, 5, 9.19, 8.87, 5, 9.66, 10.27, 3, 6]));
+check("list price, Opus: relay 26.53 (n=4), auto-compaction 24.23 (n=3), long 29.06 (n=1)",
+  same([LC.opus.relay.meanUsd, LC.opus.relay.finished, LC.opus.autocompact.meanUsd, LC.opus.autocompact.finished, LC.opus.long.meanUsd, LC.opus.long.finished], [26.53, 4, 24.23, 3, 29.06, 1]));
+check("list price, stopped runs (not in the means): relay-r4 US$2.48, compact200 US$4.51",
+  same([data.runs["relay-r4"].listUsd, data.runs.compact200.listUsd], [2.48, 4.51]));
+// on CLI 2.1.296 (every 10 Oct run) the CLI already charged list price, so the two figures agree to US$0.02
+const tenOct = Object.values(data.runs).filter((r) => r.batch === COST_BATCH);
+check("10 Oct runs: list price within US$0.02 of the CLI's cost (" + tenOct.length + " runs)",
+  tenOct.length > 0 && tenOct.every((r) => Math.abs(r.listUsd - r.costUsd) <= 0.02), tenOct.map((r) => r.id + " " + r.costUsd + "/" + r.listUsd).join(", "));
+
 // starting-context comparison (2026-10-08, the three original relay runs)
 const FLOOR = { relay: [22.1, 313, 4.7, 35.1, 31.2, 37.2, 12.21, 50], trim: [45.9, 379, 6.3, 46.2, 41.2, 48.8, 15.76, 62.8], old: [67.9, 394, 7, 53.7, 51.8, 56.6, 17.89, 59.6] };
 for (const [g, want] of Object.entries(FLOOR)) {

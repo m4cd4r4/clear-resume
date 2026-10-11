@@ -186,10 +186,10 @@
     [D.groups, D.opusGroups].forEach(function (G) {
       ["relay", "autocompact", "long", "trim", "old"].forEach(function (g) { if (G[g]) G[g].runs.forEach(function (k) { order.push(k); }); });
     });
-    var head = ["run", "model", "date", "sessions", "clears", "compactions", "tokens M", "cost US$", "minutes", "items"];
+    var head = ["run", "model", "date", "sessions", "clears", "compactions", "tokens M", "CLI US$", "list US$", "minutes", "items"];
     var rowsHtml = order.map(function (k) {
       var r = runs[k];
-      var cells = [(SHORT[r.group] || r.group) + " " + r.run, r.modelName, C.dateLabel(r.batch), r.sessions, r.clears, r.compactions, r.tokensM, r.costUsd.toFixed(2), r.wallMin,
+      var cells = [(SHORT[r.group] || r.group) + " " + r.run, r.modelName, C.dateLabel(r.batch), r.sessions, r.clears, r.compactions, r.tokensM, r.costUsd.toFixed(2), r.listUsd.toFixed(2), r.wallMin,
         r.planTicked + "/" + r.planTotal + (r.finished ? "" : " stopped")];
       return "<tr>" + cells.map(function (c, i) { return i ? "<td class=\"num\">" + C.esc(c) + "</td>" : "<th scope=\"row\">" + C.esc(c) + "</th>"; }).join("") + "</tr>";
     }).join("");
