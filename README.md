@@ -88,12 +88,6 @@ With the relay on, Claude saves a handover when the chat passes a size you choos
 
 The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue. It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.
 
-<p align="center">
-  <img src="docs/media/relay-run.png" width="100%" alt="The closing card of the replay above. Same work, about 6.2 times fewer tokens. 91.0M with the relay; 565.6M for one long session, an estimate. 30 of 30 items, 15 sessions, 14 automatic hops, 94 minutes. Estimate: each session's work stacked on the last, no auto-compaction. Re-reads after each clear are counted, so treat 6.2 times as an upper bound. Beside it, the site the run built.">
-</p>
-
-<p align="center"><sub>The run in the video above, 5 Oct 2026: from one prompt, 15 sessions and 14 automatic clears in 94 minutes.</sub></p>
-
 <details>
 <summary><b>Relay controls, and picking the nudge size</b></summary>
 <br>
