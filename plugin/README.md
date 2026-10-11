@@ -4,7 +4,7 @@ Clear the chat. Keep the goal, the next step and the decisions.
 
 Before you `/clear` a long Claude Code chat, type `/clear-resume:handover`. Claude writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it. After `/clear`, the fresh session starts with the handover already loaded, so you type `go` and Claude carries on. Nothing to paste.
 
-In one measured run, Claude built a site across 15 sessions with 91.0M tokens. The same work as one long chat, with no clears, comes to about 565.6M tokens (an estimate, and an upper bound).
+Coming back to a 390k-token session after the prompt cache expired cost US$1.56; a handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 (Sonnet 5.5, n=3 each, 10 Oct 2026). The handover is a plain text file you can read and edit. On a 30-item build, the relay and Claude Code's auto-compaction each finished 5 of 6 runs at about the same tokens.
 
 ## Use it
 
@@ -16,7 +16,7 @@ Optional settings, all off by default:
 
 - **Nudge** (`auto_nudge`): when the chat's context passes **Nudge at** (180k tokens by default), Claude is asked once per session to save a handover.
 - **Relay** (`relay`): after Claude saves a handover, the plugin runs `/clear` and submits the prompt that continues from it, up to the number of clears you allow. It stops when the budget is used or when two continued sessions in a row make no new commit. Needs Claude Code 2.1.275 or later.
-- **Idle handover** (`idle_handover`: `off`, `toast` or `auto`; with `cache_ttl_minutes`, default 60, and `idle_min_tokens`, default 100000): when you have been away until about 5 minutes before the prompt cache would expire and the context is at least `idle_min_tokens`, show a status message (`toast`) or ask Claude for a handover and clear, leaving the new session waiting for you (`auto`; needs `cache_ttl_minutes` of 10 or more, else it acts as `toast`). Once per session, in interactive sessions, with the relay on or off. Measured once (n=1, Sonnet 5.5, 390k tokens, 60 minute cache; the 5 minute API-key default was not measured): resuming cold cost US$1.56, a handover written while the cache was warm about US$0.31 in all, and the saving exists only if you come back. Details: [HOW-IT-WORKS](../docs/HOW-IT-WORKS.md#idle-handover-before-the-cache-expires).
+- **Idle handover** (`idle_handover`: `off`, `toast` or `auto`; with `cache_ttl_minutes`, default 60, and `idle_min_tokens`, default 100000): when you have been away until about 5 minutes before the prompt cache would expire and the context is at least `idle_min_tokens`, show a status message (`toast`) or ask Claude for a handover and clear, leaving the new session waiting for you (`auto`; needs `cache_ttl_minutes` of 10 or more, else it acts as `toast`). Once per session, in interactive sessions, with the relay on or off. Measured on Sonnet 5.5, 390k tokens, 60 minute cache, 10 Oct 2026 (the 5 minute API-key default was not measured): resuming cold cost US$1.56 (n=3), a handover written while the cache was warm US$0.15 to US$0.17 in all (n=3), and the saving exists only if you come back. Details: [HOW-IT-WORKS](../docs/HOW-IT-WORKS.md#idle-handover-before-the-cache-expires).
 
 ## What it runs, stores and sends
 
