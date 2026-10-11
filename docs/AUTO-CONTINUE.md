@@ -73,6 +73,7 @@ too, and a finished worker that saves a handover would be resumed into a done ta
 ```
 node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file p.txt \
   [--nudge-at 180000] [--store DIR] [--event-log FILE --label SLUG] [--alert-cmd CMD] \
+  [--done-check CMD] \
   -- claude -p --max-turns 500 --max-budget-usd 40 --model sonnet --output-format stream-json --verbose
 ```
 
@@ -95,7 +96,7 @@ node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file
   segment with the ORIGINAL prompt + "segment N, resume from:" + the body. Because it is
   archived first, the next segment's SessionStart hook loads nothing a second time.
 - **Stops** when a segment saves no handover (done, or failed without one: its exit code
-  is the runner's), at `--max-segments` or the total budget (exit 4, the handover is left
+  is the runner's; with `--done-check`, only when the check exits 0), at `--max-segments` or the total budget (exit 4, the handover is left
   waiting in the private store and its id printed), or at the stall guard (exit 3).
 - **Stall guard**, also with a large budget: HEAD is compared before and after each
   continued segment. Two continued segments in a row with no new commit stop the chain
@@ -105,6 +106,32 @@ node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file
 - **Event log** (optional): `<iso> segment <label> <n> <session id>` lines. The examworthy
   orchestrator counts only `start` lines against its concurrency cap, so run-one.sh keeps
   one start/exit pair per run and these lines are ignored by it.
+
+### `--done-check`: a segment that stops early
+
+By default the runner reads "no handover" as "the work is done". A model can also end its
+turn early. In one run (relay-r4, Sonnet 5.5, a 30-item site build, 2026-10-10), segment 1
+handed over after item 9. Segment 2 finished item 10, said so, and ended its turn with no
+handover. The runner stopped with 20 of 30 items open. It had no way to tell.
+
+`--done-check <cmd>` is the way. It is opt-in. Without it nothing changes.
+
+- When a segment ends with no handover, the runner runs `<cmd>` in the repo (through the
+  shell). Exit 0 means the work is done, and the chain stops with the segment's exit code as
+  before.
+- A non-zero exit starts another segment. Its prompt is the original prompt, a note that the
+  previous segment ended its turn without finishing and without a handover, and the last
+  2,000 characters of the check's stdout and stderr. It tells the worker to check git and carry on.
+- A check after a segment that did save a handover never runs. The handover decides.
+- Every guard still applies. `--max-segments` and `--total-budget-usd` cap the chain. A
+  continuation that makes no new commit counts toward the stall guard, as a handover
+  continuation does. A check that never passes ends at one of these, not in a loop.
+- The log reads `segment 2 saved no handover; the done check failed (exit 1), continuing.`
+  With `--event-log`, each check also writes `<iso> done-check <label> <n> failed <exit>` or
+  `passed`.
+
+Pick a check that is cheap and exits 0 only when the whole task is done, for example
+`npm test` or a script that counts the open items.
 
 ### Harness swap (after this merges)
 
