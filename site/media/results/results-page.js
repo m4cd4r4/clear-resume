@@ -5,7 +5,7 @@
   var D = window.crResults, C = window.crCharts, P = window.crPage || {};
   if (!D || !C) return;
   var reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  var show = P.show || ["race", "finish", "tokens", "cost", "floor", "idle"];
+  var show = P.show || ["idle", "finish", "race", "tokens", "cost", "predict"];
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var runs = D.runs;
@@ -26,11 +26,6 @@
   /* findings not in the show list leave the page */
   $$("[data-finding]").forEach(function (el) {
     if (show.indexOf(el.getAttribute("data-finding")) < 0) el.parentNode.removeChild(el);
-  });
-  var anchor = $("#install");
-  show.forEach(function (id) {
-    var el = id === "race" ? null : $("[data-finding=\"" + id + "\"]");
-    if (el && anchor) anchor.parentNode.insertBefore(el, anchor);
   });
 
   /* ---- generic animated chart ---- */
@@ -80,8 +75,8 @@
   var raceHost = $("#race-chart");
   if (raceHost) {
     var st = {
-      a: runs[(P.race && P.race.a) || "relay"],
-      b: runs[(P.race && P.race.b) || "compact200"]
+      a: runs[(P.race && P.race.a) || D.groups.relay.medianRun],
+      b: runs[(P.race && P.race.b) || D.groups.autocompact.medianRun]
     };
     var play = $("#race-play"), scrub = $("#race-scrub"), pickHost = $("#race-pick");
     var rp = reduced ? 1 : 0, raf = 0, playing = false, last = 0, RACE_MS = 14000;
@@ -124,7 +119,8 @@
         var b = document.createElement("button");
         b.type = "button";
         b.textContent = String(runs[k].run);
-        b.setAttribute("aria-label", C.armName(g[0]) + " run " + runs[k].run);
+        b.setAttribute("aria-label", C.armName(g[0]) + " run " + runs[k].run + ", " + C.dateLabel(runs[k].batch) + (runs[k].finished ? "" : ", stopped at item " + runs[k].planTicked));
+        if (!runs[k].finished) b.className = "stopped";
         b.setAttribute("aria-pressed", st[g[1]] === runs[k] ? "true" : "false");
         b.addEventListener("click", function () {
           st[g[1]] = runs[k];
@@ -161,7 +157,7 @@
 
   /* ---- numbers count up once, when their finding scrolls into view ---- */
   $$(".finding").forEach(function (sec) {
-    var slots = $$(".claim [data-res]", sec);
+    var slots = $$(".claim [data-res]", sec).filter(function (s) { return /^[\d.]+$/.test(s.textContent); });
     if (!slots.length) return;
     var finals = slots.map(function (s) { return s.textContent; });
     var dec = finals.map(function (t) { return (t.split(".")[1] || "").length; });
@@ -187,11 +183,13 @@
   var tbl = $("#runs-table");
   if (tbl) {
     var order = [];
-    ["relay", "autocompact", "long", "trim", "old"].forEach(function (g) { D.groups[g].runs.forEach(function (k) { order.push(k); }); });
-    var head = ["run", "sessions", "clears", "compactions", "tokens M", "cost US$", "minutes", "items"];
+    [D.groups, D.opusGroups].forEach(function (G) {
+      ["relay", "autocompact", "long", "trim", "old"].forEach(function (g) { if (G[g]) G[g].runs.forEach(function (k) { order.push(k); }); });
+    });
+    var head = ["run", "model", "date", "sessions", "clears", "compactions", "tokens M", "cost US$", "minutes", "items"];
     var rowsHtml = order.map(function (k) {
       var r = runs[k];
-      var cells = [(SHORT[r.group] || r.group) + " " + r.run, r.sessions, r.clears, r.compactions, r.tokensM, r.costUsd.toFixed(2), r.wallMin,
+      var cells = [(SHORT[r.group] || r.group) + " " + r.run, r.modelName, C.dateLabel(r.batch), r.sessions, r.clears, r.compactions, r.tokensM, r.costUsd.toFixed(2), r.wallMin,
         r.planTicked + "/" + r.planTotal + (r.finished ? "" : " stopped")];
       return "<tr>" + cells.map(function (c, i) { return i ? "<td class=\"num\">" + C.esc(c) + "</td>" : "<th scope=\"row\">" + C.esc(c) + "</th>"; }).join("") + "</tr>";
     }).join("");

@@ -30,11 +30,13 @@
       .kicker { font: 700 26px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
       .brand { font: 700 26px/1 var(--mono); color: var(--text-2); }
       h1 { margin-top: 28px; font-size: 108px; white-space: nowrap; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
-      h2 { max-width: 1500px; margin-top: 22px; font-size: 60px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+      h2 { max-width: 1500px; margin-top: 22px; font-size: 56px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
       h2 [data-res] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+      h2 [data-res].txt { font-family: inherit; }
       .setup { max-width: 1400px; margin-top: 40px; font-size: 38px; line-height: 1.4; color: var(--text-2); }
-      .scene .note { max-width: 1500px; margin-top: 30px; font: 400 28px/1.5 var(--mono); color: var(--text-2); }
-      .chart { width: 1680px; margin-top: 44px; }
+      .scene .note { max-width: 1500px; margin-top: 26px; font: 400 28px/1.5 var(--mono); color: var(--text-2); }
+      .chart { width: 1680px; margin-top: 36px; }
+      .chart + .chart { margin-top: 12px; }
       .chart .chart-svg { width: 100%; height: auto; }
       .race-box { width: 1560px; padding: 24px 28px 20px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
       .hl.c-relay { color: var(--c-relay); }
@@ -47,50 +49,56 @@
   <body>
     <div id="root" data-composition-id="main" data-start="0" data-duration="41.5" data-width="1920" data-height="1080">
 
-      <section class="scene clip" data-start="0" data-duration="4" data-track-index="0" id="s-title">
+      <section class="scene clip" data-start="0" data-duration="3" data-track-index="0" id="s-title">
         <p class="kicker reveal">clear-resume, measured results</p>
         <h1 class="reveal">Clear the chat. Keep the work.</h1>
-        <p class="setup reveal">A <span data-res="meta.planItems"></span>-item website build, run <span data-res="groups.relay.n"></span> times with the relay and <span data-res="groups.autocompact.n"></span> times with Claude Code's auto-compaction, on <span data-lit>Sonnet 5.5</span>.</p>
+        <p class="setup reveal">A <span data-res="meta.planItems"></span>-item website build, the relay against auto-compaction, on <span data-res="idle.model"></span> and <span data-res="modelSwitch.model"></span>.</p>
       </section>
 
-      <section class="scene clip" data-start="4" data-duration="14.5" data-track-index="0" id="s-race">
-        <p class="kicker reveal">The race</p>
-        <h2 class="reveal">One build, one clock. Every point is a real reply.</h2>
-        <div class="chart race-box reveal" id="c-race"></div>
-        <p class="note reveal">Relay run <span data-res="runs.relay.run"></span> against compaction run <span data-res="runs.compact200.run"></span>, of <span data-res="groups.relay.n"></span> per arm.</p>
+      <section class="scene clip" data-start="3" data-duration="6.5" data-track-index="0" id="s-idle">
+        <p class="kicker reveal">Idle return</p>
+        <h2 class="reveal">Back in a <span data-res="idle.contextTokens" data-k="1"></span>k session after an idle gap: US$<span class="hl c-long" data-res="idle.latest.coldMedianUsd" data-fixed="2"></span> cold, US$<span class="hl c-relay" data-res="idle.latest.warmMedianUsd" data-fixed="2"></span> with a handover (n=<span data-res="idle.latest.n"></span>).</h2>
+        <div class="chart reveal" id="c-idle"></div>
+        <p class="note reveal">A handover continues from a note, so quality can differ. The CLI priced cache reads lower on <span data-res="idle.latest.dateLabel"></span> than <span data-res="idle.earlier.dateLabel"></span>.</p>
       </section>
 
-      <section class="scene clip" data-start="18.5" data-duration="5" data-track-index="0" id="s-finish">
-        <p class="kicker reveal">Finish</p>
-        <h2 class="reveal">Relay: <span class="hl c-relay" data-res="groups.relay.finished"></span> of <span data-res="groups.relay.n"></span> builds finished. Auto-compaction: <span class="hl c-auto" data-res="groups.autocompact.finished"></span> of <span data-res="groups.autocompact.n"></span>.</h2>
+      <section class="scene clip" data-start="9.5" data-duration="5" data-track-index="0" id="s-finish">
+        <p class="kicker reveal">Builds</p>
+        <h2 class="reveal">A <span data-res="meta.planItems"></span>-item build: relay finished <span class="hl c-relay" data-res="groups.relay.finished"></span> of <span data-res="groups.relay.n"></span> runs, auto-compaction <span class="hl c-auto" data-res="groups.autocompact.finished"></span> of <span data-res="groups.autocompact.n"></span>.</h2>
         <div class="chart reveal" id="c-finish"></div>
-        <p class="note reveal">One compaction run ended its turn after item <span data-res="runs.compact200.planTicked"></span>, with <span data-res="runs.compact200.planOpen"></span> items open. <span data-res="groups.autocompact.n"></span> runs per arm is a small sample.</p>
+        <p class="note reveal">Stopped early: relay at item <span data-res="groups.relay.stoppedItems.0"></span>, auto-compaction at item <span data-res="groups.autocompact.stoppedItems.0"></span>.</p>
       </section>
 
-      <section class="scene clip" data-start="23.5" data-duration="4.5" data-track-index="0" id="s-tokens">
+      <section class="scene clip" data-start="14.5" data-duration="8" data-track-index="0" id="s-race">
+        <p class="kicker reveal">One run of each arm</p>
+        <h2 class="reveal">Median finished run of each arm.</h2>
+        <div class="chart race-box reveal" id="c-race"></div>
+      </section>
+
+      <section class="scene clip" data-start="22.5" data-duration="4.5" data-track-index="0" id="s-tokens">
         <p class="kicker reveal">Tokens</p>
-        <h2 class="reveal">One long session used about <span class="hl c-long" data-res="groups.relay.vsLong"></span>x the tokens of either clearing method (n=<span data-res="groups.long.n"></span>).</h2>
+        <h2 class="reveal">A session that never compacts used <span class="hl c-long" data-res="groups.relay.vsLong"></span>x the relay's tokens and <span class="hl c-long" data-res="groups.autocompact.vsLong"></span>x auto-compaction's (n=<span data-res="groups.long.n"></span> against n=<span data-res="groups.relay.finished"></span>).</h2>
         <div class="chart reveal" id="c-tokens"></div>
       </section>
 
-      <section class="scene clip" data-start="28" data-duration="4.5" data-track-index="0" id="s-cost">
+      <section class="scene clip" data-start="27" data-duration="4.5" data-track-index="0" id="s-cost">
         <p class="kicker reveal">Cost</p>
-        <h2 class="reveal">Median cost: US$<span class="hl c-relay" data-res="groups.relay.medianCostUsd" data-fixed="2"></span> relay, US$<span class="hl c-auto" data-res="groups.autocompact.medianCostUsd" data-fixed="2"></span> auto-compaction.</h2>
+        <h2 class="reveal">Mean cost of finished <span class="txt" data-res="cost.dateLabel"></span> runs: US$<span class="hl c-relay" data-res="cost.sonnet.relay.meanCostUsd" data-fixed="2"></span> relay (n=<span data-res="cost.sonnet.relay.finished"></span>), US$<span class="hl c-auto" data-res="cost.sonnet.autocompact.meanCostUsd" data-fixed="2"></span> auto-compaction (n=<span data-res="cost.sonnet.autocompact.finished"></span>).</h2>
         <div class="chart reveal" id="c-cost"></div>
-        <p class="note reveal">The gap is within run-to-run spread.</p>
+        <div class="chart reveal" id="c-cost-opus"></div>
+        <p class="note reveal">Cost is compared within one date because the price changed.</p>
       </section>
 
-      <section class="scene clip" data-start="32.5" data-duration="5" data-track-index="0" id="s-idle">
-        <p class="kicker reveal">Idle return</p>
-        <h2 class="reveal">Back in a <span data-res="idle.contextTokens" data-k="1"></span>k session: US$<span class="hl c-long" data-res="idle.coldReturn.costUsd" data-fixed="2"></span> cold, US$<span class="hl c-relay" data-res="idle.warmHandover.totalUsd" data-fixed="2"></span> with a handover (n=<span data-res="idle.n"></span>).</h2>
-        <div class="chart reveal" id="c-idle"></div>
-        <p class="note reveal">A handover continues from a note and a cold return keeps the whole conversation, so this compares cost only.</p>
+      <section class="scene clip" data-start="31.5" data-duration="6" data-track-index="0" id="s-predict">
+        <h2 class="reveal">Predicted before the runs: <span class="hl c-relay" data-res="predictions.inside"></span> of <span data-res="predictions.total"></span> results inside the range, <span class="hl c-auto" data-res="predictions.outside"></span> outside.</h2>
+        <div class="chart reveal" id="c-predict"></div>
+        <p class="note reveal">Written at <span data-res="predictions.writtenTime"></span> AWST on <span class="txt" data-res="predictions.dateLabel"></span>, before the first test.</p>
       </section>
 
       <section class="scene clip" data-start="37.5" data-duration="4" data-track-index="0" id="s-end">
         <p class="kicker reveal">clear-resume</p>
         <h1 class="reveal">Clear the chat. Keep the work.</h1>
-        <p class="setup reveal"><span data-res="groups.relay.n"></span> runs per arm is a small sample. Idle and long-session figures are n=<span data-res="idle.n"></span>. <span data-lit>Sonnet 5.5</span>.</p>
+        <p class="setup reveal">Runs per arm: Sonnet n=<span data-res="groups.relay.n"></span>, Opus n=<span data-res="opusGroups.autocompact.n"></span> to <span data-res="opusGroups.relay.n"></span>. Idle tests n=<span data-res="idle.latest.n"></span>.</p>
         <p class="url reveal" data-lit>github.com/m4cd4r4/clear-resume</p>
       </section>
     </div>
@@ -113,23 +121,27 @@
           if (v !== undefined) el.textContent = C.fmt(v, el.getAttribute("data-fixed"), el.getAttribute("data-k"));
         });
 
-        /* charts: p is a pure function of the clock, so seeking anywhere draws the right frame */
-        var W = 960;
+        /* charts: p is a pure function of the clock, so seeking anywhere draws the right frame.
+           w is the width the chart is drawn at; the page scales it to the box. */
+        var raceRuns = { a: runs[D.groups.relay.medianRun], b: runs[D.groups.autocompact.medianRun] };
         var charts = [
-          { id: "c-race", t0: 5, dur: 12.5, ease: linear, build: function (w, p) { return C.race(D, { a: runs.relay, b: runs.compact200 }, w, p); } },
-          { id: "c-finish", t0: 19.2, dur: 2.6, ease: linear, build: S.draw.finish },
-          { id: "c-tokens", t0: 24.0, dur: 2.6, ease: linear, build: S.draw.tokens },
-          { id: "c-cost", t0: 28.5, dur: 2.6, ease: linear, build: S.draw.cost },
-          { id: "c-idle", t0: 33.0, dur: 2.6, ease: linear, build: S.draw.idle }
+          { id: "c-idle", w: 960, t0: 3.8, dur: 2.6, ease: linear, build: S.draw.idle },
+          { id: "c-finish", w: 960, t0: 10.2, dur: 2.6, ease: linear, build: S.draw.finish },
+          { id: "c-race", w: 960, t0: 15.2, dur: 6.4, ease: linear, build: function (w, p) { return C.race(D, raceRuns, w, p); } },
+          { id: "c-tokens", w: 1100, t0: 23.2, dur: 2.6, ease: linear, build: S.draw.tokens },
+          { id: "c-cost", w: 1100, t0: 27.7, dur: 2.4, ease: linear, build: S.draw.cost },
+          { id: "c-cost-opus", w: 1100, t0: 27.9, dur: 2.4, ease: linear, build: S.draw.costOpus },
+          { id: "c-predict", w: 1100, t0: 32.2, dur: 3.2, ease: linear, build: S.draw.predict }
         ];
         charts.forEach(function (c) { c.el = $("#" + c.id); c.last = -1; });
 
-        /* claim numbers count up when their scene opens */
+        /* claim numbers count up when their scene opens (words and dates stay as written) */
         var counts = [];
         $$(".scene").forEach(function (sc) {
           var t0 = parseFloat(sc.getAttribute("data-start")) + 0.6;
           $$("h2 [data-res]", sc).forEach(function (el) {
             var fin = el.textContent;
+            if (!/^[\d.]+$/.test(fin)) return;
             counts.push({ el: el, fin: fin, target: parseFloat(fin), dec: (fin.split(".")[1] || "").length, t0: t0 });
           });
         });
@@ -139,7 +151,7 @@
             var p = Math.round(c.ease(C.span(t, c.t0, c.t0 + c.dur)) * 1000) / 1000;
             if (p === c.last) return;
             c.last = p;
-            c.el.innerHTML = c.build(W, p);
+            c.el.innerHTML = c.build(c.w, p);
           });
           counts.forEach(function (n) {
             var e = C.ease(C.span(t, n.t0, n.t0 + 1.1));
