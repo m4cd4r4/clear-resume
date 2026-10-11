@@ -127,10 +127,31 @@ function planTicked(repo) {
   return f ? (fs.readFileSync(f, "utf8").match(/^\s*[-*] \[x\]/gim) || []).length : 0;
 }
 
+// Anthropic list price, US$/MTok (platform.claude.com pricing, fetched 2026-10-11): input, 1h cache write, cache read, output.
+// Claude Code on a subscription writes the 1h cache. CLI 2.1.296 (10 Oct) prices Sonnet 5.5 the same; 2.1.291 (7-9 Oct)
+// still charged Sonnet 5.5 cache reads at the old 0.1x of input (RESULTS.md, "Cache-read price: which table is current").
+export const LIST_PRICE = {
+  fetched: "2026-10-11",
+  "claude-sonnet-5-5": [2, 4, 0.10, 10],
+  "claude-opus-5-5": [4, 8, 0.20, 20],
+  "claude-haiku-4-5": [1, 2, 0.10, 5],
+};
+const listPriceFor = (m) => LIST_PRICE[Object.keys(LIST_PRICE).find((k) => k.startsWith("claude-") && m.startsWith(k))];
+
+// cost: what the CLI charged. list: the same tokens (per model, from each result line's modelUsage) at LIST_PRICE.
 function streamTotals(file) {
-  let cost = 0, results = 0;
-  for (const r of readJsonl(file)) if (r.type === "result") { results++; cost += r.total_cost_usd || 0; }
-  return { cost, results };
+  let cost = 0, list = 0, results = 0;
+  for (const r of readJsonl(file)) {
+    if (r.type !== "result") continue;
+    results++;
+    cost += r.total_cost_usd || 0;
+    for (const [m, u] of Object.entries(r.modelUsage || {})) {
+      const p = listPriceFor(m);
+      if (!p) throw new Error(file + ": no list price for " + m);
+      list += ((u.inputTokens || 0) * p[0] + (u.cacheCreationInputTokens || 0) * p[1] + (u.cacheReadInputTokens || 0) * p[2] + (u.outputTokens || 0) * p[3]) / 1e6;
+    }
+  }
+  return { cost, list, results };
 }
 
 export function extractRun(ab, spec) {
@@ -165,6 +186,7 @@ export function extractRun(ab, spec) {
     tokensM: r1(tokens / 1e6),
     costUsd: r2(totals.cost),
     costExact: totals.cost,
+    listUsd: r2(totals.list), // API-equivalent at today's list price, comparable across dates
     outputK: Math.round(all.reduce((n, x) => n + x.out, 0) / 1e3),
     wallMin: r1((Date.parse(ended) - startMs) / 60000),
     peakContext: Math.max(...all.map((x) => x.ctx)),
@@ -396,6 +418,20 @@ export function extractAll(ab) {
   };
   const cost = { batch: COST_BATCH, dateLabel: dateLabel(COST_BATCH), sonnet: costFor("sonnet"), opus: costFor("opus") };
 
+  // cost at today's list price, every date (RESULTS.md, "All runs re-costed at today's list price"). Finished runs only
+  // for mean, median and range, averaged to the cent as printed; a stopped run is still listed.
+  const listFor = (model) => {
+    const o = {};
+    for (const k of ["relay", "autocompact", "long"]) {
+      const list = pick(model, k), done = list.filter((r) => r.finished).map((r) => r.listUsd);
+      o[k] = { n: list.length, finished: done.length, runs: list.map((r) => r.id),
+        meanUsd: r2(mean(done)), medianUsd: r2(median(done)), minUsd: Math.min(...done), maxUsd: Math.max(...done) };
+    }
+    o.longOverRelayPct = r0(((o.long.meanUsd - o.relay.meanUsd) / o.relay.meanUsd) * 100); // the long session's mean over the relay's
+    return o;
+  };
+  const listCost = { priced: LIST_PRICE.fetched, sonnet: listFor("sonnet"), opus: listFor("opus") };
+
   // RESULTS.md subtracts the earlier session's cost as printed (US$13.31), so the idle figures do the same.
   const ids = idleAndSwitch(ab, runs.compact.costUsd);
   return {
@@ -409,6 +445,7 @@ export function extractAll(ab) {
     groups,
     opusGroups,
     cost,
+    listCost,
     floor,
     predictions: predictionRows(runs, ids.idle, cost),
     ...ids,

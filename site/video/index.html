@@ -79,14 +79,15 @@
         <p class="kicker reveal">Tokens</p>
         <h2 class="reveal">A session that never compacts used, on average, <span class="hl c-long" data-res="groups.relay.vsLong"></span>x the relay's tokens and <span class="hl c-long" data-res="groups.autocompact.vsLong"></span>x auto-compaction's (n=<span data-res="groups.long.n"></span> against n=<span data-res="groups.relay.finished"></span>).</h2>
         <div class="chart reveal" id="c-tokens"></div>
+        <p class="note reveal">Mostly cache reads, <span data-lit>0.05x</span> the input price: at list price it cost <span class="hl c-long" data-res="listCost.sonnet.longOverRelayPct"></span>% more.</p>
       </section>
 
       <section class="scene clip" data-start="27" data-duration="4.5" data-track-index="0" id="s-cost">
         <p class="kicker reveal">Cost</p>
-        <h2 class="reveal">Mean cost of finished <span class="txt" data-res="cost.dateLabel"></span> runs: US$<span class="hl c-relay" data-res="cost.sonnet.relay.meanCostUsd" data-fixed="2"></span> relay (n=<span data-res="cost.sonnet.relay.finished"></span>), US$<span class="hl c-auto" data-res="cost.sonnet.autocompact.meanCostUsd" data-fixed="2"></span> auto-compaction (n=<span data-res="cost.sonnet.autocompact.finished"></span>).</h2>
+        <h2 class="reveal">List-price mean, finished Sonnet runs: US$<span class="hl c-relay" data-res="listCost.sonnet.relay.meanUsd" data-fixed="2"></span> relay (n=<span data-res="listCost.sonnet.relay.finished"></span>), US$<span class="hl c-auto" data-res="listCost.sonnet.autocompact.meanUsd" data-fixed="2"></span> auto-compaction (n=<span data-res="listCost.sonnet.autocompact.finished"></span>), US$<span class="hl c-long" data-res="listCost.sonnet.long.meanUsd" data-fixed="2"></span> never compacting (n=<span data-res="listCost.sonnet.long.finished"></span>).</h2>
         <div class="chart reveal" id="c-cost"></div>
         <div class="chart reveal" id="c-cost-opus"></div>
-        <p class="note reveal">Cost is compared within one date because the price changed.</p>
+        <p class="note reveal">API-equivalent; runs used a subscription.</p>
       </section>
 
       <section class="scene clip" data-start="31.5" data-duration="6" data-track-index="0" id="s-predict">
