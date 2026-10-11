@@ -70,17 +70,17 @@
       <p class="kicker">Tokens</p>
       <h2 class="claim" id="h-tokens" data-fact="F404">A session that never compacts used, on average, <span class="hl c-long" data-res="groups.relay.vsLong">1.6</span>x the relay's tokens and <span class="hl c-long" data-res="groups.autocompact.vsLong">1.7</span>x auto-compaction's (n=<span data-res="groups.long.n">3</span> against n=<span data-res="groups.relay.finished">5</span>).</h2>
       <figure class="fig"><div class="fig-chart" data-chart="tokens"></div></figure>
-      <p class="note" data-fact="F405">Tokens include cache reads, billed at a tenth of the input price.</p>
+      <p class="note" data-fact="F405">Mostly cache reads, 0.05x the input price: at list price it cost <span class="hl c-long" data-res="listCost.sonnet.longOverRelayPct">6</span>% more.</p>
     </div>
   </section>
 
   <section class="finding" id="cost" data-finding="cost" aria-labelledby="h-cost">
     <div class="wrap">
       <p class="kicker">Cost</p>
-      <h2 class="claim" id="h-cost" data-fact="F406">Mean cost of finished <span class="txt" data-res="cost.dateLabel">10 Oct</span> runs: US$<span class="hl c-relay" data-res="cost.sonnet.relay.meanCostUsd" data-fixed="2">9.53</span> relay (n=<span data-res="cost.sonnet.relay.finished">2</span>), US$<span class="hl c-auto" data-res="cost.sonnet.autocompact.meanCostUsd" data-fixed="2">9.02</span> auto-compaction (n=<span data-res="cost.sonnet.autocompact.finished">3</span>).</h2>
+      <h2 class="claim" id="h-cost" data-fact="F406">List-price mean, finished Sonnet runs: US$<span class="hl c-relay" data-res="listCost.sonnet.relay.meanUsd" data-fixed="2">9.08</span> relay (n=<span data-res="listCost.sonnet.relay.finished">5</span>), US$<span class="hl c-auto" data-res="listCost.sonnet.autocompact.meanUsd" data-fixed="2">9.19</span> auto-compaction (n=<span data-res="listCost.sonnet.autocompact.finished">5</span>), US$<span class="hl c-long" data-res="listCost.sonnet.long.meanUsd" data-fixed="2">9.66</span> never compacting (n=<span data-res="listCost.sonnet.long.finished">3</span>).</h2>
       <figure class="fig"><div class="fig-chart" data-chart="cost"></div></figure>
       <figure class="fig"><div class="fig-chart" data-chart="costOpus"></div></figure>
-      <p class="note" data-fact="F407">Cost is compared within one date because the price changed.</p>
+      <p class="note" data-fact="F407">API-equivalent; runs used a subscription.</p>
     </div>
   </section>
 

@@ -29,7 +29,6 @@
       };
     }
     var tokWhat = function (r) { return r.tokensM + "M tokens"; };
-    var costWhat = function (r) { return usd(r.costUsd); };
 
     function idleSpec() {
       var I = D.idle, L = I.latest, E = I.earlier;
@@ -79,17 +78,17 @@
       });
       return { lo: 0, hi: 90, ticks: [0, 15, 30, 45, 60, 75, 90], tick: tokM, rows: rows };
     }
-    /* cost, inside the one date batch (the CLI priced 10 Oct lower per token than 7 and 8 Oct) */
+    /* cost at today's list price, every date (the CLI priced Sonnet cache reads at 0.1x input before 10 Oct) */
     function costSpec(model) {
-      var K = D.cost[model];
+      var K = D.listCost[model];
       var rows = [["relay", "c-relay", true], ["autocompact", "c-auto", true], ["long", "c-long", false]].filter(function (k) { return K[k[0]].n > 0; }).map(function (k) {
-        var row = dotRow(SHORT[k[0]] + ", " + (model === "opus" ? "Opus" : "Sonnet"), k[1], ids(K[k[0]].runs), "costUsd", K[k[0]].meanCostUsd, usd, k[2], function (r) { return usd(r.costUsd); });
-        if (row.median != null) row.text = "mean " + usd(K[k[0]].meanCostUsd) + ", n=" + K[k[0]].finished;
+        var row = dotRow(SHORT[k[0]] + ", " + (model === "opus" ? "Opus" : "Sonnet"), k[1], ids(K[k[0]].runs), "listUsd", K[k[0]].meanUsd, usd, k[2], function (r) { return usd(r.listUsd) + " at list price"; });
+        if (row.median != null) row.text = "mean " + usd(K[k[0]].meanUsd) + ", n=" + K[k[0]].finished;
         return row;
       });
       return model === "sonnet"
         ? { lo: 0, hi: 12, ticks: [0, 3, 6, 9, 12], tick: function (v) { return "US$" + v; }, rows: rows }
-        : { lo: 21, hi: 29, ticks: [22, 24, 26, 28], tick: function (v) { return "US$" + v; }, rows: rows };
+        : { lo: 22, hi: 30, ticks: [22, 24, 26, 28, 30], tick: function (v) { return "US$" + v; }, rows: rows };
     }
     function predictSpec() {
       var fmts = { M: tokM, count: String, pct: function (v) { return v + "%"; }, usd: function (v) { return "US$" + v; } };
