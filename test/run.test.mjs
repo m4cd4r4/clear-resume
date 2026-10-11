@@ -11,7 +11,8 @@ import { listAll } from "../plugin/packages/store/store.mjs";
 import { run as sessionStart } from "../plugin/scripts/lib/hook.mjs";
 
 const FAKE = fileURLToPath(new URL("./fixtures/fake-claude.mjs", import.meta.url));
-const ALERT = fileURLToPath(new URL("./fixtures/fake-alert.mjs", import.meta.url));
+const CHECK = fileURLToPath(new URL("./fixtures/fake-check.mjs", import.meta.url));
+const ALERT =fileURLToPath(new URL("./fixtures/fake-alert.mjs", import.meta.url));
 
 let dir, repo, store, planFile, logFile, env, out, err;
 const sink = () => {
@@ -153,5 +154,110 @@ describe("stops", () => {
     expect(await go([...opts({ "--max-segments": "10", "--alert-cmd": `"${process.execPath}" "${ALERT}"` }), ...claude()])).toBe(3);
     expect(calls()).toHaveLength(3);
     expect(readFileSync(env.FAKE_ALERT_OUT, "utf8")).toMatch(/no new commits/);
+  });
+});
+
+// tdd-guard:allow - written as one block against a runner change made first; each case mutation-checked.
+// The relay-r4 case (2026-10-10): a segment ended its turn with no handover and the
+// chain stopped with 20 of 30 items open. --done-check is the runner's way to tell.
+describe("--done-check", () => {
+  let checkLog;
+  const doneCheck = (codes) => {
+    checkLog = join(dir, "check.log");
+    env.CHECK_LOG = checkLog;
+    env.CHECK_CODES = JSON.stringify(codes);
+    return `"${process.execPath}" "${CHECK}"`;
+  };
+  const checks = () => (existsSync(checkLog ?? "") ? readFileSync(checkLog, "utf8").split("\n").filter(Boolean) : []);
+
+  it("without it, a segment that saves no handover stops the chain as before and no check runs", async () => {
+    checkLog = join(dir, "check.log");
+    env.CHECK_LOG = checkLog;
+    env.CHECK_CODES = "[1]";
+    plan({ commit: true, cost: 1 }, { commit: true, cost: 1 });
+    expect(await go([...opts(), ...claude()])).toBe(0);
+    expect(calls()).toHaveLength(1);
+    expect(checks()).toHaveLength(0);
+    expect(err.text).toMatch(/segment 1 saved no handover: the chain is done\./);
+  });
+
+  it("continues once when the check fails, then stops with the segment's own code when it passes", async () => {
+    const cmd = doneCheck([1, 0]);
+    const events = join(dir, "queue.log");
+    plan({ commit: true, cost: 1 }, { commit: true, cost: 1, exit: 6 });
+    expect(await go([...opts({ "--done-check": cmd, "--event-log": events, "--label": "r4" }), ...claude()])).toBe(6);
+    expect(calls()).toHaveLength(2);
+    expect(checks()).toEqual(["1", "0"]);
+    expect(err.text).toMatch(/segment 1 saved no handover; the done check failed \(exit 1\), continuing\./);
+    expect(err.text).toMatch(/segment 2 saved no handover; the done check passed, the chain is done\./);
+    const lines = readFileSync(events, "utf8").trim().split("\n");
+    expect(lines.filter((l) => / done-check r4 /.test(l)).map((l) => l.replace(/^\S+ /, ""))).toEqual(["done-check r4 1 failed 1", "done-check r4 2 passed"]);
+  });
+
+  it("gives the continuation the original prompt, the check's output and a note to check git", async () => {
+    const cmd = doneCheck([1, 0]);
+    plan({ commit: true, cost: 1 }, { commit: true, cost: 1 });
+    await go([...opts({ "--done-check": cmd }), ...claude()]);
+    const second = calls()[1].stdin;
+    expect(second).toMatch(/^ORIGINAL PROMPT/);
+    expect(second).toMatch(/segment 2 of at most 4/);
+    expect(second).toMatch(/ended its turn without finishing/);
+    expect(second).toMatch(/without saving a handover/);
+    expect(second).toMatch(/failed with exit 1/);
+    expect(second).toMatch(/items left: 20/);
+    expect(second).toMatch(/check stderr line/);
+    expect(second).toMatch(/Check git/);
+  });
+
+  it("keeps the last 2,000 characters of a long check output", async () => {
+    checkLog = join(dir, "check.log");
+    const long = join(dir, "long-check.mjs");
+    writeFileSync(long, `process.stdout.write("HEAD" + "x".repeat(5000) + "TAIL"); process.exit(1);`, "utf8");
+    plan({ commit: true, cost: 1 }, { commit: true, cost: 1 });
+    await go([...opts({ "--done-check": `"${process.execPath}" "${long}"`, "--max-segments": "2" }), ...claude()]);
+    const second = calls()[1].stdin;
+    expect(second).toMatch(/TAIL/);
+    expect(second).not.toMatch(/HEAD/);
+    expect(second.length).toBeLessThan(2600);
+  });
+
+  it("stops at --max-segments when the check never passes and each segment commits (exit 4)", async () => {
+    const cmd = doneCheck([1]);
+    plan(...Array(6).fill({ commit: true, cost: 1 }));
+    expect(await go([...opts({ "--done-check": cmd, "--max-segments": "3" }), ...claude()])).toBe(4);
+    expect(calls()).toHaveLength(3);
+    expect(checks()).toHaveLength(3);
+    expect(err.text).toMatch(/reached --max-segments 3/);
+  });
+
+  it("trips the stall guard when continued segments make no new commit (exit 3)", async () => {
+    const cmd = doneCheck([1]);
+    plan({ commit: true, cost: 1 }, { cost: 1 }, { cost: 1 }, { cost: 1 });
+    env.FAKE_ALERT_OUT = join(dir, "alert.txt");
+    expect(await go([...opts({ "--done-check": cmd, "--max-segments": "10", "--alert-cmd": `"${process.execPath}" "${ALERT}"` }), ...claude()])).toBe(3);
+    expect(calls()).toHaveLength(3);
+    expect(readFileSync(env.FAKE_ALERT_OUT, "utf8")).toMatch(/no new commits/);
+  });
+
+  it("stops when the total budget is spent while the check still fails (exit 4)", async () => {
+    const cmd = doneCheck([1]);
+    plan(...Array(5).fill({ commit: true, cost: 3 }));
+    expect(await go([...opts({ "--done-check": cmd, "--total-budget-usd": "5" }), ...claude()])).toBe(4);
+    expect(calls().map((c) => Number(c.argv[c.argv.indexOf("--max-budget-usd") + 1]))).toEqual([5, 2]);
+  });
+
+  it("does not run the check after a segment that saved a handover", async () => {
+    const cmd = doneCheck([0]);
+    plan({ commit: true, save: true, cost: 1 }, { commit: true, cost: 1 });
+    expect(await go([...opts({ "--done-check": cmd }), ...claude()])).toBe(0);
+    expect(calls()).toHaveLength(2);
+    expect(calls()[1].stdin).toMatch(/next: step 2/);
+    expect(checks()).toEqual(["0"]);
+  });
+
+  it("refuses an empty --done-check", async () => {
+    plan({ commit: true });
+    expect(await go([...opts({ "--done-check": "  " }), ...claude()])).toBe(2);
+    expect(calls()).toHaveLength(0);
   });
 });

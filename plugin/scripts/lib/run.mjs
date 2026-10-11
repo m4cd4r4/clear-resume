@@ -22,7 +22,7 @@ function parseArgs(argv) {
   if (cut < 0 || cut === argv.length - 1) throw new Usage("give the claude command after --, e.g. -- claude -p --max-turns 200 --max-budget-usd 20");
   const mine = argv.slice(0, cut);
   const command = argv.slice(cut + 1);
-  const known = ["--max-segments", "--total-budget-usd", "--prompt-file", "--prompt", "--nudge-at", "--store", "--event-log", "--label", "--alert-cmd"];
+  const known = ["--max-segments", "--total-budget-usd", "--prompt-file", "--prompt", "--nudge-at", "--store", "--event-log", "--label", "--alert-cmd", "--done-check"];
   const o = {};
   for (let i = 0; i < mine.length; i += 2) {
     if (!known.includes(mine[i])) throw new Usage(`unknown option ${mine[i]}`);
@@ -66,6 +66,7 @@ function config(argv, env) {
   else if (o["--prompt"] != null) prompt = o["--prompt"];
   if (!prompt || !prompt.trim()) throw new Usage("give the task with --prompt-file <file> or --prompt <text>; the runner sends it on stdin");
 
+  if (o["--done-check"] != null && !o["--done-check"].trim()) throw new Usage("--done-check needs a non-empty command");
   const nudgeAt = o["--nudge-at"] != null ? positive(o["--nudge-at"], "--nudge-at") : undefined;
   return {
     maxSegments,
@@ -77,6 +78,7 @@ function config(argv, env) {
     eventLog: o["--event-log"],
     label: o["--label"] ?? "run",
     alertCmd: o["--alert-cmd"],
+    doneCheck: o["--done-check"],
     command,
   };
 }
@@ -163,6 +165,33 @@ function resumePrompt(original, n, max, body) {
   );
 }
 
+const CHECK_OUTPUT_MAX = 2000;
+
+// The tail of the check's output: the end of a failing test or lint run is where
+// the verdict is.
+function trimOutput(text) {
+  const t = text.trim();
+  return t.length > CHECK_OUTPUT_MAX ? `[earlier output cut]\n${t.slice(-CHECK_OUTPUT_MAX)}` : t;
+}
+
+// Runs the --done-check command in the repo. Exit 0 means the work is done.
+function runDoneCheck(cmd, { cwd, env }) {
+  const r = spawnSync(cmd, { shell: true, cwd, env, encoding: "utf8", windowsHide: true });
+  const output = trimOutput(`${r.stdout ?? ""}${r.stderr ?? ""}${r.error ? r.error.message : ""}`);
+  return { code: r.status ?? 1, output };
+}
+
+function unfinishedPrompt(original, n, max, check) {
+  const of = max === Infinity ? "" : ` of at most ${max}`;
+  return (
+    `${original.trimEnd()}\n\n---\n\n` +
+    `clear-resume: this is segment ${n}${of}. The previous segment ended its turn without finishing the task and without saving a handover. ` +
+    `The done check (\`${check.cmd}\`) failed with exit ${check.code}. Its output is below. ` +
+    `Check git for what is already done, then carry on with the rest of the task.\n\n` +
+    (check.output ? check.output : "(the check printed nothing)")
+  );
+}
+
 /** Run the chain. Resolves to the exit code the CLI should return. */
 export async function runChain(argv, { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr } = {}) {
   const say = (msg) => stderr.write(`clear-resume run: ${msg}\n`);
@@ -213,14 +242,27 @@ export async function runChain(argv, { cwd = process.cwd(), env = process.env, s
     const saved = savedSince(c.store, top, started);
     const next = saved.at(-1);
     say(`segment ${n} exited ${r.code}, cost ${r.cost == null ? `unknown (charged ${money(budget)})` : money(r.cost)} USD, ${money(spent)} of ${money(c.totalBudget)} spent`);
+    let check = null;
     if (!next) {
-      say(`segment ${n} saved no handover: the chain is done.`);
-      return r.code;
+      if (!c.doneCheck || r.error) {
+        say(`segment ${n} saved no handover: the chain is done.`);
+        return r.code;
+      }
+      const res = runDoneCheck(c.doneCheck, { cwd, env });
+      if (res.code === 0) {
+        say(`segment ${n} saved no handover; the done check passed, the chain is done.`);
+        if (c.eventLog) appendFileSync(c.eventLog, `${new Date().toISOString()} done-check ${c.label} ${n} passed\n`);
+        return r.code;
+      }
+      say(`segment ${n} saved no handover; the done check failed (exit ${res.code}), continuing.`);
+      if (c.eventLog) appendFileSync(c.eventLog, `${new Date().toISOString()} done-check ${c.label} ${n} failed ${res.code}\n`);
+      check = { cmd: c.doneCheck, ...res };
+    } else {
+      for (const h of saved.slice(0, -1)) archive(c.store, key, h.path, { via: "supersede", owner: RUNNER });
     }
-    for (const h of saved.slice(0, -1)) archive(c.store, key, h.path, { via: "supersede", owner: RUNNER });
 
     if (n > 1) stalled = before && head(cwd) === before ? stalled + 1 : 0;
-    const left = `The handover is still waiting in ${c.store} (id ${next.short}).`;
+    const left = check ? "The done check was still failing." : `The handover is still waiting in ${c.store} (id ${next.short}).`;
     if (stalled >= 2) {
       const msg = `clear-resume run (${c.label}): stopped after segment ${n}. Two continued segments in a row made no new commits. ${left}`;
       say(msg);
@@ -236,7 +278,11 @@ export async function runChain(argv, { cwd = process.cwd(), env = process.env, s
       return EXIT.cap;
     }
 
-    archive(c.store, key, next.path, { via: "load", owner: RUNNER });
-    prompt = resumePrompt(c.prompt, n + 1, c.maxSegments, next.body);
+    if (check) {
+      prompt = unfinishedPrompt(c.prompt, n + 1, c.maxSegments, check);
+    } else {
+      archive(c.store, key, next.path, { via: "load", owner: RUNNER });
+      prompt = resumePrompt(c.prompt, n + 1, c.maxSegments, next.body);
+    }
   }
 }

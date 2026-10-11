@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **`--done-check <cmd>` for the headless runner** (opt-in). A segment that ends with no handover
+  used to end the chain. With `--done-check`, the runner runs the command in the repo: exit 0 means
+  done, anything else starts another segment with the original prompt, a note that the last segment
+  stopped early, and the check's output (last 2,000 characters). `--max-segments`,
+  `--total-budget-usd` and the stall guard still apply. Without the option nothing changes. Why:
+  in one run (relay-r4, Sonnet 5.5, 30 items, 2026-10-10) a segment ended its turn after item 10
+  with no handover, and the chain stopped with 20 items open.
 - **Idle handover** (off by default). New plugin options `idle_handover` (`off`, `toast`, `auto`),
   `cache_ttl_minutes` (60) and `idle_min_tokens` (100000). About 5 minutes before the prompt cache
   would expire, on a large context, in an interactive session, the relay mod shows a status message
