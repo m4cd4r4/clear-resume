@@ -10,10 +10,13 @@
 /* ---- charts (SVG strings from charts-core.js and friends) ---- */
 .chart-svg { display: block; width: 100%; height: auto; overflow: visible; --c: var(--text-2); }
 .chart-svg text { font-family: var(--mono); }
+.fig-chart .chart-svg, .race-chart .chart-svg { min-height: 0; } /* styles.css gives the earlier demo charts a 340px floor */
 .c-relay { --c: var(--c-relay); }
 .c-auto { --c: var(--c-auto); }
 .c-long { --c: var(--c-long); }
+.c-neutral { --c: var(--text); }
 .grid { stroke: var(--hairline); stroke-width: 1; }
+.tk { stroke: var(--ghost); stroke-width: 1; }
 .axis { stroke: var(--ghost); stroke-width: 1; }
 .nudge { stroke: var(--ghost); stroke-width: 1; stroke-dasharray: 4 4; }
 .cursor { stroke: var(--text-2); stroke-width: 1; }
@@ -35,8 +38,6 @@
 .ring { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .cell { fill: var(--hairline); }
 .cell.on { fill: var(--c); }
-.cell.open { fill: none; stroke: var(--c); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.8; }
-.bar { fill: var(--c); }
 
 /* ---- page ---- */
 .hero .setup { max-width: 58ch; margin-top: 14px; color: var(--text-2); }
@@ -53,6 +54,7 @@
   background: transparent; color: var(--text-2); font: 700 12px var(--mono); cursor: pointer;
 }
 .pick button[aria-pressed="true"] { color: var(--bg); background: var(--text); border-color: var(--text); }
+.pick button.stopped { border-style: dashed; }
 .pick button:hover, .race-play:hover { border-color: var(--text); color: var(--text); }
 .pick button[aria-pressed="true"]:hover { color: var(--bg); }
 .race-play { margin-left: auto; padding: 0 16px; color: var(--text); }
@@ -64,6 +66,8 @@
 .finding .kicker { font: 700 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
 .finding .claim { max-width: 28ch; margin-top: 12px; font-size: clamp(24px, 3.6vw, 40px); text-wrap: balance; }
 .finding .claim [data-res] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.finding .claim [data-res].txt { font-family: inherit; }
+.hero .finding { margin-top: 44px; }
 .hl.c-relay { color: var(--c-relay); }
 .hl.c-auto { color: var(--c-auto); }
 .hl.c-long { color: var(--c-long); }
@@ -88,7 +92,8 @@
 
 @media (max-width: 600px) {
   .race { padding: 10px 10px 8px; }
-  .pick { flex: 1 1 100%; }
+  .pick { flex: 1 1 100%; flex-wrap: wrap; }
+  .pick-name { flex: 1 1 100%; margin: 4px 0 0; }
   .race-play { margin-left: 0; }
   .hero .jump { margin-left: 0; }
 }

@@ -14,7 +14,7 @@
     <a class="brand" href="index.html">clear-resume</a>
     <nav aria-label="Site">
       <ul class="nav">
-        <li><a href="#race">Results</a></li>
+        <li><a href="#idle">Results</a></li>
         <li><a href="#install">Install</a></li>
         <li class="sep" aria-hidden="true"></li>
         <li><a href="how-it-works.html">How it works</a></li>
@@ -30,8 +30,28 @@
     <div class="wrap">
       <h1 id="h-top">Clear the chat. Keep the work.</h1>
       <p class="sub"><span data-fact="F4">A free, open-source Claude Code plugin.</span><a class="jump" href="#install">Install</a></p>
-      <p class="setup" data-fact="F400">A <span data-res="meta.planItems">30</span>-item website build, run <span data-res="groups.relay.n">3</span> times with the relay and <span data-res="groups.autocompact.n">3</span> times with Claude Code's auto-compaction, on Sonnet 5.5.</p>
-      <figure class="race" id="race" data-finding="race">
+      <div class="finding" id="idle" data-finding="idle">
+        <p class="kicker">Idle</p>
+        <h2 class="claim" id="h-idle" data-fact="F400">Back in a <span data-res="idle.contextTokens" data-k="1">390</span>k session after an idle gap: US$<span class="hl c-long" data-res="idle.latest.coldMedianUsd" data-fixed="2">1.56</span> cold, US$<span class="hl c-relay" data-res="idle.latest.warmMedianUsd" data-fixed="2">0.15</span> with a handover (n=<span data-res="idle.latest.n">3</span>).</h2>
+        <figure class="fig"><div class="fig-chart" data-chart="idle"></div></figure>
+        <p class="reading">One dot per run. Tick: median. Hollow: did not finish. Dashed box: prediction.</p>
+        <p class="note" data-fact="F401">A handover continues from a note, so quality can differ. The CLI priced cache reads lower on <span data-res="idle.latest.dateLabel">10 Oct</span> than <span data-res="idle.earlier.dateLabel">9 Oct</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="finding" id="finish" data-finding="finish" aria-labelledby="h-finish">
+    <div class="wrap">
+      <p class="kicker">Builds</p>
+      <h2 class="claim" id="h-finish" data-fact="F402">A <span data-res="meta.planItems">30</span>-item build: relay finished <span class="hl c-relay" data-res="groups.relay.finished">5</span> of <span data-res="groups.relay.n">6</span> runs, auto-compaction <span class="hl c-auto" data-res="groups.autocompact.finished">5</span> of <span data-res="groups.autocompact.n">6</span>.</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="finish"></div></figure>
+      <p class="note" data-fact="F403">Stopped early: relay at item <span data-res="groups.relay.stoppedItems.0">10</span>, auto-compaction at item <span data-res="groups.autocompact.stoppedItems.0">20</span>.</p>
+    </div>
+  </section>
+
+  <section class="finding" id="race" data-finding="race">
+    <div class="wrap">
+      <figure class="race">
         <div id="race-fig">
           <div class="race-bar">
             <div id="race-pick" class="race-pick"></div>
@@ -40,51 +60,35 @@
           <input class="race-scrub" id="race-scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="Move through the run">
           <div class="race-chart" id="race-chart"></div>
         </div>
-        <p class="reading">One dot per run. Tick: median of finished runs. Hollow: did not finish.</p>
+        <p class="reading">Median finished run of each arm.</p>
       </figure>
-    </div>
-  </section>
-
-  <section class="finding" id="finish" data-finding="finish" aria-labelledby="h-finish">
-    <div class="wrap">
-      <p class="kicker">Finish</p>
-      <h2 class="claim" id="h-finish" data-fact="F401">Relay: <span class="hl c-relay" data-res="groups.relay.finished">3</span> of <span data-res="groups.relay.n">3</span> builds finished. Auto-compaction: <span class="hl c-auto" data-res="groups.autocompact.finished">2</span> of <span data-res="groups.autocompact.n">3</span>.</h2>
-      <figure class="fig"><div class="fig-chart" data-chart="finish"></div></figure>
-      <p class="note" data-fact="F402">One compaction run ended its turn after item <span data-res="runs.compact200.planTicked">20</span>, with <span data-res="runs.compact200.planOpen">10</span> items open. <span data-res="groups.autocompact.n">3</span> runs per arm is a small sample.</p>
     </div>
   </section>
 
   <section class="finding" id="tokens" data-finding="tokens" aria-labelledby="h-tokens">
     <div class="wrap">
       <p class="kicker">Tokens</p>
-      <h2 class="claim" id="h-tokens" data-fact="F403">One long session used about <span class="hl c-long" data-res="groups.relay.vsLong">1.4</span>x the tokens of either clearing method (n=<span data-res="groups.long.n">1</span>).</h2>
+      <h2 class="claim" id="h-tokens" data-fact="F404">A session that never compacts used <span class="hl c-long" data-res="groups.relay.vsLong">1.6</span>x the relay's tokens and <span class="hl c-long" data-res="groups.autocompact.vsLong">1.7</span>x auto-compaction's (n=<span data-res="groups.long.n">3</span> against n=<span data-res="groups.relay.finished">5</span>).</h2>
       <figure class="fig"><div class="fig-chart" data-chart="tokens"></div></figure>
+      <p class="note" data-fact="F405">Tokens include cache reads, billed at a tenth of the input price.</p>
     </div>
   </section>
 
   <section class="finding" id="cost" data-finding="cost" aria-labelledby="h-cost">
     <div class="wrap">
       <p class="kicker">Cost</p>
-      <h2 class="claim" id="h-cost" data-fact="F404">Median cost: US$<span class="hl c-relay" data-res="groups.relay.medianCostUsd" data-fixed="2">12.54</span> relay, US$<span class="hl c-auto" data-res="groups.autocompact.medianCostUsd" data-fixed="2">13.03</span> auto-compaction.</h2>
+      <h2 class="claim" id="h-cost" data-fact="F406">Mean cost of finished <span class="txt" data-res="cost.dateLabel">10 Oct</span> runs: US$<span class="hl c-relay" data-res="cost.sonnet.relay.meanCostUsd" data-fixed="2">9.53</span> relay (n=<span data-res="cost.sonnet.relay.finished">2</span>), US$<span class="hl c-auto" data-res="cost.sonnet.autocompact.meanCostUsd" data-fixed="2">9.02</span> auto-compaction (n=<span data-res="cost.sonnet.autocompact.finished">3</span>).</h2>
       <figure class="fig"><div class="fig-chart" data-chart="cost"></div></figure>
-      <p class="note" data-fact="F405">The gap is within run-to-run spread.</p>
+      <figure class="fig"><div class="fig-chart" data-chart="costOpus"></div></figure>
+      <p class="note" data-fact="F407">Cost is compared within one date because the price changed.</p>
     </div>
   </section>
 
-  <section class="finding" id="floor" data-finding="floor" aria-labelledby="h-floor">
+  <section class="finding" id="predict" data-finding="predict" aria-labelledby="h-predict">
     <div class="wrap">
-      <p class="kicker">Starting context</p>
-      <h2 class="claim" id="h-floor" data-fact="F406">Median tokens rose with the starting context: <span class="hl c-relay" data-res="floor.relay.medianTokensM">36.9</span>M at <span data-res="floor.relay.floorK">22.1</span>k, <span class="hl c-long" data-res="floor.trim.medianTokensM">48.5</span>M at <span data-res="floor.trim.floorK">45.9</span>k, <span class="hl c-long" data-res="floor.old.medianTokensM">52.7</span>M at <span data-res="floor.old.floorK">67.9</span>k.</h2>
-      <figure class="fig"><div class="fig-chart" data-chart="floor"></div></figure>
-    </div>
-  </section>
-
-  <section class="finding" id="idle" data-finding="idle" aria-labelledby="h-idle">
-    <div class="wrap">
-      <p class="kicker">Idle return</p>
-      <h2 class="claim" id="h-idle" data-fact="F407">Back in a <span data-res="idle.contextTokens" data-k="1">390</span>k session: US$<span class="hl c-long" data-res="idle.coldReturn.costUsd" data-fixed="2">1.56</span> cold, US$<span class="hl c-relay" data-res="idle.warmHandover.totalUsd" data-fixed="2">0.30</span> with a handover (n=<span data-res="idle.n">1</span>).</h2>
-      <figure class="fig"><div class="fig-chart" data-chart="idle"></div></figure>
-      <p class="note">A handover continues from a note and a cold return keeps the whole conversation, so this compares cost only.</p>
+      <h2 class="claim" id="h-predict" data-fact="F408">Predicted before the runs: <span class="hl c-relay" data-res="predictions.inside">5</span> of <span data-res="predictions.total">8</span> results inside the range, <span class="hl c-auto" data-res="predictions.outside">3</span> outside.</h2>
+      <figure class="fig"><div class="fig-chart" data-chart="predict"></div></figure>
+      <p class="note" data-fact="F409">Written at <span data-res="predictions.writtenTime">14:55</span> AWST on <span data-res="predictions.dateLabel">10 Oct</span>, before the first test.</p>
     </div>
   </section>
 
@@ -104,6 +108,7 @@
 
       <details class="runs">
         <summary>Every run</summary>
+        <p class="note" data-fact="F410">Idle test: cold return after <span data-res="idle.latest.idleMin">65</span> minutes idle; handover written at <span data-res="idle.latest.warmAtMin">55</span> minutes, then read by a fresh session. Sonnet 5.5. Compare cost within one date.</p>
         <div class="runs-scroll" id="runs-table"></div>
       </details>
 

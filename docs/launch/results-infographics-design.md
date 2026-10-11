@@ -106,6 +106,16 @@ Render: `node site/video/build.mjs`, then `npx hyperframes@0.8.144 render site/v
 site/media/results-video.mp4 --quality delivery`. The 1080x1080 cut is not built (follow-up in
 `docs/CLAUDE-TODO.md`).
 
+## Revision 2026-10-11 (n=6 data, branch fix/results-n6)
+
+The first cut claimed relay 3 of 3 against auto-compaction 2 of 3. With the 2026-10-10 runs that does not hold:
+Sonnet 5 of 6 each, Opus 4 of 4 and 3 of 3. The page now leads with the idle handover (cold US$1.56, handover
+US$0.15 on 10 Oct, n=3), shows long builds as a tie (every run a dot, both stopped runs hollow), compares cost
+only inside the 10 Oct batch (the CLI priced 10 Oct lower per token), and adds a predicted-against-measured
+strip for the 8 results of P1 to P4. The race opens on the median-token finished run of each arm. The
+starting-context finding left the page (its data stays in results.json). `show` is now
+`idle, finish, race, tokens, cost, predict`; page order is the order of the sections in index.html.
+
 ## Placeholders
 
 All five findings are real measurements today. More tests are planned: the PR body lists which slots are
