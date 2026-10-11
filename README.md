@@ -13,11 +13,15 @@
 
 https://github.com/user-attachments/assets/f9641132-034a-4747-ae0f-ac794faf03d6
 
-## 91.0M tokens, against about 565.6M in one long chat
+## Pause a long chat cheaply, and carry on from a note you can read
 
-That run took 15 sessions and sent Claude 91.0M tokens. The same work as one long chat, with no clears, comes to about 565.6M: up to 6.2× more. On the API, tokens cost money. On a Claude plan, they use up your limits.
+**Step away from a long chat and come back for less.** Claude Code's prompt cache lasts 60 minutes on a subscription. Return to a 390k-token session after that and the first message rewrites the whole context: US$1.56 in each of 3 runs. With the [idle handover](#pick-how-it-runs) on, Claude writes a handover while the cache is still warm, and a fresh session reads it: US$0.15 to US$0.17 in all (n=3). Both measured on Sonnet 5.5 on 10 Oct 2026. The fresh session continues from the note, and the saving exists only if you come back.
 
-<sub>The 91.0M is measured: the context of every reply in the run, added up. The 565.6M is an estimate: each session's tool calls stacked on the last, with no auto-compaction. It also counts the files Claude re-read after each clear, which one long chat would not need, so treat 6.2× as an upper bound.</sub>
+**A handover you can read and edit.** It is a plain text file in `~/.clear-resume`: the goal, the next action, where things stand, the decisions made and what already failed. Open it, change it, paste it into another chat, or load it on a second machine with [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional). Auto-compaction keeps its summary inside the chat. This follows from how each is built; it was not measured.
+
+**Switch models mid-task.** Moving a 390k-token Sonnet 5.5 session to Opus cost US$3.13, one full rewrite of the context on Opus. Writing a handover first and starting a fresh Opus session from it cost US$0.24, about 13x less. One run (n=1, 8 Oct 2026), measured with a scripted handover outside the plugin.
+
+**On long builds, it matches auto-compaction.** On a 30-item site build with Sonnet 5.5, the relay and Claude Code's own auto-compaction (at about 177k tokens) each finished 5 of 6 runs. Their finished runs used 37.4M and 35.3M tokens on average (n=5 each). A session that never compacts used, on average, 1.6x the relay's tokens (n=3 against n=5). Every run and chart: [the results page](https://m4cd4r4.github.io/clear-resume/).
 
 ## Install: two commands in your terminal
 
@@ -84,19 +88,13 @@ With the relay on, Claude saves a handover when the chat passes a size you choos
 
 The relay stops, and says why, when it uses up its clears for that Claude Code window, or when two continued sessions in a row make no new commit (outside a git repo, only the count applies). When the task is finished, Claude ends without a handover, so there is nothing to continue. It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.
 
-<p align="center">
-  <img src="docs/media/relay-run.png" width="100%" alt="The closing card of the replay above. Same work, about 6.2 times fewer tokens. 91.0M with the relay; 565.6M for one long session, an estimate. 30 of 30 items, 15 sessions, 14 automatic hops, 94 minutes. Estimate: each session's work stacked on the last, no auto-compaction. Re-reads after each clear are counted, so treat 6.2 times as an upper bound. Beside it, the site the run built.">
-</p>
-
-<p align="center"><sub>The run in the video above, 5 Oct 2026: from one prompt, 15 sessions and 14 automatic clears in 94 minutes.</sub></p>
-
 <details>
 <summary><b>Relay controls, and picking the nudge size</b></summary>
 <br>
 
 To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
 
-**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context. In one measurement (n=1, Sonnet 5.5, a 390k-token session, 60 minute cache), the first message after 65 minutes away cost US$1.56, and the same after 180 minutes, both writing about 390k tokens. A handover written at +55 minutes, while the cache was still warm, cost about US$0.31 in total (US$0.20 to write it plus US$0.11 for a fresh session to read it), about 5 times less. This is one run on one session, and the handover path continues from a note, not from the full conversation. The saving exists only if you come back. With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
+**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context. Measured on one 390k-token Sonnet 5.5 session with the 60 minute cache, on 10 Oct 2026: the first message back after the cache expired cost US$1.56 in each of 3 runs, writing about 390k tokens. A handover written while the cache was still warm, plus a fresh session reading it, cost US$0.15 to US$0.17 in total (n=3), about 9 to 10 times less. On 9 Oct the CLI priced cache reads higher, and the same pair cost US$0.30 against the same US$1.56 (n=1). The handover path continues from a note, not from the full conversation. The saving exists only if you come back. With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
 
 | Setting | Default | What it does |
 |---|---|---|

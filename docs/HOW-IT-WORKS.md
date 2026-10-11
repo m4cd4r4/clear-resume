@@ -219,11 +219,11 @@ with an API key and was not measured. Come back after it lapses and the first me
 full rewrite of the context. A handover written while the cache is still warm is read from the
 cache and costs less, but only if you do come back.
 
-Measured once (internal runs of 2026-10-09, n=1, Sonnet 5.5, one 390k-token session, 60 minute
-cache): the first message after 65 minutes away, and after 180 minutes, each wrote about 390k tokens
-and cost US$1.56. A handover written at +55 minutes cost US$0.20, and a fresh session reading it
-US$0.11, about US$0.31 in all, about 5 times less. One run on one session; the handover path
-continues from a note, not from the whole conversation.
+Measured on one 390k-token Sonnet 5.5 session, 60 minute cache, 10 Oct 2026: the first message
+back after the cache expired wrote about 390k tokens and cost US$1.56 (n=3). A handover written while
+the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 (n=3). On 9 Oct the CLI
+priced cache reads higher: US$1.56 cold (n=3) against US$0.30 for the handover pair (n=1). The
+handover path continues from a note, not from the whole conversation.
 
 With `idle_handover` set to `toast` or `auto`, the relay mod checks every 30 seconds. It acts when
 all of these hold:

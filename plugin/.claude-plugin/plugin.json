@@ -35,7 +35,7 @@
     "idle_handover": {
       "type": "string",
       "title": "Idle handover: act before the prompt cache expires",
-      "description": "When you have been away until the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it. Measured once (n=1, Sonnet 5.5, 60 minute cache): a handover written while warm was about 5x cheaper, and only if you come back. off (the default), toast (a status message that stays until your next turn) or auto (asks Claude for the handover, clears, and waits for you; it does not continue the work). auto needs cache_ttl_minutes of 10 or more, else it acts as toast; it acts as toast too while a tool call runs. Anything else is off. Needs Claude Code 2.1.275 or later.",
+      "description": "When you have been away until the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it. Measured on Sonnet 5.5 with a 390k-token session and the 60 minute cache (10 Oct 2026, n=3 each): US$1.56 cold, US$0.15 to US$0.17 with a handover written while warm, and only if you come back. off (the default), toast (a status message that stays until your next turn) or auto (asks Claude for the handover, clears, and waits for you; it does not continue the work). auto needs cache_ttl_minutes of 10 or more, else it acts as toast; it acts as toast too while a tool call runs. Anything else is off. Needs Claude Code 2.1.275 or later.",
       "default": "off"
     },
     "cache_ttl_minutes": {
