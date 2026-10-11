@@ -32,7 +32,7 @@
     var cmps = run.compactionEvents.filter(function (e) { return e.t <= tcur; }).length;
     var ctx = idx >= 0 ? s.ctx[idx] : 0;
     var ev = run.group === "relay" ? clears + " " + (clears === 1 ? "clear" : "clears") : cmps + " " + (cmps === 1 ? "compaction" : "compactions");
-    var title = C.armName(run.group) + ", run " + run.run;
+    var title = C.armName(run.group) + ", run " + run.run + ", " + C.dateLabel(run.batch);
     var readout = "items " + done + "/" + run.planTotal + "  " + C.kTok(ctx) + " tokens  " + ev;
     out += C.text(o.l, y0 + 13, title, "pt " + cls);
     if (o.narrow) out += C.text(o.l, y0 + 27, readout, "ro");

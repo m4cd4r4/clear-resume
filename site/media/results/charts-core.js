@@ -14,6 +14,11 @@
   C.span = function (p, a, b) { return C.clamp((p - a) / (b - a), 0, 1); };
   C.r1 = function (v) { return Math.round(v * 10) / 10; };
   C.kTok = function (n) { return Math.round(n / 1000) + "k"; };
+  /* an ISO date as day and month, the date batch a run belongs to */
+  C.dateLabel = function (iso) {
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return Number(iso.slice(8, 10)) + " " + months[Number(iso.slice(5, 7)) - 1];
+  };
   C.get = function (data, path) {
     return String(path).split(".").reduce(function (o, k) { return o == null ? o : o[k]; }, data);
   };
