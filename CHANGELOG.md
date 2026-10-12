@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The footer pie follows the focused Claude tab.** With several Claude sessions open in one
+  window, the pie showed the same session whichever tab had focus (measured 2026-10-12: 89k shown
+  while the focused session was at 211k). It now reads the focused tab's session, and the hover says
+  "this tab" or "this window". The tab is found by matching its label to the title Session Compass
+  records in `~/.claude/session-compass/`; without compass the pie behaves as before. The extension
+  also reads only the records in `~/.claude/sessions/` whose process is running, instead of every
+  file in the folder every 5 seconds (47,800 files on one machine).
 - **`--done-check <cmd>` for the headless runner** (opt-in). A segment that ends with no handover
   used to end the chain. With `--done-check`, the runner runs the command in the repo: exit 0 means
   done, anything else starts another segment with the original prompt, a note that the last segment
