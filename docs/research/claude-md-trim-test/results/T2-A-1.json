@@ -1,0 +1,155 @@
+{
+ "id": "T2-A-1",
+ "t": "T2",
+ "arm": "A",
+ "r": 1,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 22059,
+  "stop_reason": "end_turn",
+  "session_id": "0aad4f95-607b-4bdc-bd20-a68da077511b",
+  "total_cost_usd": 0.2428587,
+  "usage": {
+   "input_tokens": 6,
+   "cache_creation_input_tokens": 51012,
+   "cache_read_input_tokens": 186066,
+   "output_tokens": 2006,
+   "output_tokens_details": {
+    "thinking_tokens": 699
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 51012,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 154,
+     "cache_read_input_tokens": 79454,
+     "cache_creation_input_tokens": 1123,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1123
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 20,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001321,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 6,
+    "outputTokens": 2006,
+    "cacheReadInputTokens": 186066,
+    "cacheCreationInputTokens": 51012,
+    "webSearchRequests": 0,
+    "costUSD": 0.24272660000000001,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 699,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The AskUserQuestion tool isn't available in this session, so I can't render the radio buttons. It isn't in the tool list, and a ToolSearch for it found nothing. Since the plan is complete without it, this is a plain statement of what I need, not a decision for you to make. question-guard:allow\n\nTo start step 1, I need the page name and the exact hero wording you want. If you'd rather not write it, tell me the page and I'll draft 2-3 options for you to pick from.",
+  "ttft_ms": 11947,
+  "type": "result",
+  "duration_ms": 31006,
+  "uuid": "15313f3c-0fd0-4dc7-bb62-30fd46f5e93e",
+  "ttft_stream_ms": 6896,
+  "time_to_request_ms": 3074,
+  "time_to_request_phases_ms": {
+   "other": 48,
+   "system_prompt": 21,
+   "resume_other": 0,
+   "process_user_input": 3,
+   "input_attachments": 31,
+   "input_hooks": 2806,
+   "transcript_persist": 17,
+   "tool_pool_refresh": 7,
+   "init_message": 25,
+   "engine_pickup": 1,
+   "message_prep": 2,
+   "model_config_wait": 1,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 80,
+   "message_normalization": 8,
+   "client_creation": 5,
+   "request_build": 13
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 349,
+  "time_to_request_cpu_ms": 1344,
+  "time_to_request_major_faults": 10395,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 21,
+   "cpu_ms": 62,
+   "major_faults": 954
+  },
+  "first_content_frame_ms": 6897,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

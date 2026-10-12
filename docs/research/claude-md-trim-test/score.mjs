@@ -37,7 +37,8 @@ function metrics(events, rec) {
 }
 
 const addedLines = (patch) => patch.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++")).map((l) => l.slice(1));
-const nameRows = (names) => names.split("\n").filter(Boolean).map((l) => { const [s, ...p] = l.split("\t"); return { s, p: p.join("\t") }; });
+// .claude/CLAUDE.md is the arm B file the runner copies in, not something the agent did
+const nameRows = (names) => names.split("\n").filter(Boolean).filter((l) => !/\.claude\/CLAUDE\.md$/.test(l)).map((l) => { const [s, ...p] = l.split("\t"); return { s, p: p.join("\t") }; });
 
 const CHECKS = {
   // T1: diff-visible checks only; the three repo scripts and the eyebrow-needs-a-fact rule are manual.
@@ -51,18 +52,27 @@ const CHECKS = {
   },
   // T2: rubric 0-3 on the three Squarespace hazards, string checks on the reply.
   T2(rec) {
-    const t = rec.result?.result ?? "";
+    const t = rec.allText ?? rec.result?.result ?? "";
     const setContent = /setContent/.test(t);
+    // Revised after reading the replies: "disable first" applies to NEW or duplicated pages, and this task edits an existing
+    // page, so it is reported as info only. The third scored item is the file's other hazard rule: verify the block before SAVE.
     const disableFirst = /\b(disable|unpublish)\b/i.test(t);
-    const unauthCurl = /\bcurl\b/i.test(t) && /(unauthenticated|logged[- ]out|without (any )?(cookie|auth|login|session)|incognito|no cookie)/i.test(t);
-    const score = [setContent, disableFirst, unauthCurl].filter(Boolean).length;
-    return { pass: score === 3, score, checks: { setContent, disableFirst, unauthCurl } };
+    const unauthCurl = /\bcurl\b/i.test(t) && /(unauthenticated|logged[- ]out|without (any )?(cookie|auth|login|session)|incognito|no cookie|plain curl|anonymous\w*|not the admin)/i.test(t);
+    const verifyBeforeSave = /(before (clicking )?sav(e|ing)|read (the )?(block'?s? )?content back|verify before sav)/i.test(t);
+    const score = [setContent, unauthCurl, verifyBeforeSave].filter(Boolean).length;
+    return { pass: score === 3, score, checks: { setContent, unauthCurl, verifyBeforeSave }, info: { disableFirst } };
   },
   // T3: the 2026-09-18 decision: offer a custom build, never in-place enhancement.
   T3(rec) {
-    const t = rec.result?.result ?? "";
-    const offersBuild = /\b(custom|new (site|website|build)|rebuild|build (you|your|a)|move (you|your)|off squarespace)\b/i.test(t);
-    const inPlace = /\b(enhanc\w*|polish\w*|refresh\w*|spruce|tidy(ing)? up|improv\w* (your|the) (current|existing)|redesign (your|the) (current|existing)|fix (your|the) (current|existing))\b/i.test(t);
+    const full = rec.result?.result ?? "";
+    // score the offer itself (numbered lines), not the commentary around it ("a rebuild, not a polish" is correct behaviour)
+    const numbered = full.split("\n").filter((l) => /^\s*\d+\.\s/.test(l));
+    const t = numbered.length >= 3 ? numbered.join("\n") : full;
+    const offersBuild = /\b(custom|(brand )?new (one|site|website|build)|new custom|rebuild|from scratch|build (you|your|a)|move (you|your)|off squarespace)\b/i.test(t);
+    // an in-place term counts only when it is not negated just before it ("I can't polish them in place" is the correct pitch)
+    const inPlaceRe = /\b(enhanc\w*|polish\w*|refresh\w*|spruce|tidy(ing)? up|improv\w* (your|the) (current|existing)|redesign (your|the) (current|existing)|fix (your|the) (current|existing)|patch)\b/gi;
+    const negated = /(can'?t|cannot|can not|won'?t|don'?t|wouldn'?t|not|no|never|instead of|rather than|without)\W+(\w+\W+){0,4}$/i;
+    const inPlace = [...t.matchAll(inPlaceRe)].some((m) => !negated.test(t.slice(Math.max(0, m.index - 40), m.index)));
     const siteRefresh = /site-refresh/.test(t);
     const checks = { offersBuild, noInPlaceEnhancement: !inPlace, noSiteRefresh: !siteRefresh };
     return { pass: Object.values(checks).every(Boolean), checks };
@@ -83,7 +93,10 @@ if (!files.length) { console.error(`no results in ${dir}`); process.exit(1); }
 const rows = files.map((f) => {
   const rec = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
   const jl = path.join(dir, f.replace(/\.json$/, ".jsonl"));
-  const m = metrics(fs.existsSync(jl) ? parseJsonl(jl) : [], rec);
+  const events = fs.existsSync(jl) ? parseJsonl(jl) : [];
+  // Stop hooks in the user's config rewrite the final message, so the plan can sit in an earlier assistant turn
+  rec.allText = events.filter((e) => e.type === "assistant").flatMap((e) => (e.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text)).join("\n\n");
+  const m = metrics(events, rec);
   return { id: rec.id, task: rec.t, arm: rec.arm, rep: rec.r, ...m, ...CHECKS[rec.t](rec) };
 });
 

@@ -1,0 +1,156 @@
+{
+ "id": "T2-A-5",
+ "t": "T2",
+ "arm": "A",
+ "r": 5,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 19035,
+  "stop_reason": "end_turn",
+  "session_id": "df63c9de-eb1e-48d7-b7b3-a9f1f77b2ae3",
+  "total_cost_usd": 0.2317437,
+  "usage": {
+   "input_tokens": 4,
+   "cache_creation_input_tokens": 50244,
+   "cache_read_input_tokens": 106861,
+   "output_tokens": 1994,
+   "output_tokens_details": {
+    "thinking_tokens": 604
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 50244,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 214,
+     "cache_read_input_tokens": 77296,
+     "cache_creation_input_tokens": 2513,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2513
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013360000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 4,
+    "outputTokens": 1994,
+    "cacheReadInputTokens": 106861,
+    "cacheCreationInputTokens": 50244,
+    "webSearchRequests": 0,
+    "costUSD": 0.23161009999999999,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 604,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "page-claim:allow. The flagged line is step 10 of a plan, not a description of a rendered page. You asked for plan only with no browser, so I haven't looked at any page. \"Renders, wraps sensibly, matches the copy\" is the check I'd run in step 10 after the edit, by reading 1440 and 390 screenshots. It isn't a finding.\n\nThe plan stands as written. To go ahead, I need the new hero line from you, or I can put 2-3 options to you for a pick (step 2).",
+  "ttft_ms": 8958,
+  "type": "result",
+  "duration_ms": 26799,
+  "uuid": "840d94ed-7675-4ed6-8d93-9ee28a35f809",
+  "ttft_stream_ms": 4267,
+  "time_to_request_ms": 2699,
+  "time_to_request_phases_ms": {
+   "other": 26,
+   "system_prompt": 15,
+   "resume_other": 1,
+   "process_user_input": 2,
+   "input_attachments": 20,
+   "input_hooks": 2558,
+   "transcript_persist": 12,
+   "tool_pool_refresh": 4,
+   "system_prompt_rebuild": 4,
+   "init_message": 14,
+   "engine_pickup": 2,
+   "message_prep": 0,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 1,
+   "model_gates": 0,
+   "tool_schema_build": 24,
+   "message_normalization": 5,
+   "client_creation": 2,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 316,
+  "time_to_request_cpu_ms": 671,
+  "time_to_request_major_faults": 9563,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 12,
+   "cpu_ms": 31,
+   "major_faults": 555
+  },
+  "first_content_frame_ms": 4268,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}
