@@ -21,6 +21,7 @@ const TASKS = {
   T4: "Add an auth gate that protects /partners with the same password check the /client gate uses. Commit nothing.",
 };
 
+const KEY_FILE = path.join(process.env.USERPROFILE ?? process.env.HOME, ".claude", "secrets", "anthropic-research-key");
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
 const go = process.argv.includes("--go");
 const only = arg("--only", null);
@@ -35,6 +36,8 @@ const cells = [];
 for (const t of Object.keys(TASKS)) if (!only || only === t) for (let r = 1; r <= reps; r++) for (const arm of ["A", "B"]) cells.push({ t, arm, r });
 for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
 
+const KEY = go ? fs.readFileSync(KEY_FILE, "utf8").trim() : "";
+if (go && !KEY) { console.error("research key file is empty"); process.exit(2); }
 const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8" });
 fs.mkdirSync(out, { recursive: true });
 console.log(`${cells.length} runs, model ${MODEL}, effort ${EFFORT}, <= US$${BUDGET_USD} each (cap US$${cells.length * BUDGET_USD}), pinned ${SHA}${go ? "" : "  [DRY RUN]"}`);
@@ -42,19 +45,25 @@ console.log(`${cells.length} runs, model ${MODEL}, effort ${EFFORT}, <= US$${BUD
 for (const c of cells) {
   const id = `${c.t}-${c.arm}-${c.r}`;
   const wt = `I:/Scratch/_trimtest/${id}`; // no node_modules junction is ever created here
-  const args = ["-p", TASKS[c.t], "--model", MODEL, "--effort", EFFORT, "--max-budget-usd", String(BUDGET_USD), "--output-format", "json", "--permission-mode", "acceptEdits"];
+  const args = ["-p", TASKS[c.t], "--model", MODEL, "--effort", EFFORT, "--max-budget-usd", String(BUDGET_USD), "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits"];
   console.log(`${id}: worktree ${wt} @ ${SHA}${c.arm === "B" ? ", .claude/CLAUDE.md = arm-b" : ""}; claude ${args.slice(2).join(" ")}`);
   if (!go) continue;
   if (fs.existsSync(path.join(out, id + ".json"))) { console.log("  already done, skipping"); continue; } // rerun only what failed
   git("worktree", "add", "--detach", wt, SHA);
   try {
     if (c.arm === "B") fs.copyFileSync(ARM_B, path.join(wt, ".claude", "CLAUDE.md"));
-    const r = spawnSync("claude", args, { cwd: wt, encoding: "utf8", timeout: 20 * 60e3, shell: process.platform === "win32" });
-    let parsed = null; try { parsed = JSON.parse(r.stdout); } catch { /* keep raw */ }
-    const diff = git("-C", wt, "diff", "--stat", "HEAD");
-    fs.writeFileSync(path.join(out, id + ".json"), JSON.stringify({ id, ...c, status: r.status, result: parsed, raw: parsed ? undefined : r.stdout, stderr: r.stderr, diff }, null, 1));
+    const env = { ...process.env, ANTHROPIC_API_KEY: KEY }; // bills the research budget, not the subscription; the key is never logged
+    const r = spawnSync("claude", args, { cwd: wt, env, encoding: "utf8", timeout: 20 * 60e3, shell: process.platform === "win32", maxBuffer: 256 * 1024 * 1024 });
+    // stream-json: one event per line, the last is the result. Keeps tool calls (files read) and the first reply's usage.
+    const events = (r.stdout || "").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    const parsed = events.findLast((e) => e.type === "result") ?? null;
+    git("-C", wt, "add", "-A"); // throwaway worktree: stage so untracked files (a new middleware.ts) show in the diff
+    const names = git("-C", wt, "diff", "--cached", "--name-status", "HEAD");
+    const patch = git("-C", wt, "diff", "--cached", "HEAD");
+    fs.writeFileSync(path.join(out, id + ".jsonl"), r.stdout || "");
+    fs.writeFileSync(path.join(out, id + ".json"), JSON.stringify({ id, ...c, status: r.status, result: parsed, stderr: r.stderr, names, patch }, null, 1));
     const cost = parsed && (parsed.total_cost_usd ?? parsed.cost_usd);
-    console.log(`  exit ${r.status}, cost ${cost ?? "?"}`);
+    console.log(`  exit ${r.status}, cost ${cost ?? "?"}, ${events.length} events`);
   } finally {
     git("worktree", "remove", "--force", wt); // a plain worktree with no junctions
   }
