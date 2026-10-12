@@ -58,6 +58,22 @@ export interface WindowSessions {
 }
 
 export function liveSessions(records: LiveSession[], owned: (record: LiveSession) => boolean | null): WindowSessions;
+/** A Session Compass row (~/.claude/session-compass/<id>.json), the fields read here. */
+export interface CompassRow {
+  id: string;
+  title?: string;
+  updatedAt: number;
+  ended?: boolean;
+}
+
+export function rowForTab<R extends CompassRow>(rows: R[], label: string, nowMs: number): R | undefined;
+export function withFocus(sessions: Partial<WindowSessions>, focused: string | null | undefined): WindowSessions;
+export function pickSession(opts: {
+  focused: string | null | undefined;
+  chain?: string[];
+  mine?: string[];
+  newest?: string | null;
+}): { sessions: string[]; byTab: boolean };
 export function pickWindow(files: RelayFile[], roots: string[], sessions?: Partial<WindowSessions>): RelayFile | null;
 export function projectDirName(cwd: string): string;
 export function newUsage(): Usage;
@@ -73,6 +89,7 @@ export function hoverText(opts: {
   relay: Effective | null;
   totals: ChainTotals;
   links: { handover?: string; log?: string };
+  scope?: "tab" | "window";
 }): string;
 export function budget(raw: unknown): number;
 export function effective(file: RelayFile, set: RelaySet | null | undefined): Effective;
