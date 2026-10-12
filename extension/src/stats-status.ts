@@ -13,11 +13,15 @@ import {
   hoverText,
   liveSessions,
   newUsage,
+  pickSession,
   pickWindow,
   picks,
   pie,
   projectDirName,
   relayText,
+  rowForTab,
+  withFocus,
+  type CompassRow,
   type LiveSession,
   type RelayFile,
   type RelaySet,
@@ -65,6 +69,34 @@ function relayFiles(): RelayFile[] {
   }
 }
 
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM: the process exists but is not ours to signal.
+    return (e as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/**
+ * Session Compass (optional, a separate extension) records the title it gave each
+ * session's tab in <config dir>/session-compass/<session id>.json. Matching the
+ * active tab's label to a title tells which session has focus. Nothing here when
+ * compass is not installed.
+ */
+function compassRows(): CompassRow[] {
+  const dir = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "session-compass");
+  try {
+    return readdirSync(dir)
+      .filter((n) => n.endsWith(".json"))
+      .map((n) => readJson<CompassRow>(join(dir, n)))
+      .filter((r): r is CompassRow => !!r && typeof r.id === "string" && typeof r.title === "string" && r.title !== "");
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Claude Code's record of each running Claude process, ~/.claude/sessions/<pid>.json,
  * naming the session it holds now (it changes on /clear). Not a documented file:
@@ -74,8 +106,11 @@ function relayFiles(): RelayFile[] {
 function claudeProcesses(): LiveSession[] {
   const dir = join(homedir(), ".claude", "sessions");
   try {
+    // The folder is never cleaned up (47,800 files on one machine): read only the
+    // records whose process is still running, so a dead session is never named
+    // and the poll is not a read of every file ever written.
     return readdirSync(dir)
-      .filter((n) => /^\d+\.json$/.test(n))
+      .filter((n) => /^\d+\.json$/.test(n) && pidAlive(Number.parseInt(n, 10)))
       .map((n) => readJson<LiveSession>(join(dir, n)))
       .filter((r): r is LiveSession => !!r && Number.isInteger(r.pid) && typeof r.sessionId === "string");
   } catch {
@@ -173,7 +208,9 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
 
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
+  let focused: string | null = null;
   let busy = false;
+  let rerun = false;
   // Two windows on one folder each show their own session: a Claude process is
   // this window's when its parent is this extension host.
   const owned = ownedProcess(() => void update());
@@ -182,14 +219,29 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
   const setPath = (key: string) => join(relayDir(), `${key}.set.json`);
 
   const update = async () => {
-    if (busy) return;
+    if (busy) {
+      // A tab switch during a read: run again when it ends, not at the next poll.
+      rerun = true;
+      return;
+    }
     busy = true;
     try {
       const roots = folders();
-      const live = liveSessions(claudeProcesses(), (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`));
+      // The focused tab's session, when compass has named it; sticky while a file tab has focus.
+      const tab = rowForTab(compassRows(), vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? "", Date.now());
+      if (tab) focused = tab.id;
+      const live = withFocus(
+        liveSessions(claudeProcesses(), (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),
+        focused,
+      );
       window = roots.length ? pickWindow(relayFiles(), roots, live) : null;
-      const own = live.mine[0] ?? newestSession(roots[0] ?? "");
-      const sessions = window?.sessions.length ? window.sessions : [own].filter((s): s is string => !!s);
+      const pick = pickSession({
+        focused,
+        chain: window?.sessions ?? [],
+        mine: live.mine,
+        newest: live.mine.length ? null : newestSession(roots[0] ?? ""),
+      });
+      const sessions = pick.sessions;
       const usages: Usage[] = [];
       for (const id of sessions) {
         const u = await transcripts.usage(id, window?.cwd ?? roots[0]);
@@ -219,6 +271,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
               handover: "command:clearResume.openContextHandover",
               log: window ? "command:clearResume.relayLog" : undefined,
             },
+            scope: pick.byTab ? "tab" : "window",
           }),
         );
         md.isTrusted = { enabledCommands: ["clearResume.openContextHandover", "clearResume.relayLog"] };
@@ -250,7 +303,17 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
       handoverItem.hide();
     } finally {
       busy = false;
+      if (rerun) {
+        rerun = false;
+        void update();
+      }
     }
+  };
+
+  let debounce: NodeJS.Timeout | undefined;
+  const soon = () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => void update(), 150);
   };
 
   const pickRelay = async () => {
@@ -309,6 +372,10 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
       await vscode.window.showTextDocument(vscode.Uri.file(join(relayDir(), `${window.key}.json`)), { preview: true });
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => void update()),
+    // A focus move, or a retitled tab: one refresh per burst of events.
+    vscode.window.tabGroups.onDidChangeTabs(soon),
+    vscode.window.tabGroups.onDidChangeTabGroups(soon),
+    { dispose: () => clearTimeout(debounce) },
   );
 
   const timer = setInterval(() => void update(), POLL_MS);

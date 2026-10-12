@@ -25,6 +25,46 @@ export function liveSessions(records, owned) {
   return { mine, theirs };
 }
 
+// Session Compass (an optional extension) writes ~/.claude/session-compass/<id>.json
+// per session, with `title` the tab title it set. The logic below is copied from
+// its rows.ts so clear-resume works with compass absent; it is never imported.
+const COMPASS_GONE_MS = 24 * 60 * 60 * 1000;
+
+// The row whose recorded title is this tab's label; newest wins when two sessions
+// share a title. VS Code cuts a long tab label to about 24 characters plus "…",
+// so a cut label matches the title it starts.
+export function rowForTab(rows, label, nowMs) {
+  const l = String(label ?? "").trim();
+  const cutAt = l.endsWith("…") ? l.slice(0, -1).trimEnd() : undefined;
+  if (!l || cutAt === "") return undefined;
+  return rows
+    .filter((r) => r && typeof r.id === "string" && typeof r.updatedAt === "number" && !r.ended && nowMs - r.updatedAt < COMPASS_GONE_MS)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .find((r) => {
+      const t = typeof r.title === "string" ? r.title.trim() : "";
+      if (!t) return false;
+      return cutAt === undefined ? t === l : t === l || t.startsWith(cutAt);
+    });
+}
+
+// The focused tab's session is this window's, whatever the process lookup says:
+// first in `mine`, and not one of another window's.
+export function withFocus({ mine = [], theirs = [] }, focused) {
+  if (!focused) return { mine, theirs };
+  return { mine: [focused, ...mine.filter((id) => id !== focused)], theirs: theirs.filter((id) => id !== focused) };
+}
+
+// Which sessions the footer reads, last one shown. The focused tab's session when
+// there is one: with its relay chain when it is part of it, else alone. With no
+// focused tab: the window's relay chain, then this window's newest Claude process,
+// then the newest transcript in the folder.
+export function pickSession({ focused, chain = [], mine = [], newest = null }) {
+  if (focused) return { sessions: chain.includes(focused) ? chain : [focused], byTab: true };
+  if (chain.length) return { sessions: chain, byTab: false };
+  const own = mine[0] ?? newest;
+  return { sessions: own ? [own] : [], byTab: false };
+}
+
 // This window's relay. A state file holding one of this window's live sessions
 // wins, wherever its cwd is. Otherwise the newest file whose cwd is in one of the
 // workspace folders, leaving out any that holds another window's live session.
@@ -151,9 +191,9 @@ function relayLine(r) {
 }
 
 // The pie's hover card, as Markdown. `links` holds command URIs; one left out
-// is not shown.
-export function hoverText({ context, threshold, relay, totals, links }) {
-  const out = [`\`${pie(context, threshold).bar}\` ${k(context)} of ${k(threshold)} nudge`];
+// is not shown. `scope` ("tab" or "window") says whose number it is.
+export function hoverText({ context, threshold, relay, totals, links, scope }) {
+  const out = [`\`${pie(context, threshold).bar}\` ${k(context)} of ${k(threshold)} nudge${scope ? ` · this ${scope}` : ""}`];
   const r = relayLine(relay);
   if (r) out.push(r);
   out.push(

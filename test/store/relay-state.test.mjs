@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainTotals, effective, feedUsage, liveSessions, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
+import { chainTotals, effective, feedUsage, liveSessions, rowForTab, pickSession, withFocus, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
 
 const state = (over) => ({
   v: 1,
@@ -157,5 +157,81 @@ describe("hoverText", () => {
     expect(hoverText({ ...base, relay: { limit: 5, used: 0, pending: true } })).toContain("(takes effect after the next reply)");
     expect(hoverText({ ...base, relay: null })).not.toContain("Relay");
     expect(hoverText({ ...base, relay: null })).not.toContain("](");
+  });
+});
+
+describe("hoverText scope", () => {
+  it("says whether the number is this tab's or this window's, and says nothing when not told", () => {
+    const base = { context: 144_000, threshold: 180_000, relay: null, totals: { sessions: 1, replies: 1, tokens: 1, saved: 0 }, links: {} };
+    const head = (o) => hoverText(o).split("\n\n")[0];
+    expect(head({ ...base, scope: "tab" })).toBe("`▰▰▰▰▱` 144k of 180k nudge · this tab");
+    expect(head({ ...base, scope: "window" })).toBe("`▰▰▰▰▱` 144k of 180k nudge · this window");
+    expect(head(base)).toBe("`▰▰▰▰▱` 144k of 180k nudge");
+  });
+});
+
+describe("rowForTab", () => {
+  const NOW = 1_000_000_000;
+  const row = (id, title, over = {}) => ({ id, title, updatedAt: NOW - 1000, ...over });
+
+  it("matches the row whose title is the tab label", () => {
+    const rows = [row("a", "Footer follows tab"), row("b", "Pricing wave 3")];
+    expect(rowForTab(rows, "Pricing wave 3", NOW)?.id).toBe("b");
+  });
+
+  it("matches a label VS Code cut with an ellipsis to the title it starts", () => {
+    const rows = [row("a", "Footer follows focused tab (clear-resume)")];
+    expect(rowForTab(rows, "Footer follows focused…", NOW)?.id).toBe("a");
+  });
+
+  it("an uncut label must match the whole title, not just start it", () => {
+    expect(rowForTab([row("a", "Footer follows focused tab")], "Footer follows", NOW)).toBeUndefined();
+  });
+
+  it("returns nothing for an empty label, a lone ellipsis, an empty title or no match", () => {
+    const rows = [row("a", ""), row("b", "Pricing")];
+    expect(rowForTab(rows, "", NOW)).toBeUndefined();
+    expect(rowForTab(rows, "…", NOW)).toBeUndefined();
+    expect(rowForTab(rows, "Other", NOW)).toBeUndefined();
+  });
+
+  it("newest wins when two sessions share a title; ended and day-old rows are skipped", () => {
+    const rows = [
+      row("old", "Same", { updatedAt: NOW - 5000 }),
+      row("new", "Same", { updatedAt: NOW - 1000 }),
+      row("ended", "Gone", { ended: true }),
+      row("stale", "Old", { updatedAt: NOW - 25 * 3600 * 1000 }),
+    ];
+    expect(rowForTab(rows, "Same", NOW)?.id).toBe("new");
+    expect(rowForTab(rows, "Gone", NOW)).toBeUndefined();
+    expect(rowForTab(rows, "Old", NOW)).toBeUndefined();
+  });
+});
+
+describe("withFocus", () => {
+  it("puts the focused session first in this window's list and out of the other windows'", () => {
+    expect(withFocus({ mine: ["a"], theirs: ["f", "b"] }, "f")).toEqual({ mine: ["f", "a"], theirs: ["b"] });
+    expect(withFocus({ mine: ["a", "f"], theirs: [] }, "f")).toEqual({ mine: ["f", "a"], theirs: [] });
+  });
+
+  it("changes nothing without a focused session", () => {
+    expect(withFocus({ mine: ["a"], theirs: ["b"] }, null)).toEqual({ mine: ["a"], theirs: ["b"] });
+  });
+});
+
+describe("pickSession", () => {
+  it("focused session in the relay chain: the whole chain, with this tab", () => {
+    expect(pickSession({ focused: "s2", chain: ["s1", "s2"], mine: ["x"], newest: "n" })).toEqual({ sessions: ["s1", "s2"], byTab: true });
+  });
+
+  it("focused session outside the relay chain: that session alone", () => {
+    expect(pickSession({ focused: "z", chain: ["s1", "s2"], mine: ["x"], newest: "n" })).toEqual({ sessions: ["z"], byTab: true });
+  });
+
+  it("no focused session: the relay chain, then this window's newest process, then the newest transcript", () => {
+    expect(pickSession({ focused: null, chain: ["s1"], mine: ["x"], newest: "n" })).toEqual({ sessions: ["s1"], byTab: false });
+    expect(pickSession({ focused: null, chain: [], mine: ["x"], newest: "n" })).toEqual({ sessions: ["x"], byTab: false });
+    expect(pickSession({ focused: null, chain: [], mine: [], newest: "n" })).toEqual({ sessions: ["n"], byTab: false });
+    expect(pickSession({ focused: null, chain: [], mine: [], newest: null })).toEqual({ sessions: [], byTab: false });
   });
 });
