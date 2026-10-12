@@ -21,8 +21,8 @@ const TASKS = {
   T4: "Add an auth gate that protects /partners with the same password check the /client gate uses. Commit nothing.",
 };
 
-const KEY_FILE = path.join(process.env.USERPROFILE ?? process.env.HOME, ".claude", "secrets", "anthropic-research-key");
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
+const KEY_FILE = arg("--key-file", path.join(process.env.USERPROFILE ?? process.env.HOME, ".claude", "secrets", "anthropic-research-key"));
 const go = process.argv.includes("--go");
 const only = arg("--only", null);
 const reps = Number(arg("--reps", 5));
@@ -45,15 +45,16 @@ console.log(`${cells.length} runs, model ${MODEL}, effort ${EFFORT}, <= US$${BUD
 for (const c of cells) {
   const id = `${c.t}-${c.arm}-${c.r}`;
   const wt = `I:/Scratch/_trimtest/${id}`; // no node_modules junction is ever created here
-  const args = ["-p", TASKS[c.t], "--model", MODEL, "--effort", EFFORT, "--max-budget-usd", String(BUDGET_USD), "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits"];
-  console.log(`${id}: worktree ${wt} @ ${SHA}${c.arm === "B" ? ", .claude/CLAUDE.md = arm-b" : ""}; claude ${args.slice(2).join(" ")}`);
+  // The prompt goes on stdin: with shell:true on Windows an argv prompt is split at its spaces and the agent sees one word.
+  const args = ["-p", "--model", MODEL, "--effort", EFFORT, "--max-budget-usd", String(BUDGET_USD), "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits"];
+  console.log(`${id}: worktree ${wt} @ ${SHA}${c.arm === "B" ? ", .claude/CLAUDE.md = arm-b" : ""}; claude ${args.slice(1).join(" ")} <<< "${TASKS[c.t].slice(0, 40)}..."`);
   if (!go) continue;
   if (fs.existsSync(path.join(out, id + ".json"))) { console.log("  already done, skipping"); continue; } // rerun only what failed
   git("worktree", "add", "--detach", wt, SHA);
   try {
     if (c.arm === "B") fs.copyFileSync(ARM_B, path.join(wt, ".claude", "CLAUDE.md"));
     const env = { ...process.env, ANTHROPIC_API_KEY: KEY }; // bills the research budget, not the subscription; the key is never logged
-    const r = spawnSync("claude", args, { cwd: wt, env, encoding: "utf8", timeout: 20 * 60e3, shell: process.platform === "win32", maxBuffer: 256 * 1024 * 1024 });
+    const r = spawnSync("claude", args, { cwd: wt, env, input: TASKS[c.t], encoding: "utf8", timeout: 20 * 60e3, shell: process.platform === "win32", maxBuffer: 256 * 1024 * 1024 });
     // stream-json: one event per line, the last is the result. Keeps tool calls (files read) and the first reply's usage.
     const events = (r.stdout || "").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
     const parsed = events.findLast((e) => e.type === "result") ?? null;
