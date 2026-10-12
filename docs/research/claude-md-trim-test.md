@@ -27,6 +27,8 @@ Each 1k tokens loaded on every solaisoft reply is worth about US$17 a month (sol
 | Work-surface data files | 206-210 | Keep | Three lines |
 | /client portal: TailAdmin | 212-216 | Delete | History; `package.json` shows it |
 
+Approved by Macdara 2026-10-12: all four edit groups go into arm B (Squarespace move with pointer, service-line compression, shorter paraphrase and label tests, portal history deleted and word-budget commands moved). Anything not in the table stays as it is.
+
 ## Design
 
 - **Arms:** A is the current file. B is the trimmed file. Everything else is held constant: repo pinned to one commit in a throwaway worktree, same `MEMORY.md`, same global rules, model Sonnet 5.5 at medium effort (half the price of Opus 5.5; result may differ on Opus), `--max-turns` and `--max-budget-usd` on every run.
