@@ -1,6 +1,6 @@
 # Does trimming a project CLAUDE.md change the work? Test design
 
-Status: run 2026-10-12 to 2026-10-13 (AWST), 40 scored runs. Results are at the end of this file. The design and prediction below were written 2026-10-12 before any run and are unchanged.
+Status: run 2026-10-12 to 2026-10-13 (AWST), 100 scored runs (40 first batch, 40 Sonnet extension, 20 Opus). Results are at the end of this file; the extension and Opus results are in the last section. The design and prediction below were written 2026-10-12 before any run and are unchanged.
 
 ## Question
 
@@ -94,3 +94,36 @@ One model (Sonnet 5.5), one repo, four tasks, n=5. A small accuracy loss would n
 ### Reading
 
 Arm B holds every rule these tasks exercise and trims 2.7k tokens (about 3%) from every reply in the repo, while making Squarespace tasks about a third dearer. Adopting it is a judgement on how often Squarespace work happens against how many replies are not Squarespace work.
+
+## Extension and Opus (2026-10-13)
+
+Three follow-ups run the same day, same pinned commit `e0916392`, same arm B file, scored with the same `score.mjs`.
+
+- **Sonnet extension:** T2 and T3 reps 6 to 15 (`results-ext/`, 40 runs), so T2 and T3 are n=15 per arm.
+- **Opus 5.5:** T2 and T4, n=5 per arm (`results-opus/`, 20 runs), medium effort.
+- **T1 repo checks:** the repo's own `check:copy`, `check:structure`, `check:words` run on each T1 diff plus the unpatched baseline (`t1-repo-checks.jsonl`; `t1-repo-checks-b1-rerun.jsonl` is T1-B-1 rerun after its first build hit ENOSPC on a full drive, so that first row is invalid).
+
+| Cell | n per arm | A scorer | B scorer | A after reading | B after reading | A mean cost | B mean cost |
+|---|---|---|---|---|---|---|---|
+| T2 Sonnet | 15 | 15/15 | 12/15 | 15/15 | 15/15 | US$0.258 | US$0.333 |
+| T3 Sonnet | 15 | 13/15 | 12/15 | 15/15 | 15/15 | US$0.205 | US$0.189 |
+| T2 Opus | 5 | 3/5 | 5/5 | 5/5 | 5/5 | US$0.697 | US$0.856 |
+| T4 Opus | 5 | 5/5 | 5/5 | 5/5 | 5/5 | US$0.706 | US$0.580 |
+
+### The scorer misfired on 10 of 100 runs
+
+I read every run the scorer failed (10 of 100). All ten did the right thing, so the "after reading" columns are the ones to use. This correction was made after seeing the output; the 90 runs the scorer passed were not re-read for false passes.
+
+- **T3: A-10, A-11, B-1, B-9, B-14.** The user's Stop hooks rewrite the final message into hook text (`question-guard:allow`), and the scorer reads only the final message. Each offer sits in an earlier turn and says "build you a new site", "new custom site" or "from scratch". Scored on the whole run, T3 is 15/15 on both arms.
+- **T2 Sonnet arm B: B-4, B-6, B-8.** All three read the new text back in the editor before clicking SAVE (B-4 as a pre-save guard, B-6 and B-8 as a read-back step before the save step). The scorer looked for the phrase "before saving".
+- **T2 Opus arm A: A-4, A-5.** A-4 clicks SAVE only after three checks pass. A-5 baselines the live page with a plain curl and no admin cookies. Neither used the phrasing the scorer expects.
+
+Fix before reuse: score the whole run, not the final message, and widen the phrases.
+
+### T1 repo checks
+
+`check:copy` passes on the baseline and all 10 diffs. `check:structure` passes on the baseline and all 10. `check:words` passes on the baseline and fails on all 10 diffs with "NO BUDGET" for the new section: neither arm hand-added a budget to `scripts/word-budgets.json`, so it does not separate A from B. T1-B-1's first build hit ENOSPC and was rerun alone; the rerun matches the other nine. The 10 FAQ diffs were also read by hand: every figure and claim in both arms traces to `lib/pricing.ts` (including "up to 10 pages" and "stays fast on a phone"), no run adds an eyebrow, and the wording quality is the same across arms. Hardcoded "12-month minimum" and "30 days' notice" literals appear in both arms.
+
+### Updated reading
+
+No cell has a confirmed rule break on either arm, on either model. Cost stays level except Squarespace (T2), where arm B costs about 29% more on Sonnet (B reads the reference file in 12 of 15 runs, A in 5 of 15). With 0 failures in 15 runs the true failure rate could still be about 18% (95% bound); in the 5-run cells about 45%. Not tested: T1 and T3 on Opus, tasks outside these four, the global rules. Total scored spend US$36.60 at list price for the 100 runs.

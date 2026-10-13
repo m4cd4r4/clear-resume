@@ -1,6 +1,7 @@
 // Runs the CLAUDE.md trim test (docs/research/claude-md-trim-test.md): 4 tasks x 2 arms x 5 reps, headless.
 // Default is a DRY RUN that prints the plan and the exact commands. Real runs need BOTH `--go` and TRIMTEST_SPEND_ACK=yes.
-// Usage: node run.mjs [--go] [--only T3] [--reps 5] [--out <dir>]
+// Usage: node run.mjs [--go] [--only T2,T3] [--rep-from 1] [--reps 5] [--model <id>] [--out <dir>]
+// --reps is the last rep number, so `--rep-from 6 --reps 15` adds ten more reps to an existing n=5 run.
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -10,7 +11,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "I:/Scratch/solaisoft"; // read only: worktrees are made from a pinned commit, the working tree is never touched
 const SHA = "e0916392"; // solaisoft HEAD when the design was written
 const ARM_B = path.join(HERE, "arm-b.CLAUDE.md");
-const MODEL = "claude-sonnet-5-5";
+const arg0 = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
+const MODEL = arg0("--model", "claude-sonnet-5-5");
 const EFFORT = "medium";
 const BUDGET_USD = 2; // per run; 40 runs cap the whole test at US$80
 
@@ -34,7 +36,8 @@ if (go && process.env.TRIMTEST_SPEND_ACK !== "yes") { console.error("refusing to
 let s = 20261012;
 const rnd = () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296);
 const cells = [];
-for (const t of Object.keys(TASKS)) if (!only || only === t) for (let r = 1; r <= reps; r++) for (const arm of ["A", "B"]) cells.push({ t, arm, r });
+const repFrom = Number(arg("--rep-from", 1));
+for (const t of Object.keys(TASKS)) if (!only || only.split(",").includes(t)) for (let r = repFrom; r <= reps; r++) for (const arm of ["A", "B"]) cells.push({ t, arm, r });
 for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
 
 const KEY = go ? fs.readFileSync(KEY_FILE, "utf8").trim() : "";
@@ -67,6 +70,13 @@ for (const c of cells) {
     const cost = parsed && (parsed.total_cost_usd ?? parsed.cost_usd);
     console.log(`  exit ${r.status}, cost ${cost ?? "?"}, ${events.length} events`);
   } finally {
-    git("worktree", "remove", "--force", wt); // a plain worktree with no junctions
+    // a plain worktree with no junctions. Windows can hold the directory for a few seconds after the agent exits
+    // ("Permission denied"), so retry; a worktree left behind is reported and pruned later, never fatal to the batch.
+    for (let attempt = 1; ; attempt++) {
+      try { git("worktree", "remove", "--force", wt); break; } catch (e) {
+        if (attempt >= 6) { console.log(`  WARNING: could not remove ${wt}: ${String(e.stderr ?? e.message).trim()}`); break; }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
+      }
+    }
   }
 }

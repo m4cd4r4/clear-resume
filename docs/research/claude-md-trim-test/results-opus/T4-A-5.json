@@ -1,0 +1,155 @@
+{
+ "id": "T4-A-5",
+ "t": "T4",
+ "arm": "A",
+ "r": 5,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 31808,
+  "stop_reason": "end_turn",
+  "session_id": "4062bfcc-eb82-4174-bea7-d789c7acf488",
+  "total_cost_usd": 0.6841295,
+  "usage": {
+   "input_tokens": 18,
+   "cache_creation_input_tokens": 60403,
+   "cache_read_input_tokens": 715929,
+   "output_tokens": 2876,
+   "output_tokens_details": {
+    "thinking_tokens": 566
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 60403,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 331,
+     "cache_read_input_tokens": 89271,
+     "cache_creation_input_tokens": 895,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 895
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1197,
+    "outputTokens": 16,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001277,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-opus-5-5": {
+    "inputTokens": 18,
+    "outputTokens": 2876,
+    "cacheReadInputTokens": 715929,
+    "cacheCreationInputTokens": 60403,
+    "webSearchRequests": 0,
+    "costUSD": 0.6840017999999999,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 566,
+    "canonicalModel": "claude-opus-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The redirect point holds. I took it from the code, not from loading the page. page-claim:allow\n\n`app/api/client/login/route.ts:39` always sends a successful login to `/client/<slug>`. The login page only reads `c`, `e` and `sent` from the URL (`app/client/login/page.tsx:20`), so there's no way to pass \"return to /partners\". Someone bounced from /partners signs in and lands on their own workspace instead.\n\nI haven't run it in a browser. That's partly because no /partners page exists yet, so a signed-in visit would still show a 404.\n\nTo send people back to /partners after login, the login form and route would need a checked `next` parameter that only accepts paths on this site, so it can't be used to redirect people to another site. That's about 15 lines across the page and the route. I haven't made that change.",
+  "ttft_ms": 4648,
+  "type": "result",
+  "duration_ms": 135239,
+  "uuid": "17449ae6-dffd-494a-b377-5db574783b86",
+  "ttft_stream_ms": 4455,
+  "time_to_request_ms": 3605,
+  "time_to_request_phases_ms": {
+   "other": 49,
+   "system_prompt": 193,
+   "resume_other": 0,
+   "process_user_input": 4,
+   "input_attachments": 42,
+   "input_hooks": 3168,
+   "transcript_persist": 24,
+   "tool_pool_refresh": 8,
+   "init_message": 26,
+   "engine_pickup": 3,
+   "message_prep": 2,
+   "model_config_wait": 2,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 51,
+   "message_normalization": 8,
+   "client_creation": 8,
+   "request_build": 11
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 459,
+  "time_to_request_cpu_ms": 1109,
+  "time_to_request_major_faults": 8839,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 25,
+   "cpu_ms": 62,
+   "major_faults": 1732
+  },
+  "first_content_frame_ms": 4456,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tproxy.ts\n",
+ "patch": "diff --git a/proxy.ts b/proxy.ts\nindex 7921fccb..b98ecdab 100644\n--- a/proxy.ts\n+++ b/proxy.ts\n@@ -145,6 +145,12 @@ export async function proxy(req: NextRequest) {\n     p.startsWith(\"/internal/\") ||\n     rawLower === \"/internal\" ||\n     rawLower.startsWith(\"/internal/\");\n+  // /partners - gated by the same client session as /client (Gate 2c).\n+  const underPartners =\n+    p === \"/partners\" ||\n+    p.startsWith(\"/partners/\") ||\n+    rawLower === \"/partners\" ||\n+    rawLower.startsWith(\"/partners/\");\n   // The login pages and auth endpoints stay public (a viewer must be able to\n   // reach them without a session), and bypass the site-wide gate so sign-in\n   // works even while the rest of the site is in pre-launch lockdown.\n@@ -232,6 +238,14 @@ export async function proxy(req: NextRequest) {\n     }\n     return NextResponse.next();\n   }\n+  // --- Gate 2c: /partners. Any valid client session opens it - the same\n+  // password check as /client, with no per-workspace slug to match. ---\n+  if (underPartners) {\n+    const cookie = req.cookies.get(CLIENT_COOKIE)?.value;\n+    const session = cookie ? await verifyClientSessionEdge(cookie) : null;\n+    if (!session) return NextResponse.redirect(new URL(\"/client/login\", req.url));\n+    return NextResponse.next();\n+  }\n   // /api/client/* has no workspace in its own URL, so the active one is the\n   // portal page that issued the request: the same-origin Referer's\n   // /client/<slug>. Any client-sent copy of the header is dropped first, so the\n"
+}

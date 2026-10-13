@@ -1,0 +1,155 @@
+{
+ "id": "T2-A-1",
+ "t": "T2",
+ "arm": "A",
+ "r": 1,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 35615,
+  "stop_reason": "end_turn",
+  "session_id": "857371fd-0b3a-41a3-986e-f694b8972874",
+  "total_cost_usd": 0.6239233000000001,
+  "usage": {
+   "input_tokens": 8,
+   "cache_creation_input_tokens": 62514,
+   "cache_read_input_tokens": 282436,
+   "output_tokens": 3358,
+   "output_tokens_details": {
+    "thinking_tokens": 1287
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 62514,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 305,
+     "cache_read_input_tokens": 89081,
+     "cache_creation_input_tokens": 3196,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 3196
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 20,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001321,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-opus-5-5": {
+    "inputTokens": 8,
+    "outputTokens": 3358,
+    "cacheReadInputTokens": 282436,
+    "cacheCreationInputTokens": 62514,
+    "webSearchRequests": 0,
+    "costUSD": 0.6237912,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 1287,
+    "canonicalModel": "claude-opus-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I didn't open the ERF site, because you asked for a plan with no browser. The three sentences the guard flagged are instructions for later steps, except one. <!-- page-claim:allow -->\n\nThat one is \"the home hero has been a poster-style image and a video\". I based it on folder names in the repo (`hero-triptych/`, `home1-hero-video/`) and older notes in the Squarespace reference. I haven't seen the current page, so treat it as unconfirmed. It's also why step 2 starts with an anonymous `curl`: to find out whether the hero is a text block, an image or a video before anything is edited.\n\nThe rest of the plan is unchanged.",
+  "ttft_ms": 6145,
+  "type": "result",
+  "duration_ms": 46908,
+  "uuid": "0335df6a-531f-4cfc-bcbc-c7f1c165f1c9",
+  "ttft_stream_ms": 3822,
+  "time_to_request_ms": 2886,
+  "time_to_request_phases_ms": {
+   "other": 65,
+   "system_prompt": 20,
+   "resume_other": 0,
+   "process_user_input": 3,
+   "input_attachments": 28,
+   "input_hooks": 2572,
+   "transcript_persist": 17,
+   "tool_pool_refresh": 10,
+   "init_message": 30,
+   "engine_pickup": 4,
+   "message_prep": 2,
+   "model_config_wait": 1,
+   "autocompact": 23,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 85,
+   "message_normalization": 8,
+   "client_creation": 4,
+   "request_build": 12
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 209,
+  "time_to_request_cpu_ms": 922,
+  "time_to_request_major_faults": 7848,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 18,
+   "cpu_ms": 63,
+   "major_faults": 696
+  },
+  "first_content_frame_ms": 3823,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

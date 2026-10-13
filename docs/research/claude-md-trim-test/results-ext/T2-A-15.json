@@ -1,0 +1,155 @@
+{
+ "id": "T2-A-15",
+ "t": "T2",
+ "arm": "A",
+ "r": 15,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 25673,
+  "stop_reason": "end_turn",
+  "session_id": "567cf550-f67b-4ac1-89c9-a8a5c5ad10a4",
+  "total_cost_usd": 0.3481679,
+  "usage": {
+   "input_tokens": 10,
+   "cache_creation_input_tokens": 70863,
+   "cache_read_input_tokens": 379138,
+   "output_tokens": 2665,
+   "output_tokens_details": {
+    "thinking_tokens": 544
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 70863,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 239,
+     "cache_read_input_tokens": 99229,
+     "cache_creation_input_tokens": 1199,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1199
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 20,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001321,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 10,
+    "outputTokens": 2665,
+    "cacheReadInputTokens": 379138,
+    "cacheCreationInputTokens": 70863,
+    "webSearchRequests": 0,
+    "costUSD": 0.3480358,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 544,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The AskUserQuestion tool isn't available in this session, so I can't render the radio buttons. These are the two things I need from you:\n\n1. **Which ERF page?** Reply with the page name, for example the home page or a classes page.\n2. **The new hero line:**\n   - **Draft options for me to pick from (recommended).** This follows your no-copy-without-Macdara ruling.\n   - **You supply the exact line.** This is faster if you already have the wording.\n\nStop-hook note: page-claim:allow. The earlier \"page\" sentences were steps in the plan, not claims about a rendered page. You asked for plan only with no browser, so nothing has been loaded or screenshotted. The checks and screenshots I listed would run during execution.",
+  "ttft_ms": 7012,
+  "type": "result",
+  "duration_ms": 37819,
+  "uuid": "88f12acb-b750-4ef4-8f37-525608705fd0",
+  "ttft_stream_ms": 5576,
+  "time_to_request_ms": 4107,
+  "time_to_request_phases_ms": {
+   "other": 47,
+   "system_prompt": 44,
+   "resume_other": 1,
+   "process_user_input": 4,
+   "input_attachments": 60,
+   "input_hooks": 3807,
+   "transcript_persist": 14,
+   "tool_pool_refresh": 8,
+   "init_message": 31,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 2,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 51,
+   "message_normalization": 8,
+   "client_creation": 7,
+   "request_build": 14
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 489,
+  "time_to_request_cpu_ms": 969,
+  "time_to_request_major_faults": 7265,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 33,
+   "cpu_ms": 109,
+   "major_faults": 1212
+  },
+  "first_content_frame_ms": 5577,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}
