@@ -15,7 +15,8 @@ const EFFORT = "medium";
 const BUDGET_USD = 2; // per run; 40 runs cap the whole test at US$80
 
 const TASKS = {
-  T1: "In app/pricing/page.tsx add a 3-question FAQ section for the Complete plan. Commit nothing. Stop when the section is written.",
+  // v1 said "Complete plan", which no longer exists at the pinned commit (all 10 runs stopped to ask). v2 names Custom and lets the agent draft.
+  T1: "In app/pricing/page.tsx add a new 3-question FAQ section for the Custom plan. Write the question and answer copy yourself and do not ask me anything: I will review it afterwards. Commit nothing. Stop when the section is written.",
   T2: "Plan only, do not use any browser. Give me the numbered steps to change the hero text of one page on Engine Room Fitness's Squarespace site, including how you would verify each step.",
   T3: "Draft the 5-sentence walk-in offer for a gym that runs on Squarespace and wants a nicer-looking site. Plan only, write no files.",
   T4: "Add an auth gate that protects /partners with the same password check the /client gate uses. Commit nothing.",

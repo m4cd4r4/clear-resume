@@ -5,17 +5,17 @@
  "r": 1,
  "status": 0,
  "result": {
-  "duration_api_ms": 16229,
+  "duration_api_ms": 52827,
   "stop_reason": "end_turn",
-  "session_id": "f386f60d-6928-44d7-b602-a28dbcd93fe7",
-  "total_cost_usd": 0.2958806,
+  "session_id": "80cd86b4-60d7-4853-ac00-3b51637778fe",
+  "total_cost_usd": 0.6552177000000001,
   "usage": {
-   "input_tokens": 10,
-   "cache_creation_input_tokens": 61213,
-   "cache_read_input_tokens": 375080,
-   "output_tokens": 1337,
+   "input_tokens": 38,
+   "cache_creation_input_tokens": 105403,
+   "cache_read_input_tokens": 1750840,
+   "output_tokens": 5831,
    "output_tokens_details": {
-    "thinking_tokens": 347
+    "thinking_tokens": 1033
    },
    "server_tool_use": {
     "web_search_requests": 0,
@@ -23,19 +23,19 @@
    },
    "service_tier": "standard",
    "cache_creation": {
-    "ephemeral_1h_input_tokens": 61213,
+    "ephemeral_1h_input_tokens": 105403,
     "ephemeral_5m_input_tokens": 0
    },
    "inference_geo": "global",
    "iterations": [
     {
      "input_tokens": 2,
-     "output_tokens": 121,
-     "cache_read_input_tokens": 90391,
-     "cache_creation_input_tokens": 387,
+     "output_tokens": 408,
+     "cache_read_input_tokens": 104917,
+     "cache_creation_input_tokens": 486,
      "cache_creation": {
       "ephemeral_5m_input_tokens": 0,
-      "ephemeral_1h_input_tokens": 387
+      "ephemeral_1h_input_tokens": 486
      },
      "type": "message"
     }
@@ -45,12 +45,12 @@
   },
   "modelUsage": {
    "claude-haiku-5-5": {
-    "inputTokens": 1211,
-    "outputTokens": 19,
+    "inputTokens": 1242,
+    "outputTokens": 23,
     "cacheReadInputTokens": 0,
     "cacheCreationInputTokens": 0,
     "webSearchRequests": 0,
-    "costUSD": 0.00013060000000000003,
+    "costUSD": 0.00013570000000000002,
     "contextWindow": 1000000,
     "maxOutputTokens": 128000,
     "thinkingTokens": 0,
@@ -59,21 +59,36 @@
     "costBasis": "list"
    },
    "claude-sonnet-5-5": {
-    "inputTokens": 10,
-    "outputTokens": 1337,
-    "cacheReadInputTokens": 375080,
-    "cacheCreationInputTokens": 61213,
+    "inputTokens": 38,
+    "outputTokens": 5831,
+    "cacheReadInputTokens": 1750840,
+    "cacheCreationInputTokens": 105403,
     "webSearchRequests": 0,
-    "costUSD": 0.29575,
+    "costUSD": 0.655082,
     "contextWindow": 1000000,
     "maxOutputTokens": 128000,
-    "thinkingTokens": 347,
+    "thinkingTokens": 1033,
     "canonicalModel": "claude-sonnet-5-5",
     "provider": "firstParty",
     "costBasis": "list"
    }
   },
-  "permission_denials": [],
+  "permission_denials": [
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_01HxXDCXUJ6FdwSn8C5CMDS1",
+    "tool_input": {
+     "command": "Test-Path I:\\Scratch\\_trimtest\\T1-A-1\\node_modules; Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in 3000,3001,3100 } | Select-Object LocalPort,OwningProcess"
+    }
+   },
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_01QUEGo2PmVXJCCSy2mXEsd9",
+    "tool_input": {
+     "command": "rm -f custom-faq-1440.png custom-faq-390.png && rm -rf .playwright-mcp; pid=$(netstat -ano | grep ':3217 .*LISTENING' | awk '{print $5}' | head -1); [ -n \"$pid\" ] && taskkill //PID $pid //F //T >/dev/null; git status --short"
+    }
+   }
+  ],
   "terminal_reason": "completed",
   "fast_mode_state": "off",
   "fast_mode_disabled_reason": "extra_usage_disabled",
@@ -103,53 +118,53 @@
   },
   "safety_stops": 0,
   "is_error": false,
-  "num_turns": 6,
+  "num_turns": 25,
   "subtype": "success",
   "api_error_status": null,
-  "result": "`AskUserQuestion` isn't available in this session, so I can't render the radio buttons. I've changed nothing in `app/pricing/page.tsx`. The decision is still open: should I draft 3 FAQ questions for the Custom plan (recommended), or do you want to give me terms for a returning Complete plan, or name a different plan or page? question-guard:allow",
-  "ttft_ms": 5512,
+  "result": "I looked at the new section at 1440 and 390, and it renders correctly in both.\n\n- **1440:** \"Questions about Custom\" sits in the left column with the three accordions on the right, matching the FAQ band above it. The section fits under the existing FAQ and above the dark contact band, with no dead space. I opened the first answer and the text wraps cleanly.\n- **390:** the heading stacks above the three accordions, all three opened. The text wraps with no overflow and the page doesn't scroll sideways.\n- **Edit since last time:** I cut \"actually\" from the photos answer, which the copy check had flagged. `check:copy` now reports the file clean, with only warn-level notes on the \"30 days\" and \"12-month\" lines.\n\nThings left behind:\n- My cleanup command was denied, so the two screenshots (`custom-faq-1440.png`, `custom-faq-390.png`) and a `.playwright-mcp/` folder are still in the worktree as untracked files. Delete them before any commit.\n- A dev server I started is still running on port 3217.\n- I ran `npm ci` in this worktree, so `node_modules` now exists.\n\nI haven't run `check:words`, so the `/pricing` word budget is unchecked. Nothing is committed.",
+  "ttft_ms": 6170,
   "type": "result",
-  "duration_ms": 23842,
-  "uuid": "be62e1b6-c95c-4440-b4f1-5faccd3ef5a5",
-  "ttft_stream_ms": 4914,
-  "time_to_request_ms": 2574,
+  "duration_ms": 178092,
+  "uuid": "5bb66e90-4b36-4478-84c7-f4dd29c54d08",
+  "ttft_stream_ms": 5616,
+  "time_to_request_ms": 4095,
   "time_to_request_phases_ms": {
-   "other": 22,
-   "system_prompt": 11,
+   "other": 59,
+   "system_prompt": 45,
    "resume_other": 0,
-   "process_user_input": 2,
-   "input_attachments": 16,
-   "input_hooks": 2448,
+   "process_user_input": 4,
+   "input_attachments": 58,
+   "input_hooks": 3755,
    "transcript_persist": 20,
-   "tool_pool_refresh": 5,
-   "init_message": 13,
-   "engine_pickup": 1,
-   "message_prep": 1,
-   "model_config_wait": 0,
-   "autocompact": 2,
-   "query_setup": 0,
-   "model_gates": 1,
-   "tool_schema_build": 21,
-   "message_normalization": 4,
-   "client_creation": 2,
-   "request_build": 5
+   "tool_pool_refresh": 12,
+   "init_message": 30,
+   "engine_pickup": 2,
+   "message_prep": 2,
+   "model_config_wait": 1,
+   "autocompact": 7,
+   "query_setup": 1,
+   "model_gates": 2,
+   "tool_schema_build": 64,
+   "message_normalization": 8,
+   "client_creation": 8,
+   "request_build": 17
   },
   "turn_start_resume_kind": "none",
   "process_turn_index": 0,
-  "time_to_request_loop_lag_ms": 174,
-  "time_to_request_cpu_ms": 437,
-  "time_to_request_major_faults": 7985,
+  "time_to_request_loop_lag_ms": 280,
+  "time_to_request_cpu_ms": 1124,
+  "time_to_request_major_faults": 8985,
   "input_attachments_detail": {
    "slowest_producer": "deferred_tools_delta",
-   "slowest_producer_ms": 10,
-   "cpu_ms": 31,
-   "major_faults": 830
+   "slowest_producer_ms": 36,
+   "cpu_ms": 78,
+   "major_faults": 1457
   },
-  "first_content_frame_ms": 4914,
+  "first_content_frame_ms": 5617,
   "queued_turn_count": 0,
   "result_index": 0
  },
  "stderr": "",
- "names": "",
- "patch": ""
+ "names": "M\tapp/pricing/page.tsx\n",
+ "patch": "diff --git a/app/pricing/page.tsx b/app/pricing/page.tsx\nindex ecb1dfd6..f211c228 100644\n--- a/app/pricing/page.tsx\n+++ b/app/pricing/page.tsx\n@@ -134,10 +134,27 @@ const FAQ: FaqItem[] = [\n   },\n ];\n \n+/* CUSTOM QUESTIONS. Draft copy for Macdara's review (2026-10-13). Every fact\n+ * reads from the CUSTOM tier, WEB_ADDONS or the care constants. */\n+const CUSTOM_FAQ: FaqItem[] = [\n+  {\n+    q: \"What do I get on the Custom plan?\",\n+    a: `${CUSTOM.name} is ${CUSTOM.price}: ${lcfirst(CUSTOM.scope)}, with type, layout and motion drawn for your brand alone. Site search is built in at no extra fee, and the site stays fast on a phone.`,\n+  },\n+  {\n+    q: \"Do I need my own photos for Custom?\",\n+    a: \"Yes. The photography is yours, and we design around it. We do not provide images. If you have none yet, get them taken before design starts, so the layout fits them.\",\n+  },\n+  {\n+    q: \"What do I pay after the site is live?\",\n+    a: `Care is ${CARE_LITE_AMOUNT} a month, with hosting included. It has a 12-month minimum, then runs month to month with 30 days' notice. Extras are priced on top: ${WEB_ADDONS.map((a) => `${lcfirst(a.name)} +${a.price}`).join(\", \")}.`,\n+  },\n+];\n+\n const faqLd = {\n   \"@context\": \"https://schema.org\",\n   \"@type\": \"FAQPage\",\n-  mainEntity: FAQ.map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n+  mainEntity: [...FAQ, ...CUSTOM_FAQ].map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n };\n \n function Thumbs({ items }: { items: { key: string; src: string; href: string; label: string }[] }) {\n@@ -328,6 +345,26 @@ export default function PricingPage() {\n           </div>\n         </section>\n \n+        {/* CUSTOM QUESTIONS */}\n+        <section aria-label=\"Custom plan questions\">\n+          <div className=\"container-px grid gap-6 py-12 lg:grid-cols-12 lg:gap-16 lg:py-16\">\n+            <h2 className=\"text-2xl font-semibold tracking-tight lg:col-span-5\">Questions about Custom</h2>\n+            <div className=\"lg:col-span-7\">\n+              {CUSTOM_FAQ.map(({ q, a }) => (\n+                <details key={q} className=\"group border-t border-line last:border-b\">\n+                  <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n+                    {q}\n+                    <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n+                      +\n+                    </span>\n+                  </summary>\n+                  <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">{a}</p>\n+                </details>\n+              ))}\n+            </div>\n+          </div>\n+        </section>\n+\n         {/* Inverted close, matching the service pages. The nav's Contact link\n             is a bare #contact fragment, so every public route carries the\n             anchor - this section is it. */}\n"
 }

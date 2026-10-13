@@ -1,0 +1,156 @@
+{
+ "id": "T1-A-2",
+ "t": "T1",
+ "arm": "A",
+ "r": 2,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 15952,
+  "stop_reason": "end_turn",
+  "session_id": "950d9baf-8b80-420d-930c-fa2d48aa2ed5",
+  "total_cost_usd": 0.3018191,
+  "usage": {
+   "input_tokens": 10,
+   "cache_creation_input_tokens": 62506,
+   "cache_read_input_tokens": 377745,
+   "output_tokens": 1387,
+   "output_tokens_details": {
+    "thinking_tokens": 529
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 62506,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 119,
+     "cache_read_input_tokens": 91684,
+     "cache_creation_input_tokens": 387,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 387
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1211,
+    "outputTokens": 19,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013060000000000003,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 10,
+    "outputTokens": 1387,
+    "cacheReadInputTokens": 377745,
+    "cacheCreationInputTokens": 62506,
+    "webSearchRequests": 0,
+    "costUSD": 0.30168849999999997,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 529,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The AskUserQuestion tool isn't available in this session, so I'm asking in text. Reply with 1 or 2:\n\n1. **Custom (recommended):** write the FAQ for Custom, since Complete was retired on 2026-09-22.\n2. **Complete:** write a draft FAQ for the retired tier, with no live prices.\n\nquestion-guard:allow",
+  "ttft_ms": 4759,
+  "type": "result",
+  "duration_ms": 21135,
+  "uuid": "c644ed49-6f26-4310-bc70-3f864a93dbd2",
+  "ttft_stream_ms": 4051,
+  "time_to_request_ms": 2653,
+  "time_to_request_phases_ms": {
+   "other": 36,
+   "system_prompt": 21,
+   "resume_other": 1,
+   "process_user_input": 2,
+   "input_attachments": 22,
+   "input_hooks": 2471,
+   "transcript_persist": 10,
+   "tool_pool_refresh": 5,
+   "system_prompt_rebuild": 4,
+   "init_message": 22,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 4,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 37,
+   "message_normalization": 4,
+   "client_creation": 3,
+   "request_build": 7
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 171,
+  "time_to_request_cpu_ms": 702,
+  "time_to_request_major_faults": 9503,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 13,
+   "cpu_ms": 62,
+   "major_faults": 933
+  },
+  "first_content_frame_ms": 4051,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}
