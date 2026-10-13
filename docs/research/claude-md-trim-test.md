@@ -1,6 +1,6 @@
 # Does trimming a project CLAUDE.md change the work? Test design
 
-Status: design only, nothing run. Written 2026-10-12 (AWST), before any run, so the prediction below cannot be fitted afterwards.
+Status: run 2026-10-12 to 2026-10-13 (AWST), 40 scored runs. Results are at the end of this file. The design and prediction below were written 2026-10-12 before any run and are unchanged.
 
 ## Question
 
@@ -63,3 +63,34 @@ Approved by Macdara 2026-10-12: all four edit groups go into arm B (Squarespace 
 ## Cost
 
 About 40 runs at roughly US$0.3 to US$1.5 each on Sonnet 5.5, so US$12 to US$60 plus judging. No spend until approved. The research key stays a path only.
+
+## Results (2026-10-13)
+
+Sonnet 5.5, medium effort, n=5 per arm per task, repo pinned at `e0916392`, runs and scoring in `claude-md-trim-test/` (`run.mjs`, `score.mjs`, `results/`). Cost is the CLI's own total at list price, billed to a throwaway research key.
+
+| Task | A (current) pass | B (trimmed) pass | A mean cost | B mean cost | A reads | B reads |
+|---|---|---|---|---|---|---|
+| T1 pricing FAQ for Custom | 5/5 | 5/5 | US$0.489 | US$0.382 | 6.0 | 4.0 |
+| T2 Squarespace plan | 5/5 | 4/5 | US$0.277 | US$0.367 | 1.2 | 2.2 |
+| T3 walk-in offer | 5/5 | 4/5 | US$0.202 | US$0.198 | 0.0 | 0.0 |
+| T4 auth gate for /partners | 5/5 | 5/5 | US$0.318 | US$0.338 | 5.2 | 5.2 |
+
+- **First reply is 2.7k tokens smaller on arm B** (74.1k to 74.7k against 76.6k to 77.4k), against a predicted 2.5k to 2.8k. `claude -p` loads the project CLAUDE.md, so the comparison is valid.
+- **No rule that arm B kept was broken more often than in arm A.** The two arm B misses are T2-B-4 (verify-before-save expressed as a payload diff, which the string check did not count) and T3-B-1 (a hook-driven clarifying question instead of a draft, not a rule violation). At n=5 this rules out large drops only.
+- **Cost is not lower on arm B.** Differences are inside run-to-run noise except T2, where B reads `SQUARESPACE-REFERENCE.md` in 5 of 5 runs against 1 of 5 for A (A carries the hazards inline), costing about US$0.09 more per run. The saving is the 2.7k tokens on every reply that does not touch Squarespace.
+- **T1 (Custom plan):** no eyebrow added in any run in either arm. Nine of ten added an H2 "Questions about Custom" style heading, equally across arms. The repo checks `check:copy`, `check:structure`, `check:words` were NOT run (the worktrees have no typescript, playwright or server), so the paraphrase and label rules are only screened by reading the diffs and a banned-character check.
+- **T2 rubric was changed after reading the replies:** "disable the page first" applies to new or duplicated pages, and the task edits an existing page, so it is reported as info and "verify the block before SAVE" took its place. The T2 and T3 checks are string matches, and the T3 offer lines were also read by hand.
+
+### Invalid runs and spend
+
+- Two attempts were invalid and discarded: a first pair of runs where the prompt reached the agent as one word (Windows `shell: true` split it; the runner now passes the prompt on stdin), and a first T1 whose prompt named the Complete plan, which no longer exists at the pinned commit (kept in `results/_invalid-t1-complete/`). In that invalid T1 all 10 runs stopped to ask and edited nothing, which also shows the ask-before-writing-display-copy rule held in both arms.
+- Total spend about US$16.4 including the invalid runs (about US$4.1 of it).
+- The user's global hooks load in headless runs and add the same noise to both arms.
+
+### Limits
+
+One model (Sonnet 5.5), one repo, four tasks, n=5. A small accuracy loss would not show. Not tested: Opus, global rules, any task outside these four, the repo's own T1 checks.
+
+### Reading
+
+Arm B holds every rule these tasks exercise and trims 2.7k tokens (about 3%) from every reply in the repo, while making Squarespace tasks about a third dearer. Adopting it is a judgement on how often Squarespace work happens against how many replies are not Squarespace work.
