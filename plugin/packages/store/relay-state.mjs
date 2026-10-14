@@ -37,10 +37,15 @@ export function rowForTab(rows, label, nowMs) {
   const l = String(label ?? "").trim();
   const cutAt = l.endsWith("…") ? l.slice(0, -1).trimEnd() : undefined;
   if (!l || cutAt === "") return undefined;
-  return rows
+  const live = rows
     .filter((r) => r && typeof r.id === "string" && typeof r.updatedAt === "number" && !r.ended && nowMs - r.updatedAt < COMPASS_GONE_MS)
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .find((r) => {
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+  // Compass leads a tab title with [first six chars of the session id]; the rest
+  // of the title drifts mid-turn, the tag does not.
+  const tag = /^\[([0-9a-f]{6})\]/i.exec(l)?.[1].toLowerCase();
+  const byTag = tag ? live.find((r) => r.id.toLowerCase().startsWith(tag)) : undefined;
+  if (byTag) return byTag;
+  return live.find((r) => {
       const t = typeof r.title === "string" ? r.title.trim() : "";
       if (!t) return false;
       return cutAt === undefined ? t === l : t === l || t.startsWith(cutAt);
