@@ -188,6 +188,17 @@ describe("rowForTab", () => {
     expect(rowForTab([row("a", "Footer follows focused tab")], "Footer follows", NOW)).toBeUndefined();
   });
 
+  it("a leading [xxxxxx] tag picks the row whose id starts with it, even when the rest of the title drifted", () => {
+    const rows = [row("7b19a4ff-0000", "[7b19a4] 1/6 Session ID tag"), row("c0ffee11-0000", "[c0ffee] Other")];
+    expect(rowForTab(rows, "[7b19a4] 0/6 Session ID tag", NOW)?.id).toBe("7b19a4ff-0000");
+  });
+
+  it("a tag with no live row falls back to the exact title; an unknown tag with a different title matches nothing", () => {
+    const rows = [row("a", "[zzzzzz] Plan"), row("7b19a4ff", "[7b19a4] x", { ended: true })];
+    expect(rowForTab(rows, "[zzzzzz] Plan", NOW)?.id).toBe("a");
+    expect(rowForTab(rows, "[7b19a4] x", NOW)).toBeUndefined();
+  });
+
   it("returns nothing for an empty label, a lone ellipsis, an empty title or no match", () => {
     const rows = [row("a", ""), row("b", "Pricing")];
     expect(rowForTab(rows, "", NOW)).toBeUndefined();
