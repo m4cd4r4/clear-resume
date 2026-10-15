@@ -1,0 +1,156 @@
+{
+ "id": "T2-A-3",
+ "t": "T2",
+ "arm": "A",
+ "r": 3,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 34585,
+  "stop_reason": "end_turn",
+  "session_id": "94dff9ee-ba40-4fa1-a402-00927d515e55",
+  "total_cost_usd": 0.4250166,
+  "usage": {
+   "input_tokens": 10,
+   "cache_creation_input_tokens": 86543,
+   "cache_read_input_tokens": 445325,
+   "output_tokens": 3416,
+   "output_tokens_details": {
+    "thinking_tokens": 724
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 86543,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 270,
+     "cache_read_input_tokens": 115579,
+     "cache_creation_input_tokens": 529,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 529
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 20,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001321,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 10,
+    "outputTokens": 3416,
+    "cacheReadInputTokens": 445325,
+    "cacheCreationInputTokens": 86543,
+    "webSearchRequests": 0,
+    "costUSD": 0.4248845,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 724,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "`AskUserQuestion` isn't available in this session, so I can't render the radio buttons. The question is below in plain text, with a recommendation, and the guard token is on this line: question-guard:allow\n\n**Which page, and where does the wording come from?**\n1. **Name the page, and I draft 2–3 wording options for you to pick from (Recommended).** This follows your no-copy-without-you rule. It costs one round trip before any edit.\n2. **Name the page, and give me the exact wording.** This is fastest. I'd still run the paraphrase test and flag any problem before applying.\n3. **Start with the homepage.** It's the riskiest choice, since its hero may be baked-in image or video art rather than editable text. Step 1 of the plan would settle that first.\n\nReply with the page and a number, and I'll continue from step 1.",
+  "ttft_ms": 9632,
+  "type": "result",
+  "duration_ms": 46256,
+  "uuid": "3139a224-58a5-4934-8f15-2ecc34766423",
+  "ttft_stream_ms": 7761,
+  "time_to_request_ms": 3899,
+  "time_to_request_phases_ms": {
+   "other": 53,
+   "system_prompt": 26,
+   "resume_other": 0,
+   "process_user_input": 3,
+   "input_attachments": 25,
+   "input_hooks": 3624,
+   "transcript_persist": 25,
+   "tool_pool_refresh": 11,
+   "system_prompt_rebuild": 8,
+   "init_message": 31,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 2,
+   "autocompact": 5,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 54,
+   "message_normalization": 11,
+   "client_creation": 4,
+   "request_build": 12
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 342,
+  "time_to_request_cpu_ms": 1391,
+  "time_to_request_major_faults": 10348,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 16,
+   "cpu_ms": 62,
+   "major_faults": 800
+  },
+  "first_content_frame_ms": 7761,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

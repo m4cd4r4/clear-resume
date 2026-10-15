@@ -1,0 +1,156 @@
+{
+ "id": "T1-A-2",
+ "t": "T1",
+ "arm": "A",
+ "r": 2,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 33486,
+  "stop_reason": "end_turn",
+  "session_id": "6a33b2ff-5847-4371-9995-d9b80c21f1f7",
+  "total_cost_usd": 0.36633079999999996,
+  "usage": {
+   "input_tokens": 12,
+   "cache_creation_input_tokens": 69017,
+   "cache_read_input_tokens": 462631,
+   "output_tokens": 4384,
+   "output_tokens_details": {
+    "thinking_tokens": 1109
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 69017,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 427,
+     "cache_read_input_tokens": 96362,
+     "cache_creation_input_tokens": 2220,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2220
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1242,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013570000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 12,
+    "outputTokens": 4384,
+    "cacheReadInputTokens": 462631,
+    "cacheCreationInputTokens": 69017,
+    "webSearchRequests": 0,
+    "costUSD": 0.3661951,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 1109,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I haven't looked at this on a rendered page: the worktree has no `node_modules`, and you asked me to stop once the section was written. I have not seen the new section at 1440 or 390 width. I'd rather say that than describe a render I haven't seen. visual-guard:allow page-claim:allow\n\nIn the source, the new section is placed after the existing FAQ block in [i:/Scratch/_trimtest/T1-A-2/app/pricing/page.tsx](app/pricing/page.tsx). It reuses that block's `bg-bg-soft` band, grid and `<details>` classes.\n\nTo check the layout, run `npm ci` and a dev server, then I'll screenshot `/pricing` at both widths and read them. Say if you want that.",
+  "ttft_ms": 4857,
+  "type": "result",
+  "duration_ms": 41580,
+  "uuid": "cc412b14-dd3c-42c2-abda-2cab36784027",
+  "ttft_stream_ms": 4324,
+  "time_to_request_ms": 2860,
+  "time_to_request_phases_ms": {
+   "other": 41,
+   "system_prompt": 23,
+   "resume_other": 0,
+   "process_user_input": 3,
+   "input_attachments": 33,
+   "input_hooks": 2642,
+   "transcript_persist": 14,
+   "tool_pool_refresh": 7,
+   "system_prompt_rebuild": 5,
+   "init_message": 22,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 44,
+   "message_normalization": 4,
+   "client_creation": 4,
+   "request_build": 8
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 232,
+  "time_to_request_cpu_ms": 938,
+  "time_to_request_major_faults": 8318,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 22,
+   "cpu_ms": 62,
+   "major_faults": 1158
+  },
+  "first_content_frame_ms": 4325,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tapp/pricing/page.tsx\n",
+ "patch": "diff --git a/app/pricing/page.tsx b/app/pricing/page.tsx\nindex ecb1dfd6..26bea2bf 100644\n--- a/app/pricing/page.tsx\n+++ b/app/pricing/page.tsx\n@@ -134,12 +134,57 @@ const FAQ: FaqItem[] = [\n   },\n ];\n \n+/* CUSTOM QUESTIONS. Every fact reads from WEB_TIERS / WEB_ADDONS, so a\n+ * reprice or a scope change lands here without an edit. */\n+const CUSTOM_FAQ: FaqItem[] = [\n+  {\n+    q: `What do I get on ${CUSTOM.name} that ${STARTER.name} does not have?`,\n+    a: `${CUSTOM.scope}, with type, layout and motion drawn for your brand alone. ${STARTER.name} is one page on a ready-made site. Site search is built in on ${CUSTOM.name}, at no extra fee.`,\n+  },\n+  {\n+    q: `Do I need my own photos for ${CUSTOM.name}?`,\n+    a: `Yes. Photography is yours, and we design the site around it. We do not provide the images.`,\n+  },\n+  {\n+    q: `What can I add to a ${CUSTOM.name} site, and what does it cost?`,\n+    a: `${WEB_ADDONS.map((x) => `${x.name} is +${x.price}`).join(\", \")}. Each is priced and agreed in writing with your quote, before we start.`,\n+  },\n+];\n+\n const faqLd = {\n   \"@context\": \"https://schema.org\",\n   \"@type\": \"FAQPage\",\n-  mainEntity: FAQ.map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n+  mainEntity: [...FAQ, ...CUSTOM_FAQ].map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n };\n \n+function FaqList({ items }: { items: FaqItem[] }) {\n+  return (\n+    <div>\n+      {items.map(({ q, a, more }) => (\n+        <details key={q} className=\"group border-t border-line last:border-b\">\n+          <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n+            {q}\n+            <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n+              +\n+            </span>\n+          </summary>\n+          <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n+            {a}\n+            {more && (\n+              <>\n+                {\" \"}\n+                <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n+                  {more.label}\n+                </a>\n+              </>\n+            )}\n+          </p>\n+        </details>\n+      ))}\n+    </div>\n+  );\n+}\n+\n function Thumbs({ items }: { items: { key: string; src: string; href: string; label: string }[] }) {\n   return (\n     <ul className=\"grid grid-cols-4 gap-3\">\n@@ -303,27 +348,17 @@ export default function PricingPage() {\n               </li>\n             </ul>\n             <div className=\"lg:col-span-7\">\n-              {FAQ.map(({ q, a, more }) => (\n-                <details key={q} className=\"group border-t border-line last:border-b\">\n-                  <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n-                    {q}\n-                    <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n-                      +\n-                    </span>\n-                  </summary>\n-                  <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n-                    {a}\n-                    {more && (\n-                      <>\n-                        {\" \"}\n-                        <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n-                          {more.label}\n-                        </a>\n-                      </>\n-                    )}\n-                  </p>\n-                </details>\n-              ))}\n+              <FaqList items={FAQ} />\n+            </div>\n+          </div>\n+        </section>\n+\n+        {/* CUSTOM QUESTIONS */}\n+        <section aria-label=\"Custom questions\" className=\"bg-bg-soft\">\n+          <div className=\"container-px grid gap-6 pb-12 lg:grid-cols-12 lg:gap-16 lg:pb-16\">\n+            <h2 className=\"text-2xl font-semibold tracking-tight lg:col-span-5\">Questions about {CUSTOM.name}</h2>\n+            <div className=\"lg:col-span-7\">\n+              <FaqList items={CUSTOM_FAQ} />\n             </div>\n           </div>\n         </section>\n"
+}

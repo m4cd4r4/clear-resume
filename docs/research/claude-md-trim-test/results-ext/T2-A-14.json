@@ -1,0 +1,155 @@
+{
+ "id": "T2-A-14",
+ "t": "T2",
+ "arm": "A",
+ "r": 14,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 18315,
+  "stop_reason": "end_turn",
+  "session_id": "4125e3e1-0b25-4d2f-ac97-a333f95d32d4",
+  "total_cost_usd": 0.23432640000000002,
+  "usage": {
+   "input_tokens": 4,
+   "cache_creation_input_tokens": 50772,
+   "cache_read_input_tokens": 106473,
+   "output_tokens": 2045,
+   "output_tokens_details": {
+    "thinking_tokens": 749
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 50772,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 477,
+     "cache_read_input_tokens": 76908,
+     "cache_creation_input_tokens": 3429,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 3429
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 22,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001331,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 4,
+    "outputTokens": 2045,
+    "cacheReadInputTokens": 106473,
+    "cacheCreationInputTokens": 50772,
+    "webSearchRequests": 0,
+    "costUSD": 0.23419330000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 749,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Corrected link: [I:/Scratch/_trimtest/T2-A-14/docs/portal/SQUARESPACE-REFERENCE.md](docs/portal/SQUARESPACE-REFERENCE.md)\n\nThe two \"page\" sentences in my plan were verification steps to run later, not claims about a render I've seen. I haven't looked at any page this turn. page-claim:allow",
+  "ttft_ms": 7191,
+  "type": "result",
+  "duration_ms": 25983,
+  "uuid": "889ee0ca-ff52-4d17-886d-535daac2fef7",
+  "ttft_stream_ms": 4107,
+  "time_to_request_ms": 2685,
+  "time_to_request_phases_ms": {
+   "other": 25,
+   "system_prompt": 16,
+   "resume_other": 0,
+   "process_user_input": 3,
+   "input_attachments": 21,
+   "input_hooks": 2541,
+   "transcript_persist": 12,
+   "tool_pool_refresh": 4,
+   "init_message": 14,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 1,
+   "model_gates": 0,
+   "tool_schema_build": 29,
+   "message_normalization": 4,
+   "client_creation": 3,
+   "request_build": 7
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 210,
+  "time_to_request_cpu_ms": 828,
+  "time_to_request_major_faults": 8223,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 13,
+   "cpu_ms": 62,
+   "major_faults": 973
+  },
+  "first_content_frame_ms": 4107,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

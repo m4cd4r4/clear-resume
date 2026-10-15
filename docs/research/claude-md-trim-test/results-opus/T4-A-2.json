@@ -1,0 +1,155 @@
+{
+ "id": "T4-A-2",
+ "t": "T4",
+ "arm": "A",
+ "r": 2,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 29312,
+  "stop_reason": "end_turn",
+  "session_id": "73bd674e-9509-48c9-90de-2a9e241217d3",
+  "total_cost_usd": 0.6513341,
+  "usage": {
+   "input_tokens": 14,
+   "cache_creation_input_tokens": 60723,
+   "cache_read_input_tokens": 544232,
+   "output_tokens": 2826,
+   "output_tokens_details": {
+    "thinking_tokens": 437
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 60723,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 606,
+     "cache_read_input_tokens": 89270,
+     "cache_creation_input_tokens": 1216,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1216
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1197,
+    "outputTokens": 16,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001277,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-opus-5-5": {
+    "inputTokens": 14,
+    "outputTokens": 2826,
+    "cacheReadInputTokens": 544232,
+    "cacheCreationInputTokens": 60723,
+    "webSearchRequests": 0,
+    "costUSD": 0.6512064,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 437,
+    "canonicalModel": "claude-opus-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The `/partners` gate is in [I:/Scratch/_trimtest/T4-A-2/proxy.ts](proxy.ts), and nothing is committed. I haven't run it or opened any page, so everything below comes from reading the code, not from seeing it work (page-claim:allow).\n\n**How it works:** anyone going to `/partners` or any page under it needs the same signed-in cookie (`sol_client`) that the `/client` gate checks. That cookie is only issued after `/client/login` accepts a client's password. Anyone without it is redirected to `/client/login`. Paths are normalised the same way as the other gates, so `/%70artners` or `/PARTNERS` can't slip past.\n\n**Three gaps:**\n1. **There is no `/partners` page in the repo yet.** The gate guards a route that doesn't exist, so a signed-in visitor would get a 404.\n2. **Any client can open it.** `/client/<slug>` pages also check which workspace the client belongs to. `/partners` has no workspace in its URL, so any signed-in client gets through.\n3. **People probably won't be sent back to `/partners` after signing in.** The login page only reads `c`, `e` and `sent` from the URL, so it has nowhere to record the page someone came from. I haven't checked where it does send them.\n\n**Checks:** type-checking shows no errors in `proxy.ts`. The overall type-check still exits with code 1 because of errors in other files, which I haven't looked into.",
+  "ttft_ms": 3626,
+  "type": "result",
+  "duration_ms": 122978,
+  "uuid": "554bf62b-4ac7-47de-a1d3-2248fd92b414",
+  "ttft_stream_ms": 3471,
+  "time_to_request_ms": 2578,
+  "time_to_request_phases_ms": {
+   "other": 27,
+   "system_prompt": 21,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 27,
+   "input_hooks": 2421,
+   "transcript_persist": 9,
+   "tool_pool_refresh": 5,
+   "init_message": 17,
+   "engine_pickup": 2,
+   "message_prep": 0,
+   "model_config_wait": 1,
+   "autocompact": 3,
+   "query_setup": 0,
+   "model_gates": 0,
+   "tool_schema_build": 29,
+   "message_normalization": 5,
+   "client_creation": 3,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 153,
+  "time_to_request_cpu_ms": 656,
+  "time_to_request_major_faults": 7976,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 17,
+   "cpu_ms": 78,
+   "major_faults": 1589
+  },
+  "first_content_frame_ms": 3471,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tproxy.ts\n",
+ "patch": "diff --git a/proxy.ts b/proxy.ts\nindex 7921fccb..101653c1 100644\n--- a/proxy.ts\n+++ b/proxy.ts\n@@ -20,6 +20,7 @@ import { PORTAL_ACTIVE_SLUG_HEADER } from \"./lib/portal/active-slug-header\";\n //    authHash = sha256(CLIENT_AUTH_PEPPER + password)) - not a database, not\n //    the VPS, and not a shared env password; see lib/client-auth.ts.\n //    Onboarding a client is therefore a repo change and does need a deploy.\n+//    /partners is gated by the same cookie (any granted slug will do).\n //    /client/admin is the owner-only surface nested inside it and is checked\n //    FIRST, so a tenant session can never open it.\n //\n@@ -145,6 +146,12 @@ export async function proxy(req: NextRequest) {\n     p.startsWith(\"/internal/\") ||\n     rawLower === \"/internal\" ||\n     rawLower.startsWith(\"/internal/\");\n+  // /partners - signed-in clients only, same tenant cookie as /client.\n+  const underPartners =\n+    p === \"/partners\" ||\n+    p.startsWith(\"/partners/\") ||\n+    rawLower === \"/partners\" ||\n+    rawLower.startsWith(\"/partners/\");\n   // The login pages and auth endpoints stay public (a viewer must be able to\n   // reach them without a session), and bypass the site-wide gate so sign-in\n   // works even while the rest of the site is in pre-launch lockdown.\n@@ -219,6 +226,16 @@ export async function proxy(req: NextRequest) {\n     else headers.delete(PORTAL_ACTIVE_SLUG_HEADER);\n     return NextResponse.next({ request: { headers } });\n   }\n+  // --- Gate 2a: /partners (any valid client session; deny-by-default for the\n+  // namespace). Same password check as Gate 2: the sol_client cookie is only\n+  // minted by /client/login against the per-client authHash. No slug check -\n+  // /partners has no workspace in its URL. ---\n+  if (underPartners) {\n+    const cookie = req.cookies.get(CLIENT_COOKIE)?.value;\n+    const session = cookie ? await verifyClientSessionEdge(cookie) : null;\n+    if (!session) return NextResponse.redirect(new URL(\"/client/login\", req.url));\n+    return NextResponse.next();\n+  }\n   // --- Gate 2b: /client-docs/<slug>/* (per-tenant static reference docs) ---\n   // A client may only reach a slug their session was granted, so client A can\n   // never fetch client B's doc.\n"
+}

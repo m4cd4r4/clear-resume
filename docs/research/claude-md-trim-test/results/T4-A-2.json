@@ -1,0 +1,155 @@
+{
+ "id": "T4-A-2",
+ "t": "T4",
+ "arm": "A",
+ "r": 2,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 19203,
+  "stop_reason": "end_turn",
+  "session_id": "5a55a4f1-6c8b-4332-8fbc-1ea027434956",
+  "total_cost_usd": 0.31734160000000006,
+  "usage": {
+   "input_tokens": 12,
+   "cache_creation_input_tokens": 62561,
+   "cache_read_input_tokens": 451259,
+   "output_tokens": 2182,
+   "output_tokens_details": {
+    "thinking_tokens": 371
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 62561,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 337,
+     "cache_read_input_tokens": 90838,
+     "cache_creation_input_tokens": 1288,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1288
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1197,
+    "outputTokens": 16,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001277,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 12,
+    "outputTokens": 2182,
+    "cacheReadInputTokens": 451259,
+    "cacheCreationInputTokens": 62561,
+    "webSearchRequests": 0,
+    "costUSD": 0.31721390000000005,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 371,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "`/partners` is now gated in [i:/Scratch/_trimtest/T4-A-2/proxy.ts](proxy.ts). I haven't run it or type-checked it, and nothing is committed.\n\n- **Check:** a request to `/partners` or `/partners/*` needs a valid `sol_client` session cookie, the one the `/client` password login mints. Without one it redirects to `/client/login`. It uses the same decoded-path matching as the other gates, so encoded or `..` variants don't slip past.\n- **Any client opens it:** any signed-in client can reach `/partners`, whichever workspace they signed into. If you want it limited to specific slugs or to the owner cookie, say so.\n- **No return to `/partners`:** after login, `/api/client/login` sends people to `/client/<slug>`, not back to `/partners`. They have to navigate to `/partners` again.\n- **No page yet:** there is no `app/partners` route in this worktree, so the gate protects a path that currently 404s once you're signed in.",
+  "ttft_ms": 4861,
+  "type": "result",
+  "duration_ms": 24059,
+  "uuid": "68d2ac84-cb9d-4427-b1e0-f4e6c0375199",
+  "ttft_stream_ms": 4354,
+  "time_to_request_ms": 2611,
+  "time_to_request_phases_ms": {
+   "other": 28,
+   "system_prompt": 13,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 19,
+   "input_hooks": 2468,
+   "transcript_persist": 16,
+   "tool_pool_refresh": 6,
+   "init_message": 16,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 25,
+   "message_normalization": 3,
+   "client_creation": 3,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 192,
+  "time_to_request_cpu_ms": 641,
+  "time_to_request_major_faults": 9792,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 12,
+   "cpu_ms": 31,
+   "major_faults": 922
+  },
+  "first_content_frame_ms": 4355,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tproxy.ts\n",
+ "patch": "diff --git a/proxy.ts b/proxy.ts\nindex 7921fccb..8c05f83d 100644\n--- a/proxy.ts\n+++ b/proxy.ts\n@@ -23,6 +23,9 @@ import { PORTAL_ACTIVE_SLUG_HEADER } from \"./lib/portal/active-slug-header\";\n //    /client/admin is the owner-only surface nested inside it and is checked\n //    FIRST, so a tenant session can never open it.\n //\n+// 2a. /partners gate (always on): reuses the /client session cookie, so the\n+//    same password sign-in opens it. See Gate 2a below.\n+//\n // 3. /lab gate (always on in a deployed build): the nine design-prototype\n //    routes. They carry noindex, which stops Google indexing them but does\n //    NOT stop the sixteen AI crawlers robots.txt names by allowing them - and\n@@ -145,6 +148,11 @@ export async function proxy(req: NextRequest) {\n     p.startsWith(\"/internal/\") ||\n     rawLower === \"/internal\" ||\n     rawLower.startsWith(\"/internal/\");\n+  const underPartners =\n+    p === \"/partners\" ||\n+    p.startsWith(\"/partners/\") ||\n+    rawLower === \"/partners\" ||\n+    rawLower.startsWith(\"/partners/\");\n   // The login pages and auth endpoints stay public (a viewer must be able to\n   // reach them without a session), and bypass the site-wide gate so sign-in\n   // works even while the rest of the site is in pre-launch lockdown.\n@@ -219,6 +227,14 @@ export async function proxy(req: NextRequest) {\n     else headers.delete(PORTAL_ACTIVE_SLUG_HEADER);\n     return NextResponse.next({ request: { headers } });\n   }\n+  // --- Gate 2a: /partners. Same password sign-in as /client: any valid sol_client\n+  // session opens it, and anyone without one is sent to the /client login. ---\n+  if (underPartners) {\n+    const cookie = req.cookies.get(CLIENT_COOKIE)?.value;\n+    const session = cookie ? await verifyClientSessionEdge(cookie) : null;\n+    if (!session) return NextResponse.redirect(new URL(\"/client/login\", req.url));\n+    return NextResponse.next();\n+  }\n   // --- Gate 2b: /client-docs/<slug>/* (per-tenant static reference docs) ---\n   // A client may only reach a slug their session was granted, so client A can\n   // never fetch client B's doc.\n"
+}

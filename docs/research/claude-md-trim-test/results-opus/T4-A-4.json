@@ -1,0 +1,164 @@
+{
+ "id": "T4-A-4",
+ "t": "T4",
+ "arm": "A",
+ "r": 4,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 48866,
+  "stop_reason": "end_turn",
+  "session_id": "20587d41-4970-4f73-90a6-b4a725930593",
+  "total_cost_usd": 0.8712999000000001,
+  "usage": {
+   "input_tokens": 26,
+   "cache_creation_input_tokens": 68491,
+   "cache_read_input_tokens": 1129096,
+   "output_tokens": 4866,
+   "output_tokens_details": {
+    "thinking_tokens": 648
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 68491,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 514,
+     "cache_read_input_tokens": 96621,
+     "cache_creation_input_tokens": 1633,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1633
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1197,
+    "outputTokens": 18,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00012869999999999998,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-opus-5-5": {
+    "inputTokens": 26,
+    "outputTokens": 4866,
+    "cacheReadInputTokens": 1129096,
+    "cacheCreationInputTokens": 68491,
+    "webSearchRequests": 0,
+    "costUSD": 0.8711712000000003,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 648,
+    "canonicalModel": "claude-opus-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_01XEQ5qzjSHPLbyjZWbpFFXH",
+    "tool_input": {
+     "command": "Test-Path node_modules; Get-Content vitest.config.ts -TotalCount 30",
+     "description": "Check node_modules and vitest config"
+    }
+   }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I've added the `/partners` gate to [i:/Scratch/_trimtest/T4-A-4/proxy.ts](proxy.ts) and committed nothing. A visitor without a valid client session is now sent to `/client/login`. Someone signed in to the client portal gets through. That's the same check `/client` uses: a signed `sol_client` cookie, issued only after the password matched the client's repo config.\n\n- **New tests:** [i:/Scratch/_trimtest/T4-A-4/tests/proxy-partners.test.ts](tests/proxy-partners.test.ts) checks that a visitor without a session is redirected and that a valid client session gets a 200. The second test stops a gate that redirects everyone from passing.\n- **Results:** all 4 proxy test files pass (33 tests), and the type check shows no errors in `proxy.ts`.\n- **Install:** this worktree had no `node_modules`, so I ran `npm ci` before the tests could run.\n\nTwo things to decide:\n1. **Any client can open it.** `/client` limits each client to their own workspace using the slug in the URL. `/partners` has no slug, so every signed-in client gets in. If it should be partners only, it needs a list of allowed clients or its own password.\n2. **There is no `/partners` page yet.** A signed-in client gets past the gate and then hits a 404.",
+  "ttft_ms": 6757,
+  "type": "result",
+  "duration_ms": 727836,
+  "uuid": "f271853b-8bca-4bee-87c2-97f009f43eb5",
+  "ttft_stream_ms": 5839,
+  "time_to_request_ms": 4933,
+  "time_to_request_phases_ms": {
+   "other": 58,
+   "system_prompt": 30,
+   "resume_other": 0,
+   "process_user_input": 4,
+   "input_attachments": 41,
+   "input_hooks": 4478,
+   "transcript_persist": 174,
+   "tool_pool_refresh": 11,
+   "init_message": 50,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 2,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 51,
+   "message_normalization": 8,
+   "client_creation": 4,
+   "request_build": 13
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 275,
+  "time_to_request_cpu_ms": 1187,
+  "time_to_request_major_faults": 7114,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 25,
+   "cpu_ms": 94,
+   "major_faults": 1315
+  },
+  "first_content_frame_ms": 5840,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tproxy.ts\nA\ttests/proxy-partners.test.ts\n",
+ "patch": "diff --git a/proxy.ts b/proxy.ts\nindex 7921fccb..d0184965 100644\n--- a/proxy.ts\n+++ b/proxy.ts\n@@ -38,6 +38,9 @@ import { PORTAL_ACTIVE_SLUG_HEADER } from \"./lib/portal/active-slug-header\";\n //    (lib/internal-ingest/auth.ts): the automation is a headless script, not\n //    a browser, so it has no owner cookie to present.\n //\n+// 3.6. /partners gate (always on): same client-session check as gate 2, with\n+//    no per-workspace slug check (the URL carries none).\n+//\n // 4. Site-wide pre-launch gate (DORMANT by default): with no SITE_GATE_PASSWORD\n //    set this is a no-op. Turned on/off purely by adding/removing\n //    SITE_GATE_PASSWORD in Vercel - no code change. While active it returns 401\n@@ -145,6 +148,13 @@ export async function proxy(req: NextRequest) {\n     p.startsWith(\"/internal/\") ||\n     rawLower === \"/internal\" ||\n     rawLower.startsWith(\"/internal/\");\n+  // /partners - same check as the /client portal: a valid client session\n+  // (password verified against the per-client repo config at sign-in).\n+  const underPartners =\n+    p === \"/partners\" ||\n+    p.startsWith(\"/partners/\") ||\n+    rawLower === \"/partners\" ||\n+    rawLower.startsWith(\"/partners/\");\n   // The login pages and auth endpoints stay public (a viewer must be able to\n   // reach them without a session), and bypass the site-wide gate so sign-in\n   // works even while the rest of the site is in pre-launch lockdown.\n@@ -219,6 +229,14 @@ export async function proxy(req: NextRequest) {\n     else headers.delete(PORTAL_ACTIVE_SLUG_HEADER);\n     return NextResponse.next({ request: { headers } });\n   }\n+  // --- Gate 2a: /partners (same client-session check as Gate 2; no workspace\n+  // slug in the URL, so any valid client session opens it). ---\n+  if (underPartners) {\n+    const cookie = req.cookies.get(CLIENT_COOKIE)?.value;\n+    const session = cookie ? await verifyClientSessionEdge(cookie) : null;\n+    if (!session) return NextResponse.redirect(new URL(\"/client/login\", req.url));\n+    return NextResponse.next();\n+  }\n   // --- Gate 2b: /client-docs/<slug>/* (per-tenant static reference docs) ---\n   // A client may only reach a slug their session was granted, so client A can\n   // never fetch client B's doc.\ndiff --git a/tests/proxy-partners.test.ts b/tests/proxy-partners.test.ts\nnew file mode 100644\nindex 00000000..01c18b9b\n--- /dev/null\n+++ b/tests/proxy-partners.test.ts\n@@ -0,0 +1,53 @@\n+import { beforeAll, describe, expect, it } from \"vitest\";\n+import { NextRequest } from \"next/server\";\n+import { proxy } from \"../proxy\";\n+import { CLIENT_COOKIE } from \"../lib/client-auth-edge\";\n+\n+// /partners sits behind the same check as the /client portal: a signed\n+// sol_client session cookie, whose password was verified against the per-client\n+// repo config at sign-in (lib/client-auth.ts). No session -> /client/login.\n+\n+const SECRET = \"test-only-session-secret-not-used-in-prod-0123456789\";\n+\n+async function mint(method: string, extra: Record<string, unknown> = {}): Promise<string> {\n+  const payload = btoa(JSON.stringify({ method, issuedAt: Date.now(), ...extra }));\n+  const key = await crypto.subtle.importKey(\n+    \"raw\",\n+    new TextEncoder().encode(SECRET),\n+    { name: \"HMAC\", hash: \"SHA-256\" },\n+    false,\n+    [\"sign\"],\n+  );\n+  const mac = new Uint8Array(\n+    await crypto.subtle.sign(\"HMAC\", key, new TextEncoder().encode(payload)),\n+  );\n+  return `${payload}.${Array.from(mac, (b) => b.toString(16).padStart(2, \"0\")).join(\"\")}`;\n+}\n+\n+function reqFor(url: string, cookieName?: string, cookieValue?: string): NextRequest {\n+  const headers = new Headers();\n+  if (cookieName && cookieValue) headers.set(\"cookie\", `${cookieName}=${cookieValue}`);\n+  return new NextRequest(url, { headers });\n+}\n+\n+const deniedToClientLogin = (res: Response) =>\n+  (res.headers.get(\"location\") || \"\").includes(\"/client/login\");\n+\n+beforeAll(() => {\n+  process.env.SESSION_SECRET = SECRET;\n+});\n+\n+describe(\"proxy() gate on /partners\", () => {\n+  it(\"anonymous request to /partners is denied\", async () => {\n+    const res = await proxy(reqFor(\"https://solaisoft.com/partners\"));\n+    expect(deniedToClientLogin(res)).toBe(true);\n+  });\n+\n+  // Positive control: without it, a gate that redirected everything would pass.\n+  it(\"a valid CLIENT session opens /partners\", async () => {\n+    const cookie = await mint(\"client\", { slug: \"station-street-fitness\" });\n+    const res = await proxy(reqFor(\"https://solaisoft.com/partners\", CLIENT_COOKIE, cookie));\n+    expect(deniedToClientLogin(res)).toBe(false);\n+    expect(res.status).toBe(200);\n+  });\n+});\n"
+}

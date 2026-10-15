@@ -1,0 +1,171 @@
+{
+ "id": "T1-A-5",
+ "t": "T1",
+ "arm": "A",
+ "r": 5,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 54816,
+  "stop_reason": "end_turn",
+  "session_id": "5ac73be3-d6ed-47e5-b660-3380bca96daf",
+  "total_cost_usd": 0.5648774,
+  "usage": {
+   "input_tokens": 38,
+   "cache_creation_input_tokens": 79464,
+   "cache_read_input_tokens": 1827897,
+   "output_tokens": 6402,
+   "output_tokens_details": {
+    "thinking_tokens": 1223
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 79464,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 342,
+     "cache_read_input_tokens": 108694,
+     "cache_creation_input_tokens": 335,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 335
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1242,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013570000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 38,
+    "outputTokens": 6402,
+    "cacheReadInputTokens": 1827897,
+    "cacheCreationInputTokens": 79464,
+    "webSearchRequests": 0,
+    "costUSD": 0.5647417,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 1223,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_0128URCKBosbvCbNLZvMUmaB",
+    "tool_input": {
+     "command": "Test-Path I:\\Scratch\\_trimtest\\T1-A-5\\node_modules; Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in 3000,3001,3100 } | Select-Object LocalPort,OwningProcess; Test-Path I:\\Scratch\\solaisoft\\node_modules"
+    }
+   },
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_01GqUGLat8YpbLYZPptduGUV",
+    "tool_input": {
+     "command": "(npx next dev -p 3210 --webpack > /f/Temp/claude/dev3210.log 2>&1 &) ; sleep 12; tail -5 /f/Temp/claude/dev3210.log",
+     "description": "Start dev server on port 3210"
+    }
+   }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 27,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The Custom FAQ section renders correctly at 1440 and 390, and nothing is committed. The only change in git is `app/pricing/page.tsx`.\n\n**1440:** The section is a lighter band under the blue-grey general FAQ. \"Questions about Custom\" sits as a heading in the left column, with the three questions in the right column, lined up with the question list above. I opened the first one: its answer reads cleanly, and the last two are closed. The dark \"Ready to put a number on it?\" band follows. The left column below the heading is empty, but the general FAQ above has the same shape.\n\n**390:** The heading sits above the three questions in a single column. There's no sideways scroll, and the answer wraps to three lines.\n\nThe copy check now runs. It found no failures, and its only flags on my lines were a \"30 days\" claim warning, which repeats wording already in the existing FAQ.\n\nI ran `npm ci` in this worktree to get the check and the dev server running. The dev server is still running on port 3217. Port 3210 was already in use by another process, so I left it alone.",
+  "ttft_ms": 5118,
+  "type": "result",
+  "duration_ms": 130057,
+  "uuid": "3c292797-44b2-4985-8a8b-d36905534e5a",
+  "ttft_stream_ms": 4505,
+  "time_to_request_ms": 2598,
+  "time_to_request_phases_ms": {
+   "other": 23,
+   "system_prompt": 20,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 22,
+   "input_hooks": 2448,
+   "transcript_persist": 13,
+   "tool_pool_refresh": 3,
+   "init_message": 13,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 35,
+   "message_normalization": 5,
+   "client_creation": 2,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 203,
+  "time_to_request_cpu_ms": 859,
+  "time_to_request_major_faults": 7597,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 13,
+   "cpu_ms": 31,
+   "major_faults": 615
+  },
+  "first_content_frame_ms": 4505,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tapp/pricing/page.tsx\n",
+ "patch": "diff --git a/app/pricing/page.tsx b/app/pricing/page.tsx\nindex ecb1dfd6..8c60bace 100644\n--- a/app/pricing/page.tsx\n+++ b/app/pricing/page.tsx\n@@ -134,12 +134,57 @@ const FAQ: FaqItem[] = [\n   },\n ];\n \n+/* Questions about Custom alone. Every fact is read from WEB_TIERS or\n+ * lib/pricing.ts; the 12-month care minimum is Macdara's 2026-10-05 ruling. */\n+const CUSTOM_FAQ: FaqItem[] = [\n+  {\n+    q: `What does ${CUSTOM.name} include?`,\n+    a: `${CUSTOM.scope}, with type, layout and motion designed for your brand. Site search is built in at no extra fee. Hosting and care is ${CARE_LITE_AMOUNT} a month.`,\n+  },\n+  {\n+    q: `Do I supply the photos for ${CUSTOM.name}?`,\n+    a: \"Yes. Photography is yours, and we design the site around it.\",\n+  },\n+  {\n+    q: `Is there a minimum term on ${CUSTOM.name}?`,\n+    a: `Care has a 12-month minimum from your first care payment, then runs month to month with 30 days' notice. The build price is one-off.`,\n+  },\n+];\n+\n const faqLd = {\n   \"@context\": \"https://schema.org\",\n   \"@type\": \"FAQPage\",\n-  mainEntity: FAQ.map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n+  mainEntity: [...FAQ, ...CUSTOM_FAQ].map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n };\n \n+function FaqList({ items }: { items: FaqItem[] }) {\n+  return (\n+    <>\n+      {items.map(({ q, a, more }) => (\n+        <details key={q} className=\"group border-t border-line last:border-b\">\n+          <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n+            {q}\n+            <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n+              +\n+            </span>\n+          </summary>\n+          <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n+            {a}\n+            {more && (\n+              <>\n+                {\" \"}\n+                <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n+                  {more.label}\n+                </a>\n+              </>\n+            )}\n+          </p>\n+        </details>\n+      ))}\n+    </>\n+  );\n+}\n+\n function Thumbs({ items }: { items: { key: string; src: string; href: string; label: string }[] }) {\n   return (\n     <ul className=\"grid grid-cols-4 gap-3\">\n@@ -303,27 +348,17 @@ export default function PricingPage() {\n               </li>\n             </ul>\n             <div className=\"lg:col-span-7\">\n-              {FAQ.map(({ q, a, more }) => (\n-                <details key={q} className=\"group border-t border-line last:border-b\">\n-                  <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n-                    {q}\n-                    <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n-                      +\n-                    </span>\n-                  </summary>\n-                  <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n-                    {a}\n-                    {more && (\n-                      <>\n-                        {\" \"}\n-                        <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n-                          {more.label}\n-                        </a>\n-                      </>\n-                    )}\n-                  </p>\n-                </details>\n-              ))}\n+              <FaqList items={FAQ} />\n+            </div>\n+          </div>\n+        </section>\n+\n+        {/* CUSTOM QUESTIONS */}\n+        <section aria-label=\"Custom questions\">\n+          <div className=\"container-px grid gap-6 py-12 lg:grid-cols-12 lg:gap-16 lg:py-16\">\n+            <h2 className=\"text-2xl font-semibold tracking-tight lg:col-span-5\">Questions about {CUSTOM.name}</h2>\n+            <div className=\"lg:col-span-7\">\n+              <FaqList items={CUSTOM_FAQ} />\n             </div>\n           </div>\n         </section>\n"
+}
