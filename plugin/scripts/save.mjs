@@ -8,7 +8,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { listWaiting, repoInfo, repoKey, saveHandover, storeRoot } from "./lib/store.mjs";
-import { sessionRoot } from "./lib/session.mjs";
+import { sessionRoot, sessionTranscript } from "./lib/session.mjs";
+import { buildTrail, emptyTrail, trailSection, withTrail } from "./lib/trail.mjs";
 import { normalisePath } from "../packages/store/schema.mjs";
 import { commitHandover, webEnabled } from "./lib/web.mjs";
 import { ownerId, PATIENT_TIMEOUT_MS } from "./lib/owner.mjs";
@@ -25,6 +26,23 @@ try {
   body = readFileSync(0, "utf8");
 } catch {
   // no stdin
+}
+
+// The Recent trail is built from the session's own transcript, not written by the model: the last files
+// written, edited and read, the last commands that succeeded and failed. A kickoff for a session that does
+// not exist yet (--unowned) has no trail to give, and CLEAR_RESUME_TRAIL=0 turns it off. Any failure here
+// leaves the handover exactly as the model wrote it: a save must never depend on the trail.
+// An empty body stays empty so the save still fails on it: a trail alone is not a handover.
+if (body.trim() && !process.argv.includes("--unowned") && process.env.CLEAR_RESUME_TRAIL !== "0") {
+  try {
+    const transcript = sessionTranscript();
+    if (transcript) {
+      const trail = buildTrail(transcript);
+      if (!emptyTrail(trail)) body = withTrail(body, trailSection(trail));
+    }
+  } catch {
+    // no transcript, unreadable, or odd rows: save without a trail
+  }
 }
 
 // The session root, not the cwd. A Bash `cd` moves the cwd for the rest of the
