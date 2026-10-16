@@ -53,6 +53,12 @@ function firstCwd(file) {
  * handover filed in the wrong place must be visible rather than silent.
  */
 export function sessionRoot({ env = process.env, home = homedir() } = {}) {
+  const file = sessionTranscript({ env, home });
+  return file ? firstCwd(file) : "";
+}
+
+/** Path of the current session's transcript, or "" when it cannot be found. Never throws. */
+export function sessionTranscript({ env = process.env, home = homedir() } = {}) {
   const id = String(env.CLAUDE_CODE_SESSION_ID ?? "").trim();
   if (!id) return "";
   const projects = join(home, ".claude", "projects");
@@ -60,7 +66,7 @@ export function sessionRoot({ env = process.env, home = homedir() } = {}) {
   try {
     for (const dir of readdirSync(projects)) {
       const file = join(projects, dir, `${id}.jsonl`);
-      if (existsSync(file)) return firstCwd(file);
+      if (existsSync(file)) return file;
     }
   } catch {
     // Unreadable projects folder. Not fatal.
