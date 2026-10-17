@@ -53,7 +53,8 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const w of windows) w.kill();
-  rmSync(dir, { recursive: true, force: true });
+  // A killed child can hold its cwd for a moment on Windows (EBUSY); retry the delete.
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 function sessionStart(extraEnv) {
