@@ -29,7 +29,7 @@
     "relay": {
       "type": "string",
       "title": "Relay: clear and continue by itself",
-      "description": "After Claude saves a handover, clear-resume runs /clear and submits the prompt that continues from it, with no keypress. off (the default), a number of clears per Claude Code window (1, 3, 10), or unlimited. Anything else is off. This is the default for every window: type /relay off, on, unlimited or a number to change it for one window, and the status line shows the clears left. Needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works as before.",
+      "description": "After Claude saves a handover, clear-resume runs /clear and submits the prompt that continues from it, with no keypress. off (the default), a number of clears per Claude Code window (1, 3, 10), or unlimited. Anything else is off. This is the default for every window: type /relay off, on, unlimited or a number to change it for one window, and the status line shows the clears left (unless Status line is off). Needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works as before.",
       "default": "off"
     },
     "idle_handover": {
@@ -53,6 +53,12 @@
       "default": 100000,
       "min": 10000,
       "max": 1000000
+    },
+    "status_line": {
+      "type": "boolean",
+      "title": "Status line",
+      "description": "Show the relay's clears left, and Clearing... or Continuing... while it acts, in the status line above the prompt. Off hides those; the relay works as before, /relay still reports it, and Idle handover's toast still shows.",
+      "default": true
     }
   }
 }
