@@ -162,6 +162,8 @@ async function headlessRun($: Engine): Promise<boolean> {
 // One process's relay. The module lives in the process, so this outlives /clear.
 type Relay = {
   configured: number
+  // The status_line option: off, the relay writes no status line
+  showStatus: boolean
   limit: number
   // This process's name in the relay folder. A reload starts the count over, so a
   // new file is right; the extension reads the newest one for its folder.
@@ -236,7 +238,7 @@ async function warnUnarmed($: Engine, r: Relay, reason: string): Promise<void> {
 }
 
 // The standing status entry: what is left while the relay is on, nothing while off.
-const shown = (r: Relay) => (r.limit === 0 || r.headless ? undefined : relayStatus(r.limit, r.used))
+const shown = (r: Relay) => (!r.showStatus || r.limit === 0 || r.headless ? undefined : relayStatus(r.limit, r.used))
 
 // Write this window's state for the status bar. A failure never reaches the relay.
 async function publish($: Engine, r: Relay): Promise<void> {
@@ -455,7 +457,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     r.idleAsked = false
     r.pending = false
     if (reason !== 'answer' || (await headlessRun($))) return
-    $.ui.status('Clearing...')
+    if (r.showStatus) $.ui.status('Clearing...')
     $.clock.after(300, () => {
       $.command.run({ command: 'clear' }).catch(err => {
         $.ui.status(shown(r))
@@ -498,7 +500,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     return
   }
   r.used++
-  $.ui.status('Clearing...')
+  if (r.showStatus) $.ui.status('Clearing...')
   // Not awaited: command.run rejects inside a hook the turn is waiting on,
   // and the clear is queued until the session is idle anyway.
   $.clock.after(300, () => {
@@ -515,6 +517,7 @@ export const register: Register = (on, options) => {
   const configured = budget(options.relay)
   const r: Relay = {
     configured,
+    showStatus: options.status_line !== false,
     limit: configured,
     key: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     sessions: [],
@@ -638,7 +641,7 @@ export const register: Register = (on, options) => {
     resetIdle(r)
     if (e.reason !== 'clear' || !r.pending) return result
     r.pending = false
-    $.ui.status('Continuing...')
+    if (r.showStatus) $.ui.status('Continuing...')
     $.clock.after(1000, () => {
       $.prompt
         .submit({ text: RESUME_TEXT, asUser: true })
