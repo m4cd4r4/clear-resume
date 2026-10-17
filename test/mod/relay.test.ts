@@ -405,6 +405,13 @@ describe('/relay and the status line', () => {
     expect(w.status.at(-1)).toBe('relay: 3 of 3 left')
   })
 
+  test('status_line off: the relay runs but writes no status line', { options: { relay: '3', status_line: false } }, async ($, on) => {
+    const { w } = world(on)
+    await $.session.start(start)
+    expect(w.registered).toEqual(['relay'])
+    expect(w.status.every(t => t === undefined)).toBe(true)
+  })
+
   test('off by option: no status entry, and bare /relay says off', async ($, on) => {
     const { w } = world(on)
     await $.session.start(start)
