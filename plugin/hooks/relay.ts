@@ -41,9 +41,9 @@ export const IDLE_MARGIN_MS = 5 * 60_000
 export const IDLE_TICK_MS = 30_000
 export const DEFAULT_TTL_MIN = 60
 export const DEFAULT_IDLE_MIN_TOKENS = 100_000
-export type IdleMode = 'off' | 'toast' | 'auto'
-// auto submits a prompt while the user is away; with a short TTL the window is too
-// narrow to trust that, so it behaves as toast (see idleEffective).
+export type IdleMode = 'off' | 'toast' | 'smart' | 'auto'
+// auto and smart submit a prompt while the user is away; with a short TTL the window
+// is too narrow to trust that, so they behave as toast (see idleEffective).
 export const AUTO_MIN_TTL_MIN = 10
 
 // What the idle handover asks for. Unlike the 180k nudge nobody is at the keyboard,
@@ -51,10 +51,18 @@ export const AUTO_MIN_TTL_MIN = 10
 export const IDLE_HANDOVER_TEXT =
   HANDOVER_TEXT + ' The user is away. If a question is open, the Next action is to wait for their answer; do not guess.'
 
-// "toast" or "auto"; anything else, or unset, is off.
+// smart: the same ask, but the model may decline when nothing is left to do. The
+// check rides on the warm turn the ask already pays for. A wrong "finished" costs
+// the cold rewrite the user would have paid anyway, never lost work: no save, no clear.
+export const IDLE_SMART_TEXT =
+  'The user is away and the prompt cache is about to expire. If the work is finished and no step remains, ' +
+  'do not save a handover: reply "Nothing to hand over." and stop. Otherwise write a clear-resume handover now, ' +
+  'with the /clear-resume:handover skill. If a question is open, the Next action is to wait for their answer; do not guess.'
+
+// "toast", "smart" or "auto"; anything else, or unset, is off.
 export function idleMode(raw: unknown): IdleMode {
   const s = String(raw ?? 'off').trim().toLowerCase()
-  return s === 'toast' || s === 'auto' ? s : 'off'
+  return s === 'toast' || s === 'smart' || s === 'auto' ? s : 'off'
 }
 
 // A positive number from an option, else the default.
@@ -80,9 +88,9 @@ export function idleWoke(lastTickAt: number | undefined, now: number): boolean {
   return lastTickAt !== undefined && now - lastTickAt > 2 * IDLE_TICK_MS
 }
 
-// auto needs a TTL of at least AUTO_MIN_TTL_MIN; below that it is toast.
+// auto and smart need a TTL of at least AUTO_MIN_TTL_MIN; below that it is toast.
 export function idleEffective(mode: IdleMode, ttlMin: number): IdleMode {
-  return mode === 'auto' && ttlMin < AUTO_MIN_TTL_MIN ? 'toast' : mode
+  return (mode === 'auto' || mode === 'smart') && ttlMin < AUTO_MIN_TTL_MIN ? 'toast' : mode
 }
 
 export const idleToast = (leftMin: number): string =>
@@ -410,10 +418,14 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
   const left = Math.max(1, Math.round((r.ttlMin * 60_000 - idle) / 60_000))
   // Auto needs a quiet session: a tool call in flight may be waiting on a
   // permission prompt, and a submitted prompt would queue behind it. Message then.
-  if (r.idle === 'auto' && r.tools === 0 && !woke) {
+  const smart = r.idle === 'smart'
+  if ((r.idle === 'auto' || smart) && r.tools === 0 && !woke) {
     r.idleAsked = true
-    $.ui.toast(`Idle, the cache expires in about ${left} min. Writing a handover now.`, { timeoutMs: 10000 })
-    await $.prompt.submit({ text: IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
+    $.ui.toast(
+      `Idle, the cache expires in about ${left} min. ${smart ? 'Checking whether a handover is needed.' : 'Writing a handover now.'}`,
+      { timeoutMs: 10000 },
+    )
+    await $.prompt.submit({ text: smart ? IDLE_SMART_TEXT : IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
       r.idleAsked = false
       $.ui.toast(`Idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
     })
@@ -447,7 +459,10 @@ async function idleTick($: Engine, r: Relay): Promise<void> {
 async function decide($: Engine, r: Relay, reason: string): Promise<void> {
   if (!r.pending) {
     // The turn the idle prompt started ended with nothing saved: drop the ask.
+    // In smart mode that is the model's answer, so say the session was left alone.
+    const declined = r.idleAsked && r.idle === 'smart' && reason === 'answer'
     r.idleAsked = false
+    if (declined) $.ui.toast('Idle check: no handover saved, the session is left as it is.', { timeoutMs: 10000 })
     return warnUnarmed($, r, reason)
   }
   // An idle handover saves and clears, whatever the relay's budget, and does not

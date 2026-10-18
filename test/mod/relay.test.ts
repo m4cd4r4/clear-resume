@@ -13,6 +13,7 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 import {
   IDLE_HANDOVER_TEXT,
+  IDLE_SMART_TEXT,
   IDLE_MARGIN_MS,
   IDLE_TICK_MS,
   idleDue,
@@ -759,6 +760,56 @@ describe('idle handover', () => {
     await relayOnce($, clock)
     expect(w.commands).toEqual(['clear'])
     expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT, 'Continue from the clear-resume handover that was just loaded.'])
+  })
+
+  const smart = (more: Record<string, string | number> = {}) => ({
+    options: { idle_handover: 'smart', cache_ttl_minutes: 10, ...more },
+  })
+
+  test('smart: the ask lets the model decline when finished, and still says the user is away', smart(), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.prompts).toEqual([IDLE_SMART_TEXT])
+    expect(IDLE_SMART_TEXT).toContain('Nothing to hand over.')
+    expect(IDLE_SMART_TEXT).toContain('wait for their answer; do not guess.')
+    expect(IDLE_SMART_TEXT).not.toBe(IDLE_HANDOVER_TEXT)
+    await clock.advance(100 * S)
+    expect(w.prompts).toEqual([IDLE_SMART_TEXT])
+  })
+
+  test('smart: a save clears and does not resume, as auto does', smart(), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.prompts).toEqual([IDLE_SMART_TEXT])
+  })
+
+  test('smart: an answer with no save leaves the session alone and says so', smart({ relay: '3' }), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await $.turn.complete(turn)
+    await clock.advance(5 * S)
+    expect(w.commands).toEqual([])
+    expect(w.toasts.some(t => t.startsWith('Idle check: no handover saved'))).toBe(true)
+    expect(w.prompts).toEqual([IDLE_SMART_TEXT])
+  })
+
+  test('smart: is a mode, and with a TTL under 10 minutes behaves as toast like auto', () => {
+    expect(idleMode(' Smart ')).toBe('smart')
+    expect(idleEffective('smart', 9)).toBe('toast')
+    expect(idleEffective('smart', 10)).toBe('smart')
+  })
+
+  test('auto: an answer with no save stays silent, the idle-check toast is smart only', auto({ relay: '3' }), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await $.turn.complete(turn)
+    expect(w.toasts.some(t => t.startsWith('Idle check'))).toBe(false)
   })
 
   test('auto: a tool call in flight turns it into a message', auto(), async ($, on) => {
