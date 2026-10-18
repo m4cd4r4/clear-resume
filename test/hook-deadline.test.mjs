@@ -57,14 +57,32 @@ afterEach(() => {
   // The hook's timeout kills git.exe only. On Windows the fake ssh it started (and
   // the sh.exe waiting on it) outlive it with a handle inside the store, so the
   // delete fails EBUSY until the hang ends - kill it here.
+  let killed = "no pid file";
   if (existsSync(hangPid)) {
     try {
       process.kill(Number(readFileSync(hangPid, "utf8")));
-    } catch {}
+      killed = "killed " + readFileSync(hangPid, "utf8");
+    } catch (e) {
+      killed = "kill failed " + e.code;
+    }
   }
-  // A killed child can hold its cwd for a moment on Windows (EBUSY); retry the delete.
-  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
-});
+  // DIAGNOSTIC (temporary): what holds the store on the Windows runner, and for how long.
+  const t0 = Date.now();
+  let procs = "";
+  for (;;) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      break;
+    } catch (e) {
+      if (!procs && process.platform === "win32") {
+        procs = spawnSync("powershell.exe", ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(git|sh|bash|node|ssh|git-remote.*)\\.exe$' } | ForEach-Object { \"$($_.ProcessId) <- $($_.ParentProcessId) $($_.Name) $($_.CommandLine)\" }"], { encoding: "utf8" }).stdout;
+      }
+      if (Date.now() - t0 > 30_000) throw new Error(`still ${e.code} after 30s; ${killed}\n${procs}`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
+  if (procs) throw new Error(`delete cleared after ${Date.now() - t0}ms; ${killed}\n${procs}`);
+}, 60_000);
 
 function sessionStart(extraEnv) {
   const env = { ...process.env, CLEAR_RESUME_HOME: home, CLEAR_RESUME_NO_PROCESS_WALK: "", CR_TEST_TABLE_LOG: tableLog, ...extraEnv };
