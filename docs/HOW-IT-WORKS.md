@@ -143,7 +143,7 @@ window, or `unlimited`. Set it the same way, for example `--config relay=10`. Se
 [The relay](#the-relay-clear-and-continue-with-no-keypress) below.
 
 Three more plugin options belong to the idle handover, which is off by default. `idle_handover` is
-`off`, `toast` or `auto` (anything else is off); `cache_ttl_minutes` is your prompt cache lifetime
+`off`, `toast`, `smart` or `auto` (anything else is off); `cache_ttl_minutes` is your prompt cache lifetime
 (default 60; 5 is the default with an API key); `idle_min_tokens` is the smallest context size
 (default 100000) at which it acts. See [Idle handover](#idle-handover-before-the-cache-expires).
 
@@ -225,7 +225,7 @@ the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 (n=
 priced cache reads higher: US$1.56 cold (n=3) against US$0.30 for the handover pair (n=1). The
 handover path continues from a note, not from the whole conversation.
 
-With `idle_handover` set to `toast` or `auto`, the relay mod checks every 30 seconds. It acts when
+With `idle_handover` set to `toast`, `smart` or `auto`, the relay mod checks every 30 seconds. It acts when
 all of these hold:
 
 - the session is interactive (not `claude -p`, not the headless runner);
@@ -241,7 +241,12 @@ all of these hold:
 short toast too. `auto` asks Claude for the handover with a prompt that says you are away and that
 an open question is the next action; when the handover is saved the session is cleared, with the
 relay on or off, and the fresh session loads the handover and then waits for you. The relay's
-"Continue from..." prompt is not sent. `auto` shows the status message instead when a tool call is
+"Continue from..." prompt is not sent. `smart` is `auto` where Claude may decline: its prompt says
+that if the work is finished and no step remains, Claude should reply "Nothing to hand over." and
+stop. Then nothing is saved, the session is not cleared, and a toast says so. The check rides on the
+warm turn `auto` already pays for, so it adds no call. A wrong "finished" costs the cold rewrite you
+would have paid anyway, and no work is lost; whether the model declines correctly was not measured.
+`auto` and `smart` show the status message instead when a tool call is
 running (it may be waiting on a permission prompt), when the machine just woke (the gap since the
 last check is over 60 seconds), and always when `cache_ttl_minutes` is under 10. Idle time is the
 difference between clock readings, so a laptop that slept is judged by the real time that passed.
