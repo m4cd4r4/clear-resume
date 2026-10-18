@@ -35,7 +35,7 @@ cp.execFileSync = function (cmd, args, opts) {
 require("module").syncBuiltinESMExports();
 `;
 
-let dir, home, repo, preload, tableLog, windows;
+let dir, home, repo, preload, tableLog, hangPid, windows;
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, stdio: "ignore" });
 const openWindow = () => spawn(process.execPath, ["-e", "setInterval(() => {}, 1e6)"], { stdio: "ignore" });
 
@@ -45,6 +45,7 @@ beforeEach(() => {
   repo = mkdtempSync(join(dir, "repo-"));
   preload = join(dir, "slow-table.cjs");
   tableLog = join(dir, "table-reads.log");
+  hangPid = join(dir, "hang.pid");
   writeFileSync(preload, SLOW_TABLE, "utf8");
   git(repo, "init", "-q", "-b", "main");
   git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init");
@@ -53,8 +54,27 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const w of windows) w.kill();
-  rmSync(dir, { recursive: true, force: true });
-});
+  // The hook's timeout kills git.exe only. On Windows the fake ssh it started (and
+  // the sh.exe waiting on it) outlive it for the hang's full 20s - kill it here.
+  if (existsSync(hangPid)) {
+    try {
+      process.kill(Number(readFileSync(hangPid, "utf8")));
+    } catch {}
+  }
+  // The store can stay locked (EBUSY) for under a second after that on the Windows
+  // runner. rmSync's own maxRetries did not retry there (Node 22.23, PR #122), so retry by hand.
+  const until = Date.now() + 10_000;
+  for (;;) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (e) {
+      if (e.code !== "EBUSY" && e.code !== "EPERM" && e.code !== "ENOTEMPTY") throw e;
+      if (Date.now() > until) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+    }
+  }
+}, 20_000);
 
 function sessionStart(extraEnv) {
   const env = { ...process.env, CLEAR_RESUME_HOME: home, CLEAR_RESUME_NO_PROCESS_WALK: "", CR_TEST_TABLE_LOG: tableLog, ...extraEnv };
@@ -79,7 +99,9 @@ describe("SessionStart owner lookup against the hook's 10s budget", () => {
     git(home, "remote", "add", "origin", "ssh://git@example.invalid/x.git");
     // Run from outside the store: Windows cannot delete a folder a live process sits in.
     const slash = (p) => p.replace(/\\/g, "/");
-    const hang = `cd "${slash(tmpdir())}" && exec "${slash(process.execPath)}" -e "setTimeout(() => {}, 20000)"`;
+    const hangScript = join(dir, "hang.cjs");
+    writeFileSync(hangScript, `require("fs").writeFileSync(${JSON.stringify(hangPid)}, String(process.pid)); setTimeout(() => {}, 20000);`, "utf8");
+    const hang = `cd "${slash(tmpdir())}" && exec "${slash(process.execPath)}" "${slash(hangScript)}"`;
 
     const { ms, stdout } = sessionStart({ CLAUDE_PID: mine, GIT_SSH_COMMAND: hang, GIT_TERMINAL_PROMPT: "0" });
 
