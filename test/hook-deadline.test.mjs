@@ -35,7 +35,7 @@ cp.execFileSync = function (cmd, args, opts) {
 require("module").syncBuiltinESMExports();
 `;
 
-let dir, home, repo, preload, tableLog, windows;
+let dir, home, repo, preload, tableLog, hangPid, windows;
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, stdio: "ignore" });
 const openWindow = () => spawn(process.execPath, ["-e", "setInterval(() => {}, 1e6)"], { stdio: "ignore" });
 
@@ -45,6 +45,7 @@ beforeEach(() => {
   repo = mkdtempSync(join(dir, "repo-"));
   preload = join(dir, "slow-table.cjs");
   tableLog = join(dir, "table-reads.log");
+  hangPid = join(dir, "hang.pid");
   writeFileSync(preload, SLOW_TABLE, "utf8");
   git(repo, "init", "-q", "-b", "main");
   git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init");
@@ -53,6 +54,14 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const w of windows) w.kill();
+  // The hook's timeout kills git.exe only. On Windows the fake ssh it started (and
+  // the sh.exe waiting on it) outlive it with a handle inside the store, so the
+  // delete fails EBUSY until the hang ends - kill it here.
+  if (existsSync(hangPid)) {
+    try {
+      process.kill(Number(readFileSync(hangPid, "utf8")));
+    } catch {}
+  }
   // A killed child can hold its cwd for a moment on Windows (EBUSY); retry the delete.
   rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
@@ -80,7 +89,9 @@ describe("SessionStart owner lookup against the hook's 10s budget", () => {
     git(home, "remote", "add", "origin", "ssh://git@example.invalid/x.git");
     // Run from outside the store: Windows cannot delete a folder a live process sits in.
     const slash = (p) => p.replace(/\\/g, "/");
-    const hang = `cd "${slash(tmpdir())}" && exec "${slash(process.execPath)}" -e "setTimeout(() => {}, 20000)"`;
+    const hangScript = join(dir, "hang.cjs");
+    writeFileSync(hangScript, `require("fs").writeFileSync(${JSON.stringify(hangPid)}, String(process.pid)); setTimeout(() => {}, 20000);`, "utf8");
+    const hang = `cd "${slash(tmpdir())}" && exec "${slash(process.execPath)}" "${slash(hangScript)}"`;
 
     const { ms, stdout } = sessionStart({ CLAUDE_PID: mine, GIT_SSH_COMMAND: hang, GIT_TERMINAL_PROMPT: "0" });
 
