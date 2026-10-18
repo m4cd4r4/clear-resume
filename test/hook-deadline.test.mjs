@@ -55,34 +55,26 @@ beforeEach(() => {
 afterEach(() => {
   for (const w of windows) w.kill();
   // The hook's timeout kills git.exe only. On Windows the fake ssh it started (and
-  // the sh.exe waiting on it) outlive it with a handle inside the store, so the
-  // delete fails EBUSY until the hang ends - kill it here.
-  let killed = "no pid file";
+  // the sh.exe waiting on it) outlive it for the hang's full 20s - kill it here.
   if (existsSync(hangPid)) {
     try {
       process.kill(Number(readFileSync(hangPid, "utf8")));
-      killed = "killed " + readFileSync(hangPid, "utf8");
-    } catch (e) {
-      killed = "kill failed " + e.code;
-    }
+    } catch {}
   }
-  // DIAGNOSTIC (temporary): what holds the store on the Windows runner, and for how long.
-  const t0 = Date.now();
-  let procs = "";
+  // The store can stay locked (EBUSY) for under a second after that on the Windows
+  // runner. rmSync's own maxRetries did not retry there (Node 22.23, PR #122), so retry by hand.
+  const until = Date.now() + 10_000;
   for (;;) {
     try {
       rmSync(dir, { recursive: true, force: true });
-      break;
+      return;
     } catch (e) {
-      if (!procs && process.platform === "win32") {
-        procs = spawnSync("powershell.exe", ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(git|sh|bash|node|ssh|git-remote.*)\\.exe$' } | ForEach-Object { \"$($_.ProcessId) <- $($_.ParentProcessId) $($_.Name) $($_.CommandLine)\" }"], { encoding: "utf8" }).stdout;
-      }
-      if (Date.now() - t0 > 30_000) throw new Error(`still ${e.code} after 30s; ${killed}\n${procs}`);
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+      if (e.code !== "EBUSY" && e.code !== "EPERM" && e.code !== "ENOTEMPTY") throw e;
+      if (Date.now() > until) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
     }
   }
-  if (procs) throw new Error(`delete cleared after ${Date.now() - t0}ms; ${killed}\n${procs}`);
-}, 60_000);
+}, 20_000);
 
 function sessionStart(extraEnv) {
   const env = { ...process.env, CLEAR_RESUME_HOME: home, CLEAR_RESUME_NO_PROCESS_WALK: "", CR_TEST_TABLE_LOG: tableLog, ...extraEnv };
