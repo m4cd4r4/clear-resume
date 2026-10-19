@@ -345,13 +345,11 @@ your remote is read, never written, and `~/.clear-resume` is never opened.
 A separate extension in [`extension/`](../extension/README.md) gives you a **Handovers**
 sidebar: browse every handover grouped into current repo, other repos and stale, pin one to
 keep it out of the timers, and resume one into a Claude Code tab with the prompt pre-filled and
-unsent. A **Loaded** group at the top lists the handovers loaded in the last 24 hours, and a
-status-bar item names the one this workspace loaded, such as
-`Handover: Cart totals rounding (loaded 3h ago)`. Either opens the readable copy. It reads and
-writes the same store as the plugin.
+unsent. A **Loaded** group at the top lists the handovers loaded in the last 24 hours, and
+opens the readable copy. It reads and writes the same store as the plugin.
 
-Two more status-bar items follow the Claude session in that window. A **context pie** fills
-towards `nudge_at`: amber from 80%, red past it. Its hover card shows the relay, the chain of
+Two status-bar items follow the Claude session in that window. A **context pie** fills
+towards `nudge_at`: amber from 80%, red past it. Its hover card shows the handover that tab loaded (such as `Handover: Cart totals rounding (loaded 3h ago)`, with a link to open it), the relay, the chain of
 sessions it has continued, and an upper bound on what the clears saved. A **relay** item shows
 the window's clears used against its budget; click it to pick a new budget or turn the relay off,
 the same as typing `/relay` in that window. A **Worktrees** view lists the repo's git worktrees,

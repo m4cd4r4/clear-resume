@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import * as vscode from "vscode";
 import { ownedProcess } from "./window-owner";
-import { storeRoot } from "../../plugin/packages/store/store.mjs";
+import { storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { statusText } from "../../plugin/packages/store/view.mjs";
 import {
   chainTotals,
   effective,
@@ -208,7 +209,11 @@ class Transcripts {
  * relay and hand-over items show only once the relay mod has written state for a
  * workspace folder.
  */
-export function statsStatus(context: vscode.ExtensionContext, openHandover: () => void): void {
+export function statsStatus(
+  context: vscode.ExtensionContext,
+  loaded: (pid: string | null) => StoredHandover | null,
+  openHandover: (record: StoredHandover | null) => void,
+): void {
   const pieItem = vscode.window.createStatusBarItem("clearResume.context", vscode.StatusBarAlignment.Left, 1);
   pieItem.name = "clear-resume: context";
   const relayItem = vscode.window.createStatusBarItem("clearResume.relay", vscode.StatusBarAlignment.Left, 0.5);
@@ -224,6 +229,10 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
   let focused: string | null = null;
+  // "tab" when the footer follows the focused tab's own relay file, else "window".
+  let scope = "window";
+  // The handover the hover card names, which the pie's click and "Open handover" open.
+  let shown: StoredHandover | null = null;
   let busy = false;
   let rerun = false;
   // Two windows on one folder each show their own session: a Claude process is
@@ -245,11 +254,12 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
       // The focused tab's session, when compass has named it; sticky while a file tab has focus.
       const tab = rowForTab(compassRows(), vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? "", Date.now());
       if (tab) focused = tab.id;
+      const procs = claudeProcesses();
       const live = withFocus(
-        liveSessions(claudeProcesses(), (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),
+        liveSessions(procs, (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),
         focused,
       );
-      window = roots.length ? pickWindow(relayFiles(), roots, live) : null;
+      window = roots.length ? pickWindow(relayFiles(), roots, { ...live, focused }) : null;
       const pick = pickSession({
         focused,
         chain: window?.sessions ?? [],
@@ -257,6 +267,11 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
         newest: live.mine.length ? null : newestSession(roots[0] ?? ""),
       });
       const sessions = pick.sessions;
+      scope = pick.byTab ? "tab" : "window";
+      // The handover is the shown tab's own: the one its Claude process loaded.
+      // With no tab to go by, the window's.
+      const shownPid = pick.byTab ? procs.find((p) => p.sessionId === sessions.at(-1))?.pid : undefined;
+      shown = loaded(shownPid === undefined ? null : String(shownPid));
       const usages: Usage[] = [];
       for (const id of sessions) {
         const u = await transcripts.usage(id, window?.cwd ?? roots[0]);
@@ -283,10 +298,11 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
             relay,
             totals: chainTotals(usages),
             links: {
-              handover: "command:clearResume.openContextHandover",
+              handover: shown ? "command:clearResume.openContextHandover" : undefined,
               log: window ? "command:clearResume.relayLog" : undefined,
             },
             scope: pick.byTab ? "tab" : "window",
+            handover: shown ? statusText(shown, new Date()) : undefined,
           }),
         );
         md.isTrusted = { enabledCommands: ["clearResume.openContextHandover", "clearResume.relayLog"] };
@@ -298,8 +314,8 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
         const relay = effective(window, readJson<RelaySet>(setPath(window.key)));
         relayItem.text = relayText(relay);
         relayItem.tooltip = relay.pending
-          ? "Relay budget for this window (takes effect after the next reply). Click to change."
-          : "Relay budget for this window: clears used of the limit. Click to change.";
+          ? `Relay budget for this ${scope} (takes effect after the next reply). Click to change.`
+          : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
         const own = windowNudge(window.key);
@@ -311,7 +327,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
         nudgeItem.show();
         handoverItem.tooltip =
           relay.limit === 0
-            ? "Have Claude write a handover now. The relay is off in this window, so type /clear when it is saved."
+            ? `Have Claude write a handover now. The relay is off in this ${scope}, so type /clear when it is saved.`
             : "Have Claude write a handover now, then clear and continue from it. Waits for the current reply to finish.";
         handoverItem.show();
       } else {
@@ -354,7 +370,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
     }));
     // Opened on the current budget, so Enter alone changes nothing.
     const qp = vscode.window.createQuickPick<(typeof items)[number]>();
-    qp.title = "Relay for this window";
+    qp.title = `Relay for this ${scope}`;
     qp.placeholder = `Now: ${relayText(now)}. The count starts over from the next reply.`;
     qp.items = items;
     const cur = items.find((i) => i.current);
@@ -443,7 +459,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
 
   context.subscriptions.push(
     vscode.commands.registerCommand("clearResume.handoverNow", handoverNow),
-    vscode.commands.registerCommand("clearResume.openContextHandover", openHandover),
+    vscode.commands.registerCommand("clearResume.openContextHandover", () => openHandover(shown)),
     vscode.commands.registerCommand("clearResume.pickRelay", pickRelay),
     vscode.commands.registerCommand("clearResume.pickNudge", pickNudge),
     vscode.commands.registerCommand("clearResume.relayLog", async () => {

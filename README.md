@@ -226,12 +226,12 @@ These are the common cases. After compaction, only this window's own handover lo
 ## Optional: a VS Code sidebar and a nudge when the chat gets long
 
 <p align="center">
-  <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the clear-resume sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor, and the status bar reads: Handover: Cart totals rounding (loaded 3h ago).">
+  <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the clear-resume sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor.">
 </p>
 
-**The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. The status bar names the handover this workspace loaded; click it to open the copy. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, where it waits for you to send it.
+**The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, where it waits for you to send it.
 
-It also adds a context pie to the status bar, filling towards the nudge size, and a relay item that shows the window's clears left and changes them with a click. A **Worktrees** view lists the repo's git worktrees and opens each in its own window. [Extension README](extension/README.md)
+It also adds a context pie to the status bar, filling towards the nudge size (hover it to see which handover the tab loaded), and a relay item that shows the window's clears left and changes them with a click. A **Worktrees** view lists the repo's git worktrees and opens each in its own window. [Extension README](extension/README.md)
 
 Search for clear-resume in the Extensions view, or run:
 

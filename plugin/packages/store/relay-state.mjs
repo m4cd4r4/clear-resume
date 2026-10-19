@@ -74,9 +74,15 @@ export function pickSession({ focused, chain = [], mine = [], newest = null }) {
 // wins, wherever its cwd is. Otherwise the newest file whose cwd is in one of the
 // workspace folders, leaving out any that holds another window's live session.
 // A reload writes a new file, so the newest is the live one.
-export function pickWindow(files, roots, { mine = [], theirs = [] } = {}) {
+// With a `focused` session, the file holding it wins outright: each tab has its
+// own relay budget, so the footer follows the tab like the pie does.
+export function pickWindow(files, roots, { mine = [], theirs = [], focused = null } = {}) {
   const under = roots.map(normalisePath);
   const has = (f, ids) => ids.some((id) => f.sessions?.includes(id));
+  if (focused) {
+    const tab = files.filter((f) => f && has(f, [focused])).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (tab) return tab;
+  }
   let own = null;
   let best = null;
   for (const f of files) {
@@ -196,11 +202,15 @@ function relayLine(r) {
 }
 
 // The pie's hover card, as Markdown. `links` holds command URIs; one left out
-// is not shown. `scope` ("tab" or "window") says whose number it is.
-export function hoverText({ context, threshold, relay, totals, links, scope }) {
+// is not shown. `scope` ("tab" or "window") says whose number it is. `handover`
+// is the status line for the handover this tab loaded (`Handover: <title> (loaded
+// 3h ago)`), left out when there is none.
+export function hoverText({ context, threshold, relay, totals, links, scope, handover }) {
   const out = [`\`${pie(context, threshold).bar}\` ${k(context)} of ${k(threshold)} nudge${scope ? ` · this ${scope}` : ""}`];
   const r = relayLine(relay);
   if (r) out.push(r);
+  // A title is the user's text: keep Markdown and HTML in it from rendering.
+  if (handover) out.push(handover.replace(/[\\`*_[\]<>]/g, "\\$&"));
   out.push(
     `This chain: ${k(totals.tokens)} tokens read over ${totals.replies} repl${totals.replies === 1 ? "y" : "ies"} in ${totals.sessions} session${totals.sessions === 1 ? "" : "s"}` +
       (totals.saved > 0 ? `, saved up to ~${k(totals.saved)} (an upper bound)` : ""),
