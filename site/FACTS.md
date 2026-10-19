@@ -90,7 +90,7 @@ F45 | page: "It stays out of the way for a subagent's save, a failed save, an in
 
 ## Nudge default and settings
 
-F24 | page: "The nudge is off by default. Past 180k tokens of context (the default; Nudge at changes it), the plugin asks Claude once per session to save a handover." | source: "**The nudge** (auto mode) is off by default." | README.md:245 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover" | README.md:245
+F24 | page: "The nudge is off by default. Past 180k tokens of context (the default; Nudge at changes it), the plugin asks Claude to save a handover." | source: "**The nudge** (auto mode) is off by default." | README.md:245 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover" | README.md:245
 
 ## Comparison (README.md:115 to 122)
 
@@ -127,17 +127,17 @@ F130 | page: "work" | source: "Claude carries on from the handover." | README.md
 F131 | page: "the chat grows" | source: "when a chat has grown long" | README.md:40
 F132 | page: "nudge" | source: "**The nudge** (auto mode) is off by default." | README.md:245
 F133 | page: "with the nudge on" | source: "To turn it on" | README.md:251
-F134 | page: "asks Claude to save" | source: "the plugin asks Claude once per session to save a handover" | README.md:245
+F134 | page: "asks Claude to save" | source: "the plugin asks Claude to save a handover" | README.md:245
 F135 | page: "save" | source: "**Save a handover.**" | README.md:145
 F136 | page: "Claude writes a handover" | source: "Then it writes a short note about the work, called a handover" | README.md:149
-F137 | page: "you ask, or the nudge does" | source: "| 1. **Save a handover.** | `/clear-resume:handover` |" | README.md:145 | source: "the plugin asks Claude once per session to save a handover" | README.md:245
+F137 | page: "you ask, or the nudge does" | source: "| 1. **Save a handover.** | `/clear-resume:handover` |" | README.md:145 | source: "the plugin asks Claude to save a handover" | README.md:245
 F138 | page: "you type it" | source: "| 2. **Clear.** | `/clear` |" | README.md:146
 F139 | page: "or the plugin, with the relay on" | source: "the plugin runs `/clear` when the turn ends" | README.md:87
 F140 | page: "load" | source: "The fresh session starts with the handover already loaded." | README.md:146
 F141 | page: "the fresh session loads it" | source: "The fresh session starts with the handover already loaded." | README.md:146
 F142 | page: "carry on" | source: "**Carry on.**" | README.md:147
 F143 | page: "Claude works and the chat grows." | source: "when a chat has grown long" | README.md:40
-F144 | page: "With the nudge on, past the size you set, the plugin asks Claude to save a handover." | source: "Claude saves a handover at the size you set." | README.md:84 | source: "the plugin asks Claude once per session to save a handover" | README.md:245
+F144 | page: "With the nudge on, past the size you set, the plugin asks Claude to save a handover." | source: "Claude saves a handover at the size you set." | README.md:84 | source: "the plugin asks Claude to save a handover" | README.md:245
 F145 | page: "Claude saves a handover: you type /clear-resume:handover, or the nudge asks." | source: "| 1. **Save a handover.** | `/clear-resume:handover` |" | README.md:145 | source: "Claude is asked to save a handover" | README.md:242
 F146 | page: "/clear: you type it, or the plugin runs it when the turn ends, with the relay on." | source: "| 2. **Clear.** | `/clear` |" | README.md:146 | source: "the plugin runs `/clear` when the turn ends" | README.md:87
 F147 | page: "The fresh session loads the handover, and Claude carries on." | source: "The fresh session starts with the handover already loaded." | README.md:146 | source: "Claude carries on from the handover." | README.md:147
@@ -198,7 +198,7 @@ F196 | page: "Each reply adds 5000 new tokens to the context: assumed." | source
 F197 | page: "Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply." | source: "Claude rereads the whole context for every reply." | README.md:120 | source: "reread += ctx;" | site/model.js:27
 F198 | page: "After a clear, the run restarts at the start size plus the handover: about 780 tokens in the handover, an estimate. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians." | source: "clear: walk(opts.start, opts.work, opts.clearAt, opts.start + HANDOVER)," | site/model.js:37 | source: "About 780 tokens in the handover, an estimate" | README.md:183 | source: "Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians." | README.md:183
 F199 | page: "Without clear-resume, the run compacts at nine tenths of the window and keeps an 8000-token summary: both assumed." | source: "var SUMMARY = 8000;" | site/model.js:5 | source: "var COMPACT_AT = 0.9;" | site/model.js:6
-F200 | page: "The model clears at or below the clear-at size. The plugin asks Claude to save once context is past the size you set, and Claude then saves, so in use, peaks pass it." | source: "if (ctx + add > limit) {" | site/model.js:20 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover" | README.md:245
+F200 | page: "The model clears at or below the clear-at size. The plugin asks Claude to save once context is past the size you set, and Claude then saves, so in use, peaks pass it." | source: "if (ctx + add > limit) {" | site/model.js:20 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover" | README.md:245
 
 ## Measured by hand (lines that cite the block above)
 
@@ -221,7 +221,7 @@ F206 | page: "Settings" | source: "six options that are not set yet" | README.md
 F207 | page: "After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default." | source: "Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default." | README.md:38
 F208 | page: "Nudge to save a handover" | source: "switch on **Nudge to save a handover**" | README.md:251
 F209 | page: "Default: off" | source: "**The nudge** (auto mode) is off by default." | README.md:245
-F210 | page: "Turns the nudge on. Past the Nudge at size, the plugin asks Claude once per session to save a handover, and prints a status line saying so." | source: "To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**" | README.md:251 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so." | README.md:245
+F210 | page: "Turns the nudge on. Past the Nudge at size, the plugin asks Claude to save a handover, and prints a status line saying so." | source: "To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**" | README.md:251 | source: "Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so." | README.md:245
 F211 | page: "Source: the README." | source: "**The nudge** (auto mode) is off by default." | README.md:245
 F212 | page: "Nudge at" | source: "(the default; **Nudge at** changes it)" | README.md:245
 F213 | page: "Default: 180k tokens" | source: "Past 180k tokens of context (the default;" | README.md:245
@@ -276,20 +276,20 @@ F255 | page: "VS Code extension 0.4.0: a context pie in the status bar, a relay 
 
 ## how-it-works.html: what's inside
 
-F257 | page: "What's inside" | source: "## What's inside" | docs/HOW-IT-WORKS.md:470
-F258 | page: "One skill" | source: "one skill, three hooks, one Claude Code mod and a shared" | docs/HOW-IT-WORKS.md:472
+F257 | page: "What's inside" | source: "## What's inside" | docs/HOW-IT-WORKS.md:475
+F258 | page: "One skill" | source: "one skill, three hooks, one Claude Code mod and a shared" | docs/HOW-IT-WORKS.md:477
 F259 | page: "Claude writes the handover and saves it with save.mjs, which reads it on stdin." | source: "Save a handover for the current repo. The body is read from stdin." | plugin/scripts/save.mjs:2
 F260 | page: "Three hooks" | source: "Entry point for the three hooks" | plugin/scripts/hook-entry.cjs:1
 F261 | page: "SessionStart loads the waiting handover at startup, /clear and compaction, then archives it so it loads once. PostToolUse and Stop check the context size for the nudge and the relay." | source: "`SessionStart` (startup, clear and compact) loads a waiting handover." | plugin/README.md:23 | source: "then archives it so it loads exactly once." | plugin/scripts/session-start.mjs:3 | source: "`PostToolUse` and `Stop` check the context size for the nudge and the relay." | plugin/README.md:23
 F262 | page: "Any failure exits 0 with no output: a broken plugin must never block a session." | source: "Any failure exits 0 with no output: a broken plugin must never block a session." | plugin/scripts/session-start.mjs:4
-F263 | page: "One Claude Code mod" | source: "### The relay mod (`hooks/relay.ts`)" | plugin/README.md:30 | source: "one skill, three hooks, one Claude Code mod and a shared" | docs/HOW-IT-WORKS.md:472
+F263 | page: "One Claude Code mod" | source: "### The relay mod (`hooks/relay.ts`)" | plugin/README.md:30 | source: "one skill, three hooks, one Claude Code mod and a shared" | docs/HOW-IT-WORKS.md:477
 F264 | page: "A mod is a function-hooks module that runs inside Claude Code. This one is the relay: after Claude saves a handover, it runs /clear and submits the prompt that continues from it." | source: "A mod is a function-hooks module that runs inside Claude Code. This one runs the relay." | plugin/README.md:32 | source: "`/clear`, once after Claude saves a handover" | plugin/README.md:36 | source: "After the clear, as if you typed it:" | plugin/README.md:37
 F265 | page: "By default the one program it starts is git rev-parse HEAD, for the stall guard. It sends nothing anywhere." | source: "One by default: `git rev-parse HEAD` in the current repo" | plugin/README.md:35 | source: "The stall guard compares the commit before and after each continued session" | plugin/README.md:35 | source: "It sends nothing anywhere." | plugin/README.md:41
 F266 | page: "One store" | source: "Reader and writer for the unified handover store." | plugin/packages/store/store.mjs:1
 F267 | page: "One record schema, shared by the plugin and the VS Code extension. Every reader and writer goes through it, so the files on disk are defined in one place." | source: "ONE schema shared by the plugin" | plugin/packages/store/schema.mjs:1 | source: "and the VS Code extension." | plugin/packages/store/schema.mjs:2 | source: "so every reader and writer goes through here." | plugin/packages/store/schema.mjs:3 | source: "shape is defined in exactly one place." | plugin/packages/store/store.mjs:3
 F268 | page: "Sync, when you turn it on, is a git transport on top of it." | source: "Git transport for the handover store." | plugin/packages/store/sync.mjs:1
-F269 | page: "An install copies plugin/ and nothing else. It has no package.json, so an install runs no npm." | source: "An install copies `plugin/` and nothing else." | docs/HOW-IT-WORKS.md:549 | source: "`plugin/` has no `package.json`, so an install runs no `npm`," | docs/HOW-IT-WORKS.md:550
-F270 | page: "Source: the source files, the plugin README and How it works." | source: "### The relay mod (`hooks/relay.ts`)" | plugin/README.md:30 | source: "## What's inside" | docs/HOW-IT-WORKS.md:470
+F269 | page: "An install copies plugin/ and nothing else. It has no package.json, so an install runs no npm." | source: "An install copies `plugin/` and nothing else." | docs/HOW-IT-WORKS.md:554 | source: "`plugin/` has no `package.json`, so an install runs no `npm`," | docs/HOW-IT-WORKS.md:555
+F270 | page: "Source: the source files, the plugin README and How it works." | source: "### The relay mod (`hooks/relay.ts`)" | plugin/README.md:30 | source: "## What's inside" | docs/HOW-IT-WORKS.md:475
 
 ## Footer
 
