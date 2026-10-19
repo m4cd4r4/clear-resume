@@ -106,6 +106,12 @@ Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-
 
 **Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
 
+To change it, use any one of these (new sessions pick it up; the range is 50000 to 1000000):
+
+- `/plugin configure clear-resume@clear-resume`, or `/config`, then **Nudge at**
+- `claude plugin install clear-resume@clear-resume --config nudge_at=150000`
+- the `CLEAR_RESUME_NUDGE_AT` environment variable, which wins over the option
+
 </details>
 
 ## Why: in a long chat, the work gets buried
