@@ -229,6 +229,8 @@ export function statsStatus(
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
   let focused: string | null = null;
+  // "tab" when the footer follows the focused tab's own relay file, else "window".
+  let scope = "window";
   // The handover the hover card names, which the pie's click and "Open handover" open.
   let shown: StoredHandover | null = null;
   let busy = false;
@@ -265,6 +267,7 @@ export function statsStatus(
         newest: live.mine.length ? null : newestSession(roots[0] ?? ""),
       });
       const sessions = pick.sessions;
+      scope = pick.byTab ? "tab" : "window";
       // The handover is the shown tab's own: the one its Claude process loaded.
       // With no tab to go by, the window's.
       const shownPid = pick.byTab ? procs.find((p) => p.sessionId === sessions.at(-1))?.pid : undefined;
@@ -311,8 +314,8 @@ export function statsStatus(
         const relay = effective(window, readJson<RelaySet>(setPath(window.key)));
         relayItem.text = relayText(relay);
         relayItem.tooltip = relay.pending
-          ? "Relay budget for this window (takes effect after the next reply). Click to change."
-          : "Relay budget for this window: clears used of the limit. Click to change.";
+          ? `Relay budget for this ${scope} (takes effect after the next reply). Click to change.`
+          : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
         const own = windowNudge(window.key);
@@ -324,7 +327,7 @@ export function statsStatus(
         nudgeItem.show();
         handoverItem.tooltip =
           relay.limit === 0
-            ? "Have Claude write a handover now. The relay is off in this window, so type /clear when it is saved."
+            ? `Have Claude write a handover now. The relay is off in this ${scope}, so type /clear when it is saved.`
             : "Have Claude write a handover now, then clear and continue from it. Waits for the current reply to finish.";
         handoverItem.show();
       } else {
@@ -367,7 +370,7 @@ export function statsStatus(
     }));
     // Opened on the current budget, so Enter alone changes nothing.
     const qp = vscode.window.createQuickPick<(typeof items)[number]>();
-    qp.title = "Relay for this window";
+    qp.title = `Relay for this ${scope}`;
     qp.placeholder = `Now: ${relayText(now)}. The count starts over from the next reply.`;
     qp.items = items;
     const cur = items.find((i) => i.current);
