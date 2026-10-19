@@ -74,7 +74,7 @@ export function pickSession(opts: {
   mine?: string[];
   newest?: string | null;
 }): { sessions: string[]; byTab: boolean };
-export function pickWindow(files: RelayFile[], roots: string[], sessions?: Partial<WindowSessions>): RelayFile | null;
+export function pickWindow(files: RelayFile[], roots: string[], sessions?: Partial<WindowSessions> & { focused?: string | null }): RelayFile | null;
 export function projectDirName(cwd: string): string;
 export function newUsage(): Usage;
 export function feedUsage(u: Usage, text: string): Usage;
@@ -90,6 +90,7 @@ export function hoverText(opts: {
   totals: ChainTotals;
   links: { handover?: string; log?: string };
   scope?: "tab" | "window";
+  handover?: string;
 }): string;
 export function budget(raw: unknown): number;
 export function effective(file: RelayFile, set: RelaySet | null | undefined): Effective;

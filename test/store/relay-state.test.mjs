@@ -33,6 +33,15 @@ describe("pickWindow", () => {
     expect(pickWindow(files, ["I:/code/acme"], { mine: ["a2"], theirs: ["b1"] })?.key).toBe("mine");
   });
 
+  it("with a focused tab, takes the file holding that tab's session even when another of this window's files is newer", () => {
+    const files = [
+      state({ key: "off-tab", sessions: ["a1"], limit: 0, updatedAt: 1000 }),
+      state({ key: "other-tab", sessions: ["a2"], updatedAt: 5000 }),
+    ];
+    expect(pickWindow(files, ["I:/code/acme"], { mine: ["a1", "a2"], focused: "a1" })?.key).toBe("off-tab");
+    expect(pickWindow(files, ["I:/code/acme"], { mine: ["a2", "a1"] })?.key).toBe("other-tab");
+  });
+
   it("never shows another live window's file; unknown ownership falls back to the newest", () => {
     const files = [state({ key: "old", sessions: ["x"], updatedAt: 1000 }), state({ key: "theirs", sessions: ["b1"], updatedAt: 5000 })];
     expect(pickWindow(files, ["I:/code/acme"], { theirs: ["b1"] })?.key).toBe("old");
@@ -148,6 +157,21 @@ describe("hoverText", () => {
       "This chain: 1234k tokens read over 31 replies in 4 sessions, saved up to ~950k (an upper bound)",
       "[Open handover](command:clearResume.openLoaded) · [Relay log](command:clearResume.relayLog)",
     ]);
+  });
+
+  it("puts the loaded handover line after the relay line and escapes Markdown in the title", () => {
+    const md = hoverText({
+      context: 0,
+      threshold: 180_000,
+      relay: { limit: 5, used: 1, pending: false },
+      totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 },
+      links: {},
+      handover: "Handover: Fix *bold* <b>x</b> (loaded 3h ago)",
+    });
+    const parts = md.split("\n\n");
+    expect(parts[1]).toContain("Relay:");
+    expect(parts[2]).toBe("Handover: Fix \\*bold\\* \\<b\\>x\\</b\\> (loaded 3h ago)");
+    expect(hoverText({ context: 0, threshold: 180_000, relay: null, totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 }, links: {} })).not.toContain("Handover");
   });
 
   it("says when the relay is off, unlimited or waiting for the next turn, and drops a link it was not given", () => {
