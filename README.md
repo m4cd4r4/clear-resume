@@ -245,7 +245,7 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** (auto mode) is off by default. Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude once per session to save a handover, and prints a status line saying so. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
+**The nudge** (auto mode) is off by default. Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
 
 <details>
 <summary><b>Turn the nudge on</b></summary>
