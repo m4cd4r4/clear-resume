@@ -16,6 +16,12 @@ const call = (ctx, extra = {}) =>
     ...extra,
   });
 
+// What the transcript holds after a nudge: the ask itself, then Claude's turns.
+const askLine = () => JSON.stringify({ type: "attachment", text: "clear-resume auto mode: this session's context is about 185k tokens (threshold 180k)." });
+const assistantText = (text) => JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "text", text }] } });
+const saveCall = (name = "Skill", input = { skill: "clear-resume:handover" }) =>
+  JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "tool_use", name, input }] } });
+
 let dir, root, transcript;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cr-auto-"));
@@ -72,13 +78,62 @@ describe("Stop nudge", () => {
     expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
   });
 
-  it("nudges once past the threshold, then never again that session", () => {
+  // The measured failure (2026-10-19, 6 of 21 sessions): the mid-turn nudge was
+  // ignored, the turn ended with a normal report, and the one-shot mark meant
+  // nothing asked again however far past the threshold the session went.
+  it("asks again at a turn end when the ask was ignored, up to three asks in all", () => {
+    write(call(185_000), askLine(), assistantText("Tests pass. Deploying to the VPS bot."));
+    runStop(input(), { env: env() }); // the first ask
+    const second = runStop(input(), { env: env() });
+    expect(second.systemMessage).toMatch(/ask 2 of 3/);
+    expect(second.hookSpecificOutput.additionalContext).toMatch(/neither saved one nor replied/);
+    expect(second.hookSpecificOutput.additionalContext).toContain("Nothing to hand over.");
+    expect(second.hookSpecificOutput.additionalContext).toContain("Handover not yet:");
+    expect(second.decision).toBeUndefined();
+    expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 3 of 3/);
+    expect(runStop(input(), { env: env() })).toBeNull();
+  });
+
+  it("stops asking once a handover was saved, by skill or by save.mjs", () => {
+    write(call(185_000), askLine(), saveCall());
+    runStop(input(), { env: env() }); // the first ask
+    expect(runStop(input(), { env: env() })).toBeNull();
+    write(call(185_000), askLine(), saveCall("Bash", { command: 'node "/p/save.mjs" --title x' }));
+    runStop(input({ session_id: "s2" }), { env: env() });
+    expect(runStop(input({ session_id: "s2" }), { env: env() })).toBeNull();
+  });
+
+  it("a reply of 'Nothing to hand over.' holds the next ask back until the context grows 40k", () => {
+    write(call(185_000), askLine(), assistantText("Nothing to hand over."));
+    runStop(input(), { env: env() }); // the first ask
+    expect(runStop(input(), { env: env() })).toBeNull();
+    write(call(185_000), askLine(), assistantText("Nothing to hand over."), call(226_000));
+    expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
+  });
+
+  it("a deferral counts as an answer, and under the headless runner it never repeats", () => {
+    write(call(185_000), askLine(), assistantText("Handover not yet: the deploy is mid-flight."));
+    runStop(input(), { env: env() }); // the first ask
+    expect(runStop(input(), { env: env() })).toBeNull();
+    write(call(200_000));
+    const headless = { ...env(), CLEAR_RESUME_HEADLESS: "1" };
+    expect(runStop(input({ session_id: "h" }), { env: headless })).not.toBeNull();
+    expect(runStop(input({ session_id: "h" }), { env: headless })).toBeNull();
+  });
+
+  it("reads a mark written by an older build as one ask", () => {
+    write(call(185_000));
+    mkdirSync(join(root, ".nudged"), { recursive: true });
+    writeFileSync(join(root, ".nudged", "s1"), new Date().toISOString(), "utf8");
+    expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
+  });
+
+  it("asks once past the threshold, per session", () => {
     write(call(185_000));
     const out = runStop(input(), { env: env() });
     expect(out.hookSpecificOutput.hookEventName).toBe("Stop");
     expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
     expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
-    expect(runStop(input(), { env: env() })).toBeNull();
     expect(runStop(input({ session_id: "s2" }), { env: env() }).hookSpecificOutput.hookEventName).toBe("Stop");
   });
 
@@ -256,9 +311,13 @@ describe("mid-turn nudge", () => {
   });
 
   it("fires once per session, and shares the mark with the Stop nudge", () => {
-    write(call(185_000));
+    write(call(185_000), askLine());
     expect(runMidTurn(input(), { env: env() })).not.toBeNull();
     expect(runMidTurn(input(), { env: env() })).toBeNull();
+    // Claude has not saved or answered, so the Stop hook asks again at the turn end.
+    expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
+    // Once it has saved, the Stop hook leaves it alone.
+    write(call(185_000), askLine(), saveCall());
     expect(runStop(input(), { env: env() })).toBeNull();
   });
 

@@ -98,15 +98,86 @@ export function threshold(env, sessionId) {
 
 const k = (n) => `${Math.round(n / 1000)}k`;
 
-// True the first time this session claims the nudge. Both nudges share the mark
-// so the user is interrupted once per session, whichever trigger gets there.
-function claimNudge(env, sessionId) {
+// The .nudged mark holds { asks, tokens }: how many times Claude was asked in
+// this session and the context size at the last ask. A mark written by an older
+// build is a bare timestamp and counts as one ask.
+function readMark(env, sessionId) {
+  const mark = join(storeRoot(env), ".nudged", sessionId);
+  if (!existsSync(mark)) return null;
+  try {
+    const m = JSON.parse(readFileSync(mark, "utf8"));
+    if (Number.isFinite(m?.asks)) return { asks: m.asks, tokens: Number(m.tokens) || 0 };
+  } catch {
+    // A bare timestamp from an older build.
+  }
+  return { asks: 1, tokens: 0 };
+}
+
+function writeMark(env, sessionId, mark) {
   const marks = join(storeRoot(env), ".nudged");
-  const mark = join(marks, sessionId);
-  if (existsSync(mark)) return false;
   mkdirSync(marks, { recursive: true });
-  writeFileSync(mark, new Date().toISOString(), "utf8");
+  writeFileSync(join(marks, sessionId), JSON.stringify({ ...mark, at: new Date().toISOString() }), "utf8");
+}
+
+// True the first time this session claims the nudge. Both nudges share the mark,
+// so the first ask is made once per session, whichever trigger gets there.
+function claimNudge(env, sessionId, tokens) {
+  if (readMark(env, sessionId)) return false;
+  writeMark(env, sessionId, { asks: 1, tokens });
   return true;
+}
+
+// Every ask carries this line, so the next Stop can find the last one in the
+// transcript and see what Claude did after it.
+const ASK_MARK = "clear-resume auto mode";
+export const MAX_ASKS = 3;
+// After Claude answers without saving, ask again only once the context has grown by this much.
+const ANSWERED_GROWTH = 40_000;
+const FINISHED_REPLY = "Nothing to hand over.";
+const DEFER_REPLY = "Handover not yet:";
+
+// What Claude did since the last ask, read from the transcript tail: "saved" (a
+// handover skill or save.mjs call), "finished" or "deferred" (it replied with one
+// of the two answers the ask offers), or null (neither, as if it never saw it).
+export function answerSince(transcriptPath) {
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+  for (const bytes of TAIL_STEPS) {
+    const { text, whole } = readTail(transcriptPath, bytes);
+    const lines = text.split("\n");
+    let at = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].includes(ASK_MARK)) {
+        at = i;
+        break;
+      }
+    }
+    if (at < 0) {
+      if (whole) return null;
+      continue;
+    }
+    let answer = null;
+    for (const line of lines.slice(at + 1)) {
+      if (!line.includes('"type":"assistant"')) continue;
+      let row;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (row.isSidechain) continue;
+      for (const b of row.message?.content ?? []) {
+        if (b.type === "tool_use") {
+          const cmd = `${b.input?.skill ?? ""} ${b.input?.command ?? ""}`;
+          if ((b.name === "Skill" && /handover/.test(cmd)) || (b.name === "Bash" && /save\.mjs/.test(cmd))) return "saved";
+        } else if (b.type === "text") {
+          if (b.text.includes(FINISHED_REPLY)) answer = "finished";
+          else if (b.text.includes(DEFER_REPLY)) answer = answer ?? "deferred";
+        }
+      }
+    }
+    return answer;
+  }
+  return null;
 }
 
 export function runStop(input, { env = process.env } = {}) {
@@ -119,7 +190,11 @@ export function runStop(input, { env = process.env } = {}) {
   const limit = threshold(env, sessionId);
   if (tokens == null || tokens < limit) return null;
 
-  if (!claimNudge(env, sessionId)) return null;
+  if (!claimNudge(env, sessionId, tokens)) {
+    // Asked before. Under the headless runner the process ending is the answer.
+    if (headless(env)) return null;
+    return remind(env, sessionId, input.transcript_path, tokens, limit);
+  }
 
   if (headless(env)) {
     return {
@@ -142,8 +217,33 @@ export function runStop(input, { env = process.env } = {}) {
           ? `${RELAY_FINISHED}Otherwise, at a clean stopping point, write a handover now with the /clear-resume:handover skill, `
           : `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, `) +
         `${afterSave(env)} ` +
-        `If you are mid-task, finish the current step first, or tell the user why a clear should wait. ` +
-        `This reminder fires once per session.`,
+        `If you are mid-task, finish the current step first, then save, or reply "${DEFER_REPLY} <reason>". ` +
+        `If this is asked again at a turn end, it is because you neither saved nor replied.`,
+    },
+  };
+}
+
+// The ask was made and Claude neither saved nor answered it: ask again at this
+// turn end, up to MAX_ASKS in all. An answer ("Nothing to hand over." or "Handover
+// not yet: ...") holds the next ask back until the context has grown by
+// ANSWERED_GROWTH; a saved handover ends the asks (the relay clears on it).
+function remind(env, sessionId, transcriptPath, tokens, limit) {
+  const mark = readMark(env, sessionId);
+  if (!mark || mark.asks >= MAX_ASKS) return null;
+  const answer = answerSince(transcriptPath);
+  if (answer === "saved") return null;
+  if (answer !== null && tokens < mark.tokens + ANSWERED_GROWTH) return null;
+  const asks = mark.asks + 1;
+  writeMark(env, sessionId, { asks, tokens });
+  return {
+    systemMessage: userLine(env, tokens, limit, `Claude is asked again to save a handover (ask ${asks} of ${MAX_ASKS})`),
+    hookSpecificOutput: {
+      hookEventName: "Stop",
+      additionalContext:
+        `${ASK_MARK}: reminder ${asks} of ${MAX_ASKS}. This session's context is about ${k(tokens)} tokens (threshold ${k(limit)}) ` +
+        (answer === null ? `and you were asked to save a handover but neither saved one nor replied. ` : `and it has grown since you last replied. `) +
+        `Now either write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
+        `or, if the task is finished, reply "${FINISHED_REPLY}" and end your turn; if you must finish something first, reply "${DEFER_REPLY} <reason>".`,
     },
   };
 }
@@ -174,7 +274,7 @@ function userLine(env, tokens, limit, ask) {
 // With the relay on, a saved handover is what makes it clear and continue, so a
 // finished task must end without one or the relay resumes a done job (same rule
 // as headlessAsk).
-const RELAY_FINISHED = `If the current task is finished, do not save a handover: just end your turn, and the relay stops. `;
+const RELAY_FINISHED = `If the current task is finished, do not save a handover: reply "${FINISHED_REPLY}" and end your turn, and the relay stops. `;
 
 // What Claude does once the handover is saved. With the relay on (hooks/relay.ts)
 // the mod runs /clear when the turn ends, so Claude must end the turn rather than
@@ -198,7 +298,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
   const tokens = lastContextTokens(input.transcript_path);
   const limit = threshold(env, sessionId);
   if (tokens == null || tokens < limit) return null;
-  if (!claimNudge(env, sessionId)) return null;
+  if (!claimNudge(env, sessionId, tokens)) return null;
 
   if (headless(env)) {
     return {
@@ -219,7 +319,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
         `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
         `then write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
         (relayOn(env) ? RELAY_FINISHED : "") +
-        `Do not abandon work in progress to do it. This warning fires once per session.`,
+        `Do not abandon work in progress to do it. If the turn ends and you neither saved nor replied "${DEFER_REPLY} <reason>", you are asked again at the turn end.`,
     },
   };
 }
