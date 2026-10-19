@@ -165,8 +165,8 @@ The plugin checks the size after each tool call, where it warns and lets the tur
 ends, where it keeps the turn going so the handover gets written first. The first matters
 because one long turn can cross the threshold and be compacted without ever ending. The two
 checks share one marker file, which records how many times Claude was asked and the context size at the last ask.
-The first ask is made once per session. An ask is not a guarantee: on 19 Oct 2026, 6 of 21 nudged sessions
-(n=21, mid-turn and turn-end asks counted together) never saved a handover and carried on for 51 to 96 more turns,
+The first ask is made once per session. An ask is not a guarantee: on 19 Oct 2026, 6 of 29 nudged sessions
+(n=29, mid-turn and turn-end asks counted together) never saved a handover and carried on for 51 to 96 more turns,
 because the mark was claimed when the ask was sent. So at a later turn end the Stop hook reads the transcript
 tail for what Claude did after the last ask. A saved handover (the skill, or `save.mjs`) ends the asks. A reply of
 "Nothing to hand over." or "Handover not yet: ..." holds the next ask back until the context has grown by 40k.
