@@ -74,9 +74,15 @@ export function pickSession({ focused, chain = [], mine = [], newest = null }) {
 // wins, wherever its cwd is. Otherwise the newest file whose cwd is in one of the
 // workspace folders, leaving out any that holds another window's live session.
 // A reload writes a new file, so the newest is the live one.
-export function pickWindow(files, roots, { mine = [], theirs = [] } = {}) {
+// With a `focused` session, the file holding it wins outright: each tab has its
+// own relay budget, so the footer follows the tab like the pie does.
+export function pickWindow(files, roots, { mine = [], theirs = [], focused = null } = {}) {
   const under = roots.map(normalisePath);
   const has = (f, ids) => ids.some((id) => f.sessions?.includes(id));
+  if (focused) {
+    const tab = files.filter((f) => f && has(f, [focused])).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (tab) return tab;
+  }
   let own = null;
   let best = null;
   for (const f of files) {

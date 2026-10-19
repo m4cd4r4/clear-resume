@@ -33,6 +33,15 @@ describe("pickWindow", () => {
     expect(pickWindow(files, ["I:/code/acme"], { mine: ["a2"], theirs: ["b1"] })?.key).toBe("mine");
   });
 
+  it("with a focused tab, takes the file holding that tab's session even when another of this window's files is newer", () => {
+    const files = [
+      state({ key: "off-tab", sessions: ["a1"], limit: 0, updatedAt: 1000 }),
+      state({ key: "other-tab", sessions: ["a2"], updatedAt: 5000 }),
+    ];
+    expect(pickWindow(files, ["I:/code/acme"], { mine: ["a1", "a2"], focused: "a1" })?.key).toBe("off-tab");
+    expect(pickWindow(files, ["I:/code/acme"], { mine: ["a2", "a1"] })?.key).toBe("other-tab");
+  });
+
   it("never shows another live window's file; unknown ownership falls back to the newest", () => {
     const files = [state({ key: "old", sessions: ["x"], updatedAt: 1000 }), state({ key: "theirs", sessions: ["b1"], updatedAt: 5000 })];
     expect(pickWindow(files, ["I:/code/acme"], { theirs: ["b1"] })?.key).toBe("old");

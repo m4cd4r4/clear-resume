@@ -257,7 +257,7 @@ export function statsStatus(
         liveSessions(procs, (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),
         focused,
       );
-      window = roots.length ? pickWindow(relayFiles(), roots, live) : null;
+      window = roots.length ? pickWindow(relayFiles(), roots, { ...live, focused }) : null;
       const pick = pickSession({
         focused,
         chain: window?.sessions ?? [],
