@@ -2,7 +2,7 @@
 // threshold, ask Claude (once) to write a handover and tell the user to /clear.
 // Hooks get no token count, so the size is read from the transcript: the last
 // main-thread assistant call's input + cache tokens is the context it carried.
-import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { slugify, storeRoot } from "./store.mjs";
 import { fileURLToPath } from "node:url";
@@ -64,10 +64,32 @@ export { autoEnabled };
 // user has set it (and bounds to 50000-1000000 itself).
 export const NUDGE_AT_OPTION = "CLAUDE_PLUGIN_OPTION_NUDGE_AT";
 
-// CLEAR_RESUME_NUDGE_AT wins when it is a usable number, then the plugin option,
-// then the default. A bad value falls through rather than turning the nudge off.
-export function threshold(env) {
-  for (const raw of [env.CLEAR_RESUME_NUDGE_AT, env[NUDGE_AT_OPTION]]) {
+// The VS Code footer's nudge picker writes relay/<key>.nudge.json ({ limit, at })
+// for a window, <key> being the relay file whose chain holds this session. It
+// wins over the environment, so a change applies to the running session and to
+// the sessions the relay continues it into. Missing or unusable: null.
+export function windowNudgeAt(env, sessionId) {
+  if (!sessionId) return null;
+  try {
+    const dir = join(storeRoot(env), "relay");
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json") || /\.(set|handover|nudge)\.json$/.test(name)) continue;
+      const file = JSON.parse(readFileSync(join(dir, name), "utf8"));
+      if (!Array.isArray(file?.sessions) || !file.sessions.includes(sessionId) || typeof file.key !== "string") continue;
+      const n = Number(JSON.parse(readFileSync(join(dir, `${file.key}.nudge.json`), "utf8"))?.limit);
+      return Number.isFinite(n) && n >= 50_000 && n <= 1_000_000 ? n : null;
+    }
+  } catch {
+    // No relay folder, or a half-written file: use the environment.
+  }
+  return null;
+}
+
+// The window override wins, then CLEAR_RESUME_NUDGE_AT when it is a usable
+// number, then the plugin option, then the default. A bad value falls through
+// rather than turning the nudge off.
+export function threshold(env, sessionId) {
+  for (const raw of [windowNudgeAt(env, sessionId), env.CLEAR_RESUME_NUDGE_AT, env[NUDGE_AT_OPTION]]) {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) return n;
   }
@@ -94,7 +116,7 @@ export function runStop(input, { env = process.env } = {}) {
   if (!sessionId) return null;
 
   const tokens = lastContextTokens(input.transcript_path);
-  const limit = threshold(env);
+  const limit = threshold(env, sessionId);
   if (tokens == null || tokens < limit) return null;
 
   if (!claimNudge(env, sessionId)) return null;
@@ -174,7 +196,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
   if (!sessionId) return null;
 
   const tokens = lastContextTokens(input.transcript_path);
-  const limit = threshold(env);
+  const limit = threshold(env, sessionId);
   if (tokens == null || tokens < limit) return null;
   if (!claimNudge(env, sessionId)) return null;
 

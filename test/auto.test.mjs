@@ -1,6 +1,6 @@
 // tdd-guard:allow - auto-mode rules, each mutation-checked.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -134,6 +134,19 @@ describe("Stop nudge", () => {
     write(call(160_000));
     expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
     expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
+  });
+
+  it("the footer's per-window nudge size beats the env, for any session in that window's chain", () => {
+    mkdirSync(join(root, "relay"), { recursive: true });
+    writeFileSync(join(root, "relay", "w1.json"), JSON.stringify({ key: "w1", sessions: ["s0", "s1"] }));
+    writeFileSync(join(root, "relay", "w1.nudge.json"), JSON.stringify({ limit: 120_000, at: 1 }));
+    const e = { ...env(), CLEAR_RESUME_NUDGE_AT: "170000" };
+    expect(threshold(e, "s1")).toBe(120_000);
+    expect(threshold(e, "other")).toBe(170_000);
+    write(call(125_000));
+    expect(runStop(input(), { env: e }).systemMessage).toMatch(/nudge at 120k/);
+    writeFileSync(join(root, "relay", "w1.nudge.json"), JSON.stringify({ limit: 5, at: 2 }));
+    expect(threshold(e, "s1")).toBe(170_000);
   });
 
   it("turns on and takes its threshold from the plugin options set in /config", () => {

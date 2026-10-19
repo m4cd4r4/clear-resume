@@ -98,13 +98,19 @@ To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay
 
 | Setting | Default | What it does |
 |---|---|---|
-| `idle_handover` | `off` | `off`, `toast` or `auto`. |
+| `idle_handover` | `off` | `off`, `toast`, `smart` or `auto`. `smart` is `auto` where Claude may decline: if the work is finished and no step remains it replies "Nothing to hand over.", and nothing is saved or cleared. A wrong "finished" costs the cold rewrite you would have paid anyway; no work is lost. Whether the model declines correctly was not measured. |
 | `cache_ttl_minutes` | `60` | Your prompt cache lifetime. Only the 60 minute subscription cache was measured; 5 minutes is the documented default with an API key and was not measured. The mod acts 5 minutes before it (half of it, if shorter). `auto` needs 10 or more, else it acts as `toast`. |
 | `idle_min_tokens` | `100000` | Below this context size a cold rewrite is cheap, so nothing happens. |
 
 Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
 
 **Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
+
+To change it, use any one of these (new sessions pick it up; the range is 50000 to 1000000):
+
+- `/plugin configure clear-resume@clear-resume`, or `/config`, then **Nudge at**
+- `claude plugin install clear-resume@clear-resume --config nudge_at=150000`
+- the `CLEAR_RESUME_NUDGE_AT` environment variable, which wins over the option
 
 </details>
 
