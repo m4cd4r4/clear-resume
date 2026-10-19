@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **`idle_handover: smart`.** Like `auto`, but the idle ask lets Claude answer "Nothing to hand over."
+  when the work is finished and no step remains; then nothing is saved, the session is not cleared,
+  and a toast says so. The check rides on the warm turn `auto` already pays for, so it adds no
+  call. A wrong "finished" falls back to the cold rewrite you would have paid anyway. Needs
+  `cache_ttl_minutes` of 10 or more, else it acts as `toast`. `auto` is unchanged. Whether the
+  model declines correctly was not measured; the mod tests cover the mod's side only.
 - **The footer pie follows the focused Claude tab.** With several Claude sessions open in one
   window, the pie showed the same session whichever tab had focus (measured 2026-10-12: 89k shown
   while the focused session was at 211k). It now reads the focused tab's session, and the hover says

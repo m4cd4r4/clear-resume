@@ -135,6 +135,11 @@
         "category": "clear-resume"
       },
       {
+        "command": "clearResume.pickNudge",
+        "title": "Set nudge size for this window",
+        "category": "clear-resume"
+      },
+      {
         "command": "clearResume.handoverNow",
         "title": "Hand over now",
         "category": "clear-resume"

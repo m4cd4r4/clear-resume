@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -39,8 +39,21 @@ const projectsDir = () => join(homedir(), ".claude", "projects");
 // sidebar's storePath says, so this reads from the same place.
 const relayDir = () => join(storeRoot(), "relay");
 
+const NUDGE_MIN = 50_000;
+const NUDGE_MAX = 1_000_000;
+const NUDGE_PICKS = [60_000, 100_000, 130_000, 150_000, 180_000, 250_000, 400_000, 600_000];
+
+/** The window's nudge size from the footer picker (<key>.nudge.json), which the nudge hooks read too. */
+function windowNudge(key: string | undefined): number | null {
+  if (!key) return null;
+  const n = Number(readJson<{ limit?: number }>(join(relayDir(), `${key}.nudge.json`))?.limit);
+  return Number.isFinite(n) && n >= NUDGE_MIN && n <= NUDGE_MAX ? n : null;
+}
+
 /** nudge_at from the plugin's options in ~/.claude/settings.json, else the default. */
-function nudgeAt(): number {
+function nudgeAt(key?: string): number {
+  const own = windowNudge(key);
+  if (own !== null) return own;
   try {
     const s = JSON.parse(readFileSync(join(homedir(), ".claude", "settings.json"), "utf8"));
     const n = Number(s?.pluginConfigs?.["clear-resume@clear-resume"]?.options?.nudge_at);
@@ -204,7 +217,9 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
   handoverItem.name = "clear-resume: hand over now";
   handoverItem.text = "$(debug-step-out) Hand over";
   handoverItem.command = "clearResume.handoverNow";
-  context.subscriptions.push(pieItem, relayItem, handoverItem);
+  const nudgeItem = vscode.window.createStatusBarItem("clearResume.nudge", vscode.StatusBarAlignment.Left, 0.45);
+  nudgeItem.name = "clear-resume: nudge size";
+  context.subscriptions.push(pieItem, relayItem, nudgeItem, handoverItem);
 
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
@@ -251,7 +266,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
       if (!current || current.last === null) {
         pieItem.hide();
       } else {
-        const threshold = nudgeAt();
+        const threshold = nudgeAt(window?.key);
         const p = pie(current.last, threshold);
         const relay = window ? effective(window, readJson<RelaySet>(setPath(window.key))) : null;
         pieItem.text = p.text;
@@ -287,6 +302,13 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
           : "Relay budget for this window: clears used of the limit. Click to change.";
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
+        const own = windowNudge(window.key);
+        nudgeItem.text = `$(bell) nudge ${Math.round(nudgeAt(window.key) / 1000)}k`;
+        nudgeItem.tooltip = own
+          ? "Nudge size for this window and the sessions it continues into. Click to change."
+          : "Nudge size from your settings (nudge_at). Click to set one for this window.";
+        nudgeItem.command = "clearResume.pickNudge";
+        nudgeItem.show();
         handoverItem.tooltip =
           relay.limit === 0
             ? "Have Claude write a handover now. The relay is off in this window, so type /clear when it is saved."
@@ -294,12 +316,14 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
         handoverItem.show();
       } else {
         relayItem.hide();
+        nudgeItem.hide();
         handoverItem.hide();
       }
     } catch {
       // A status-bar item must never break the extension.
       pieItem.hide();
       relayItem.hide();
+      nudgeItem.hide();
       handoverItem.hide();
     } finally {
       busy = false;
@@ -352,6 +376,60 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
     await update();
   };
 
+  const pickNudge = async () => {
+    if (!window) {
+      void vscode.window.showInformationMessage("clear-resume: no relay in this window yet. It starts with the next Claude session here.");
+      return;
+    }
+    const target = window;
+    const now = nudgeAt(target.key);
+    const sizes = NUDGE_PICKS.includes(now) ? NUDGE_PICKS : [...NUDGE_PICKS, now].sort((a, b) => a - b);
+    const items = sizes.map((n) => ({
+      label: `${n === now ? "$(check)" : "$(blank)"} ${Math.round(n / 1000)}k`,
+      description: n === now ? "now" : `${n.toLocaleString("en-US")} tokens`,
+      limit: n as number | null,
+    }));
+    items.push({ label: "$(discard) Use my settings", description: "drop this window's choice", limit: null });
+    const qp = vscode.window.createQuickPick<(typeof items)[number]>();
+    qp.title = "Nudge size for this window";
+    qp.placeholder = `Now: ${Math.round(now / 1000)}k. Pick a size, or type a number of tokens (${NUDGE_MIN.toLocaleString("en-US")} to ${NUDGE_MAX.toLocaleString("en-US")}).`;
+    qp.items = items;
+    const cur = items.find((i) => i.limit === now);
+    if (cur) qp.activeItems = [cur];
+    // A typed size ("120k" or "120000") becomes the first choice.
+    qp.onDidChangeValue((v) => {
+      const m = /^\s*(\d+(?:\.\d+)?)\s*(k?)\s*$/i.exec(v);
+      const n = m ? Math.round(Number(m[1]) * (m[2] ? 1000 : 1)) : NaN;
+      qp.items =
+        n >= NUDGE_MIN && n <= NUDGE_MAX
+          ? [{ label: `$(edit) ${Math.round(n / 1000)}k`, description: `${n.toLocaleString("en-US")} tokens`, limit: n }, ...items]
+          : items;
+    });
+    const chosen = await new Promise<(typeof items)[number] | undefined>((resolve) => {
+      qp.onDidAccept(() => {
+        resolve(qp.selectedItems[0]);
+        qp.hide();
+      });
+      qp.onDidHide(() => {
+        resolve(undefined);
+        qp.dispose();
+      });
+      qp.show();
+    });
+    if (!chosen) return;
+    const path = join(relayDir(), `${target.key}.nudge.json`);
+    if (chosen.limit === null) {
+      try {
+        unlinkSync(path);
+      } catch {
+        // Already gone.
+      }
+    } else {
+      writeFileSync(path, JSON.stringify({ limit: chosen.limit, at: Date.now() }));
+    }
+    await update();
+  };
+
   // The relay mod polls for <key>.handover.json and runs the handover skill when
   // its `at` is newer than the last one it took.
   const handoverNow = () => {
@@ -367,6 +445,7 @@ export function statsStatus(context: vscode.ExtensionContext, openHandover: () =
     vscode.commands.registerCommand("clearResume.handoverNow", handoverNow),
     vscode.commands.registerCommand("clearResume.openContextHandover", openHandover),
     vscode.commands.registerCommand("clearResume.pickRelay", pickRelay),
+    vscode.commands.registerCommand("clearResume.pickNudge", pickNudge),
     vscode.commands.registerCommand("clearResume.relayLog", async () => {
       if (!window) return;
       await vscode.window.showTextDocument(vscode.Uri.file(join(relayDir(), `${window.key}.json`)), { preview: true });
