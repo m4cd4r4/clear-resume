@@ -104,11 +104,12 @@ const k = (n) => `${Math.round(n / 1000)}k`;
 function readMark(env, sessionId) {
   const mark = join(storeRoot(env), ".nudged", sessionId);
   if (!existsSync(mark)) return null;
+  const raw = readFileSync(mark, "utf8");
   try {
-    const m = JSON.parse(readFileSync(mark, "utf8"));
+    const m = JSON.parse(raw);
     if (Number.isFinite(m?.asks)) return { asks: m.asks, tokens: Number(m.tokens) || 0 };
   } catch {
-    // A bare timestamp from an older build.
+    // A bare timestamp from an older build is not JSON.
   }
   return { asks: 1, tokens: 0 };
 }
