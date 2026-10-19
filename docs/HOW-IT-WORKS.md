@@ -157,14 +157,21 @@ with both on the session carries itself. With the relay off, you type `/clear`.
 
 With the nudge on (`auto_nudge`, or `CLEAR_RESUME_AUTO=1`), once the session's context passes the
 threshold (`nudge_at`, or `CLEAR_RESUME_NUDGE_AT`), Claude
-is asked, once per session, to write a handover and tell you to type `/clear`. The size is read
+is asked to write a handover and tell you to type `/clear`. The size is read
 from the tail of the session transcript on disk. Set the threshold well above your
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
 
 The plugin checks the size after each tool call, where it warns and lets the turn continue, and when a turn
 ends, where it keeps the turn going so the handover gets written first. The first matters
 because one long turn can cross the threshold and be compacted without ever ending. The two
-checks share one marker file, so you are interrupted once per session.
+checks share one marker file, which records how many times Claude was asked and the context size at the last ask.
+The first ask is made once per session. An ask is not a guarantee: on 19 Oct 2026, 6 of 21 nudged sessions
+(n=21, mid-turn and turn-end asks counted together) never saved a handover and carried on for 51 to 96 more turns,
+because the mark was claimed when the ask was sent. So at a later turn end the Stop hook reads the transcript
+tail for what Claude did after the last ask. A saved handover (the skill, or `save.mjs`) ends the asks. A reply of
+"Nothing to hand over." or "Handover not yet: ..." holds the next ask back until the context has grown by 40k.
+If Claude did neither, it is asked again, up to 3 asks in all. The mid-turn check never repeats, and the headless
+runner is never re-asked.
 
 You see one status line, such as `clear-resume: context is about 182k tokens (nudge at 180k).
 Claude is asked to save a handover, then you can type /clear.` It is only a note. At a
@@ -478,7 +485,7 @@ store. The VS Code extension and the headless runner sit on top of the same stor
 | Skill | [`plugin/skills/handover/SKILL.md`](../plugin/skills/handover/SKILL.md) | `/clear-resume:handover`. Claude writes the handover and pipes it to `scripts/save.mjs`. `scripts/load.mjs` lists what is waiting, or loads one with `--peek` or `--take`. |
 | SessionStart hook | [`plugin/scripts/session-start.mjs`](../plugin/scripts/session-start.mjs) | Runs at startup, `/clear` and compaction. Loads the waiting handover, then archives it so it loads once. |
 | PostToolUse hook | [`plugin/scripts/post-tool.mjs`](../plugin/scripts/post-tool.mjs) | With the nudge on, warns once mid-turn past the Nudge at size. Compaction does not wait for a turn to end, so the Stop hook alone would miss it. |
-| Stop hook | [`plugin/scripts/stop.mjs`](../plugin/scripts/stop.mjs) | With the nudge on, asks Claude once per session, at a turn end, to save a handover. |
+| Stop hook | [`plugin/scripts/stop.mjs`](../plugin/scripts/stop.mjs) | With the nudge on, asks Claude, at a turn end, to save a handover, and asks again (up to 3 asks) if it neither saved nor replied. |
 | Claude Code mod | [`plugin/hooks/relay.ts`](../plugin/hooks/relay.ts) | The relay. Runs `/clear` after a save, then submits the prompt that continues from the handover. |
 | Store | [`plugin/packages/store/`](../plugin/packages/store/) | The one record schema and the one reader and writer every part goes through. |
 | VS Code extension | [`extension/src/`](../extension/src/) | The sidebar and status bar. Reads the same store. |
