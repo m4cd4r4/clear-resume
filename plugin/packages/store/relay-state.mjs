@@ -196,11 +196,15 @@ function relayLine(r) {
 }
 
 // The pie's hover card, as Markdown. `links` holds command URIs; one left out
-// is not shown. `scope` ("tab" or "window") says whose number it is.
-export function hoverText({ context, threshold, relay, totals, links, scope }) {
+// is not shown. `scope` ("tab" or "window") says whose number it is. `handover`
+// is the status line for the handover this tab loaded (`Handover: <title> (loaded
+// 3h ago)`), left out when there is none.
+export function hoverText({ context, threshold, relay, totals, links, scope, handover }) {
   const out = [`\`${pie(context, threshold).bar}\` ${k(context)} of ${k(threshold)} nudge${scope ? ` · this ${scope}` : ""}`];
   const r = relayLine(relay);
   if (r) out.push(r);
+  // A title is the user's text: keep Markdown and HTML in it from rendering.
+  if (handover) out.push(handover.replace(/[\\`*_[\]<>]/g, "\\$&"));
   out.push(
     `This chain: ${k(totals.tokens)} tokens read over ${totals.replies} repl${totals.replies === 1 ? "y" : "ies"} in ${totals.sessions} session${totals.sessions === 1 ? "" : "s"}` +
       (totals.saved > 0 ? `, saved up to ~${k(totals.saved)} (an upper bound)` : ""),

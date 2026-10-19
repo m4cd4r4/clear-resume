@@ -90,6 +90,7 @@ export function hoverText(opts: {
   totals: ChainTotals;
   links: { handover?: string; log?: string };
   scope?: "tab" | "window";
+  handover?: string;
 }): string;
 export function budget(raw: unknown): number;
 export function effective(file: RelayFile, set: RelaySet | null | undefined): Effective;

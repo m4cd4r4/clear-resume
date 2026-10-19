@@ -21,13 +21,11 @@ claude plugin install clear-resume@clear-resume
 - A **Handovers** sidebar, grouped into Current repo, Other repos and Stale.
 - A **Loaded** group at the top lists the handovers loaded in the last 24 hours. Click
   one to open its readable copy.
-- A **status-bar item** names the handover loaded most recently in this repo, such as
-  `Handover: Cart totals rounding (loaded 3h ago)`. Click it to open the same copy.
 - **Resume** opens a Claude Code tab with that handover's prompt pre-filled and
   not submitted, so you read it before you send it.
 - **Pin** keeps a handover out of the stale and delete timers.
 - A **context pie** in the status bar fills towards the plugin's nudge size: amber from
-  80%, red past it. Hover it for the relay, the chain of sessions it has continued, and
+  80%, red past it. Hover it for the handover this tab loaded (such as `Handover: Cart totals rounding (loaded 3h ago)`, with an Open handover link), the relay, the chain of sessions it has continued, and
   an upper bound on what the clears saved.
 - A **relay** item shows this window's clears used against its budget. Click it to pick
   a new budget or turn the relay off, the same as typing `/relay` in that window.

@@ -150,6 +150,21 @@ describe("hoverText", () => {
     ]);
   });
 
+  it("puts the loaded handover line after the relay line and escapes Markdown in the title", () => {
+    const md = hoverText({
+      context: 0,
+      threshold: 180_000,
+      relay: { limit: 5, used: 1, pending: false },
+      totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 },
+      links: {},
+      handover: "Handover: Fix *bold* <b>x</b> (loaded 3h ago)",
+    });
+    const parts = md.split("\n\n");
+    expect(parts[1]).toContain("Relay:");
+    expect(parts[2]).toBe("Handover: Fix \\*bold\\* \\<b\\>x\\</b\\> (loaded 3h ago)");
+    expect(hoverText({ context: 0, threshold: 180_000, relay: null, totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 }, links: {} })).not.toContain("Handover");
+  });
+
   it("says when the relay is off, unlimited or waiting for the next turn, and drops a link it was not given", () => {
     const base = { context: 0, threshold: 180_000, totals: { sessions: 1, replies: 0, tokens: 0, saved: 0 }, links: {} };
     expect(hoverText({ ...base, relay: { limit: 0, used: 0, pending: false } })).toContain("Relay: off in this window");
