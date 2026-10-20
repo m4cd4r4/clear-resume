@@ -15,7 +15,10 @@ export default defineConfig({
     // (npm run test:mod), not vitest: they import claude-code/testing.
     // site/*.test.mjs are plain node scripts that exit with their result; the Pages
     // workflow runs them.
-    exclude: ["**/node_modules/**", "test/mod/**", "site/**"],
+    // .claude/worktrees/ holds agent checkouts of this repo. Their copies of the
+    // files above do not match the relative patterns, so a run from the main checkout
+    // picked them up: 10 failing files (no node_modules there) and a 17-minute run.
+    exclude: ["**/node_modules/**", ".claude/worktrees/**", "test/mod/**", "site/**"],
     // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
     // launched the tests would make every save in every test one owner's.
     env: { CLAUDE_PID: "", CLEAR_RESUME_NO_PROCESS_WALK: "1" },
