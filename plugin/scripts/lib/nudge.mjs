@@ -244,7 +244,7 @@ function remind(env, sessionId, transcriptPath, tokens, limit) {
         `${ASK_MARK}: reminder ${asks} of ${MAX_ASKS}. This session's context is about ${k(tokens)} tokens (threshold ${k(limit)}) ` +
         (answer === null ? `and you were asked to save a handover but neither saved one nor replied. ` : `and it has grown since you last replied. `) +
         `Now either write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
-        `or, if the task is finished, reply "${FINISHED_REPLY}" and end your turn; if you must finish something first, reply "${DEFER_REPLY} <reason>".`,
+        `or, only if the session's whole goal is done and nothing remains open, reply "${FINISHED_REPLY}" and end your turn; if you must finish something first, reply "${DEFER_REPLY} <reason>".`,
     },
   };
 }
@@ -275,7 +275,9 @@ function userLine(env, tokens, limit, ask) {
 // With the relay on, a saved handover is what makes it clear and continue, so a
 // finished task must end without one or the relay resumes a done job (same rule
 // as headlessAsk).
-const RELAY_FINISHED = `If the current task is finished, do not save a handover: reply "${FINISHED_REPLY}" and end your turn, and the relay stops. `;
+const RELAY_FINISHED =
+  `Save by default. Reply "${FINISHED_REPLY}" and end your turn only if the user's whole goal for this session is done and no next step, open question or follow-up remains, and the relay stops. ` +
+  `Finishing the latest request, or reaching a turn end, is not that: if anything is still open, save. `;
 
 // What Claude does once the handover is saved. With the relay on (hooks/relay.ts)
 // the mod runs /clear when the turn ends, so Claude must end the turn rather than
