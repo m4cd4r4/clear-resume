@@ -81,7 +81,9 @@ export function pickWindow(files, roots, { mine = [], theirs = [], focused = nul
   const has = (f, ids) => ids.some((id) => f.sessions?.includes(id));
   if (focused) {
     const tab = files.filter((f) => f && has(f, [focused])).sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    if (tab) return tab;
+    // No file holds it (a fresh tab the relay mod has not seen): none, not a
+    // sibling tab's, whose budget and cwd would be shown as this tab's.
+    return tab ?? null;
   }
   let own = null;
   let best = null;
