@@ -8,7 +8,7 @@ import { slugify, storeRoot } from "./store.mjs";
 import { fileURLToPath } from "node:url";
 import { autoEnabled, headless, relayOn } from "./auto-flag.mjs";
 
-export const DEFAULT_THRESHOLD = 180_000;
+export const DEFAULT_THRESHOLD = 250_000;
 // A screenshot read is a single JSONL line of base64 megabytes, so a fixed tail
 // can land wholly inside one line and parse nothing - returning null, which
 // looks exactly like "no assistant calls" and skips the nudge in silence. Start
