@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import * as vscode from "vscode";
+import { IDLE_DETAIL, IDLE_MODES, idleText, readIdleMode, writeIdleMode } from "./idle-mode";
 import { ownedProcess } from "./window-owner";
 import { storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { statusText } from "../../plugin/packages/store/view.mjs";
@@ -232,7 +233,9 @@ export function statsStatus(
   pieItem.name = "clear-resume: context";
   const relayItem = vscode.window.createStatusBarItem("clearResume.relay", vscode.StatusBarAlignment.Left, 0.5);
   relayItem.name = "clear-resume: relay";
-  context.subscriptions.push(pieItem, relayItem);
+  const idleItem = vscode.window.createStatusBarItem("clearResume.idle", vscode.StatusBarAlignment.Left, 0.42);
+  idleItem.name = "clear-resume: idle handover";
+  context.subscriptions.push(pieItem, relayItem, idleItem);
 
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
@@ -341,8 +344,14 @@ export function statsStatus(
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
+        const idle = readIdleMode();
+        idleItem.text = idleText(idle);
+        idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. Applies to Claude sessions started after you change it. Click to change.`;
+        idleItem.command = "clearResume.pickIdle";
+        idleItem.show();
       } else {
         relayItem.hide();
+        idleItem.hide();
       }
     } catch {
       // A status-bar item must never break the extension.
@@ -453,6 +462,27 @@ export function statsStatus(
     await update();
   };
 
+  const pickIdle = async () => {
+    const now = readIdleMode();
+    const chosen = await vscode.window.showQuickPick(
+      IDLE_MODES.map((m) => ({
+        label: `${m === now ? "$(check)" : "$(blank)"} ${m}`,
+        description: IDLE_DETAIL[m],
+        mode: m,
+      })),
+      {
+        title: "Idle handover",
+        placeHolder: `Now: ${now}. Applies to Claude sessions started after this; one already running keeps its mode.`,
+      },
+    );
+    if (!chosen || chosen.mode === now) return;
+    if (!writeIdleMode(chosen.mode)) {
+      void vscode.window.showWarningMessage("clear-resume: could not read ~/.claude/settings.json, so the idle mode was not changed.");
+      return;
+    }
+    await update();
+  };
+
   // The relay mod polls for <key>.handover.json and runs the handover skill when
   // its `at` is newer than the last one it took.
   const handoverNow = () => {
@@ -469,6 +499,7 @@ export function statsStatus(
     vscode.commands.registerCommand("clearResume.openContextHandover", () => openHandover(shown)),
     vscode.commands.registerCommand("clearResume.pickRelay", pickRelay),
     vscode.commands.registerCommand("clearResume.pickNudge", pickNudge),
+    vscode.commands.registerCommand("clearResume.pickIdle", pickIdle),
     vscode.commands.registerCommand("clearResume.relayLog", async () => {
       if (!window) return;
       await vscode.window.showTextDocument(vscode.Uri.file(join(relayDir(), `${window.key}.json`)), { preview: true });
