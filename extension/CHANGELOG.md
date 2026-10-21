@@ -4,6 +4,9 @@
 
 Needs a clear-resume plugin with the hand-over poll in its relay mod.
 
+- The nudge size and **Hand over** moved from the status bar into the context pie's hover card,
+  as links under the relay log. The status bar keeps the pie and the relay count.
+
 - A fresh Claude tab no longer shows the previous tab's context count. While compass has no
   row for the focused tab, the pie, relay, nudge and Hand over items are hidden, and the
   relay lookup returns nothing instead of a sibling tab's file.

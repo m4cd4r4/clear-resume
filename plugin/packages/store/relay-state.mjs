@@ -221,6 +221,11 @@ export function hoverText({ context, threshold, relay, totals, links, scope, han
   if (links.handover) l.push(`[Open handover](${links.handover})`);
   if (links.log) l.push(`[Relay log](${links.log})`);
   if (l.length) out.push(l.join(" · "));
+  // Actions: they sat in the status bar, which has room for the pie and the relay.
+  const a = [];
+  if (links.nudge) a.push(`[Nudge at ${k(threshold)}](${links.nudge})`);
+  if (links.handNow) a.push(`[Hand over now](${links.handNow})${relay && relay.limit === 0 ? " (relay off: type /clear after)" : ""}`);
+  if (a.length) out.push(a.join(" · "));
   return out.join("\n\n");
 }
 
