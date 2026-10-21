@@ -62,6 +62,10 @@ so it is not retried in a slightly different form.
 - path/to/file - why it matters
 ```
 
+Do not write a "Recent trail" section. Saving adds one from this session's own tool calls (the last
+files written, edited and read, and the last commands that succeeded and failed), and replaces any
+you wrote, so it is exact. `CLEAR_RESUME_TRAIL=0` turns it off.
+
 Leave out sections that would be empty; an empty heading costs the reader a stop.
 Do not include secrets, tokens or passwords: the file is plain text on disk.
 

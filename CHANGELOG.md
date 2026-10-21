@@ -8,6 +8,20 @@
   call. A wrong "finished" falls back to the cold rewrite you would have paid anyway. Needs
   `cache_ttl_minutes` of 10 or more, else it acts as `toast`. `auto` is unchanged. Whether the
   model declines correctly was not measured; the mod tests cover the mod's side only.
+
+- **A saved handover now ends with a "Recent trail".** Saving reads the session's own transcript and
+  appends the last 5 files written, edited and read, the last 5 Bash commands that succeeded and the
+  last 3 that failed, numbered newest first, so a fresh session can say what was just run. The model
+  does not write it, so it cannot misremember it; a section the model wrote is replaced. Commands are
+  cut to their first line and 100 characters, and tokens, passwords and `Authorization` values are
+  masked (a net for common shapes, not a guarantee). It adds about 200 tokens. Off with
+  `CLEAR_RESUME_TRAIL=0`; never added to an empty handover or a `--unowned` kickoff; any failure
+  saves the handover as written. Why: on 59 recall questions about 6 real sessions (Sonnet 5.5,
+  100k context, 2026-10-16), a note without the trail's command list answered 0 of 17 questions about
+  the last commands run, the full session 14 of 17, and the note with this trail 17 of 17; the 42
+  questions about files and failures were unchanged (42 of 42 against 40 of 42). The trail's wording
+  and file format were tuned on those same questions, so treat the 59 of 59 as an upper bound.
+
 - **The footer pie follows the focused Claude tab.** With several Claude sessions open in one
   window, the pie showed the same session whichever tab had focus (measured 2026-10-12: 89k shown
   while the focused session was at 211k). It now reads the focused tab's session, and the hover says
