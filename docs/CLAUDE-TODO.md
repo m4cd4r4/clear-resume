@@ -104,3 +104,10 @@ CI job is a workflow change, so it was left out of the results-infographics PR.
 
 When the final cut of findings is decided, the scene list in `site/video/index.html` and the `show` list in
 `site/media/results/page.js` have to be edited separately. A shared list would remove the second edit.
+
+## 9. Idle e2e follow-ups (from docs/research/idle-e2e/results.md)
+
+- Repeat arm A (auto, ~250k) n=3 for a rate; fix the post-clear prompt wording before the run ("Go on." was read as "wait" once and as "go" once).
+- Resolve why the CLI `total_cost_usd` for a 247k cold write (US$2.257) is about 2.2x the list-price figure (US$1.024).
+- API-key 5 minute cache path: needs Macdara's yes on a dollar figure first.
+- `smart` decline accuracy at scale: a spread of finished and unfinished sessions, not one of each.
