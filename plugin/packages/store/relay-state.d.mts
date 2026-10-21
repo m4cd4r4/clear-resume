@@ -88,9 +88,10 @@ export function hoverText(opts: {
   threshold: number;
   relay: Effective | null;
   totals: ChainTotals;
-  links: { handover?: string; log?: string };
+  links: { handover?: string; log?: string; nudge?: string; handNow?: string; idle?: string };
   scope?: "tab" | "window";
   handover?: string;
+  idle?: string;
 }): string;
 export function budget(raw: unknown): number;
 export function effective(file: RelayFile, set: RelaySet | null | undefined): Effective;

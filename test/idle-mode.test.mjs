@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   clearWindowIdleMode,
+  idleBarVisible,
   idleText,
   parseIdleMode,
   setWindowIdleMode,
@@ -67,5 +68,9 @@ describe("idle mode picked for a window", () => {
 
   it("labels the status item with the mode", () => {
     expect(idleText("smart")).toBe("$(clock) idle smart");
+  });
+
+  it("shows the bar item for every mode except off", () => {
+    expect(["off", "toast", "smart", "auto"].map(idleBarVisible)).toEqual([false, true, true, true]);
   });
 });

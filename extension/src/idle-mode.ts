@@ -61,4 +61,7 @@ export function clearWindowIdleMode(relayDir: string, key: string): void {
   }
 }
 
-export const idleText = (mode: IdleMode) => `$(clock) idle ${mode}`;
+/** The bar item shows only when the mode acts or warns; off is on the hover card alone. */
+export const idleBarVisible = (mode: IdleMode) => mode !== "off";
+
+export const idleText =(mode: IdleMode) => `$(clock) idle ${mode}`;
