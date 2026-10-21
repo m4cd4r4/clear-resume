@@ -17,7 +17,7 @@ const call = (ctx, extra = {}) =>
   });
 
 // What the transcript holds after a nudge: the ask itself, then Claude's turns.
-const askLine = () => JSON.stringify({ type: "attachment", text: "clear-resume auto mode: this session's context is about 185k tokens (threshold 180k)." });
+const askLine = () => JSON.stringify({ type: "attachment", text: "clear-resume auto mode: this session's context is about 255k tokens (threshold 250k)." });
 const assistantText = (text) => JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "text", text }] } });
 const saveCall = (name = "Skill", input = { skill: "clear-resume:handover" }) =>
   JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "tool_use", name, input }] } });
@@ -60,12 +60,12 @@ describe("Stop nudge", () => {
   });
 
   it("stays quiet below the threshold", () => {
-    write(call(179_000));
+    write(call(249_000));
     expect(runStop(input(), { env: env() })).toBeNull();
   });
 
   it("under the headless runner, asks for a commit and a save.mjs handover, never a /clear", () => {
-    write(call(200_000));
+    write(call(260_000));
     const out = runStop(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
     const text = out.hookSpecificOutput.additionalContext;
     expect(text).toMatch(/finished.*do not save/i);
@@ -82,7 +82,7 @@ describe("Stop nudge", () => {
   // ignored, the turn ended with a normal report, and the one-shot mark meant
   // nothing asked again however far past the threshold the session went.
   it("asks again at a turn end when the ask was ignored, up to three asks in all", () => {
-    write(call(185_000), askLine(), assistantText("Tests pass. Deploying to the VPS bot."));
+    write(call(255_000), askLine(), assistantText("Tests pass. Deploying to the VPS bot."));
     runStop(input(), { env: env() }); // the first ask
     const second = runStop(input(), { env: env() });
     expect(second.systemMessage).toMatch(/ask 2 of 3/);
@@ -95,44 +95,44 @@ describe("Stop nudge", () => {
   });
 
   it("stops asking once a handover was saved, by skill or by save.mjs", () => {
-    write(call(185_000), askLine(), saveCall());
+    write(call(255_000), askLine(), saveCall());
     runStop(input(), { env: env() }); // the first ask
     expect(runStop(input(), { env: env() })).toBeNull();
-    write(call(185_000), askLine(), saveCall("Bash", { command: 'node "/p/save.mjs" --title x' }));
+    write(call(255_000), askLine(), saveCall("Bash", { command: 'node "/p/save.mjs" --title x' }));
     runStop(input({ session_id: "s2" }), { env: env() });
     expect(runStop(input({ session_id: "s2" }), { env: env() })).toBeNull();
   });
 
   it("a reply of 'Nothing to hand over.' holds the next ask back until the context grows 40k", () => {
-    write(call(185_000), askLine(), assistantText("Nothing to hand over."));
+    write(call(255_000), askLine(), assistantText("Nothing to hand over."));
     runStop(input(), { env: env() }); // the first ask
     expect(runStop(input(), { env: env() })).toBeNull();
-    write(call(185_000), askLine(), assistantText("Nothing to hand over."), call(226_000));
+    write(call(255_000), askLine(), assistantText("Nothing to hand over."), call(296_000));
     expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
   });
 
   it("a deferral counts as an answer, and under the headless runner it never repeats", () => {
-    write(call(185_000), askLine(), assistantText("Handover not yet: the deploy is mid-flight."));
+    write(call(255_000), askLine(), assistantText("Handover not yet: the deploy is mid-flight."));
     runStop(input(), { env: env() }); // the first ask
     expect(runStop(input(), { env: env() })).toBeNull();
-    write(call(200_000));
+    write(call(260_000));
     const headless = { ...env(), CLEAR_RESUME_HEADLESS: "1" };
     expect(runStop(input({ session_id: "h" }), { env: headless })).not.toBeNull();
     expect(runStop(input({ session_id: "h" }), { env: headless })).toBeNull();
   });
 
   it("reads a mark written by an older build as one ask", () => {
-    write(call(185_000));
+    write(call(255_000));
     mkdirSync(join(root, ".nudged"), { recursive: true });
     writeFileSync(join(root, ".nudged", "s1"), new Date().toISOString(), "utf8");
     expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
   });
 
   it("asks once past the threshold, per session", () => {
-    write(call(185_000));
+    write(call(255_000));
     const out = runStop(input(), { env: env() });
     expect(out.hookSpecificOutput.hookEventName).toBe("Stop");
-    expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/255k.*threshold 250k/);
     expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
     expect(runStop(input({ session_id: "s2" }), { env: env() }).hookSpecificOutput.hookEventName).toBe("Stop");
   });
@@ -142,13 +142,13 @@ describe("Stop nudge", () => {
   // is labelled "Stop hook feedback", and systemMessage gives the user a line
   // written for them.
   it("does not block, so the user never sees it as a hook error", () => {
-    write(call(185_000));
+    write(call(255_000));
     const out = runStop(input(), { env: env() });
     expect(out.decision).toBeUndefined();
     expect(out.reason).toBeUndefined();
     expect(out.continue).toBeUndefined();
     expect(out.systemMessage).toMatch(/^clear-resume: /);
-    expect(out.systemMessage).toMatch(/185k/);
+    expect(out.systemMessage).toMatch(/255k/);
     expect(out.systemMessage).toContain("/clear");
     expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
   });
@@ -156,7 +156,7 @@ describe("Stop nudge", () => {
   // With the relay on, the mod runs /clear when the turn ends: Claude must end
   // the turn, and nobody should be told to type /clear.
   it("with the relay on, asks Claude to end the turn instead of telling the user to /clear", () => {
-    write(call(185_000));
+    write(call(255_000));
     const relay = { ...env(), CLAUDE_PLUGIN_OPTION_RELAY: "3" };
     const out = runStop(input(), { env: relay });
     expect(out.hookSpecificOutput.additionalContext).toContain("end your turn");
@@ -171,7 +171,7 @@ describe("Stop nudge", () => {
   // A saved handover is what makes the relay clear and continue, so a finished
   // task must end without one or the relay resumes a done job.
   it("with the relay on, saving is the default and only a done session may decline", () => {
-    write(call(185_000));
+    write(call(255_000));
     const relay = { ...env(), CLAUDE_PLUGIN_OPTION_RELAY: "unlimited" };
     const text = runStop(input(), { env: relay }).hookSpecificOutput.additionalContext;
     expect(text).toMatch(/save by default/i);
@@ -190,7 +190,7 @@ describe("Stop nudge", () => {
   it("honours a custom threshold and ignores a bad one", () => {
     write(call(160_000));
     expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
+    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(250_000);
   });
 
   it("the footer's per-window nudge size beats the env, for any session in that window's chain", () => {
@@ -285,12 +285,12 @@ describe("mid-turn nudge", () => {
   });
 
   it("stays quiet below the threshold", () => {
-    write(call(179_000));
+    write(call(249_000));
     expect(runMidTurn(input(), { env: env() })).toBeNull();
   });
 
   it("under the headless runner, asks to finish the step, commit and save, never a /clear", () => {
-    write(call(200_000));
+    write(call(260_000));
     const out = runMidTurn(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
     const text = out.hookSpecificOutput.additionalContext;
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
@@ -301,30 +301,30 @@ describe("mid-turn nudge", () => {
   });
 
   it("warns without blocking, and says the turn is still running", () => {
-    write(call(185_000));
+    write(call(255_000));
     const out = runMidTurn(input(), { env: env() });
     expect(out.decision).toBeUndefined();
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
-    expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/255k.*threshold 250k/);
     expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
     expect(out.continue).toBeUndefined();
-    expect(out.systemMessage).toMatch(/^clear-resume: .*185k/);
+    expect(out.systemMessage).toMatch(/^clear-resume: .*255k/);
     expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
   });
 
   it("fires once per session, and shares the mark with the Stop nudge", () => {
-    write(call(185_000), askLine());
+    write(call(255_000), askLine());
     expect(runMidTurn(input(), { env: env() })).not.toBeNull();
     expect(runMidTurn(input(), { env: env() })).toBeNull();
     // Claude has not saved or answered, so the Stop hook asks again at the turn end.
     expect(runStop(input(), { env: env() }).systemMessage).toMatch(/ask 2 of 3/);
     // Once it has saved, the Stop hook leaves it alone.
-    write(call(185_000), askLine(), saveCall());
+    write(call(255_000), askLine(), saveCall());
     expect(runStop(input(), { env: env() })).toBeNull();
   });
 
   it("a Stop nudge first also silences the mid-turn one", () => {
-    write(call(185_000));
+    write(call(255_000));
     expect(runStop(input(), { env: env() })).not.toBeNull();
     expect(runMidTurn(input(), { env: env() })).toBeNull();
   });
