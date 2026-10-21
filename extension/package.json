@@ -140,6 +140,11 @@
         "category": "clear-resume"
       },
       {
+        "command": "clearResume.pickIdle",
+        "title": "Set idle handover mode",
+        "category": "clear-resume"
+      },
+      {
         "command": "clearResume.handoverNow",
         "title": "Hand over now",
         "category": "clear-resume"
