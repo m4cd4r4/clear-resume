@@ -2,14 +2,13 @@ import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { archiveRecord, listAll, prune, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { archiveRecord, listAll, prune, read, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
-import { HistoryProvider, type HandoverNode } from "./tree";
-import { LanesProvider } from "./lanes-tree";
+import { SidebarProvider } from "./sidebar";
 import { spareStatus } from "./spare-status";
 import { statsStatus } from "./stats-status";
 import { ownedByThisWindow } from "./window-owner";
@@ -50,9 +49,19 @@ export function activate(context: vscode.ExtensionContext): void {
   // nothing - the context key drives both `when` clauses in package.json.
   void vscode.commands.executeCommand("setContext", "clearResume.hasLegacy", hasLegacyNotes());
 
-  const provider = new HistoryProvider(root, showArchived);
-  const tree = vscode.window.createTreeView(VIEW, { treeDataProvider: provider, showCollapseAll: true });
-  context.subscriptions.push(tree, provider.onDidChangeTreeData(() => undefined));
+  const registry = () => config().get<string>("registryPath")?.trim() ?? "";
+  // The page asks; each ask runs the command the tree row's button used to run.
+  const act = (m: { type: string; id?: string; target?: string }) => {
+    if (m.type === "migrate") void vscode.commands.executeCommand("clearResume.migrate");
+    else if (m.type === "openLane") void vscode.commands.executeCommand("clearResume.openLane", m.target);
+    else if (m.id) void vscode.commands.executeCommand(`clearResume.${m.type}`, { id: m.id });
+  };
+  const provider = new SidebarProvider("handovers", root, showArchived, registry, hasLegacyNotes, act);
+  const lanesProvider = new SidebarProvider("lanes", root, showArchived, registry, hasLegacyNotes, act);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(VIEW, provider),
+    vscode.window.registerWebviewViewProvider(LANES_VIEW, lanesProvider),
+  );
 
   // Delete archived records past their window once per activation. Cheap, and it
   // keeps the tree from growing without anyone having to remember to tidy it.
@@ -61,11 +70,6 @@ export function activate(context: vscode.ExtensionContext): void {
   } catch {
     // A prune failure must never stop the view from opening.
   }
-
-  const registry = () => config().get<string>("registryPath")?.trim() ?? "";
-  const lanesProvider = new LanesProvider(root, registry);
-  const lanesTree = vscode.window.createTreeView(LANES_VIEW, { treeDataProvider: lanesProvider, showCollapseAll: true });
-  context.subscriptions.push(lanesTree);
 
   statsStatus(context, loadedLookup(root), (record) => {
     if (record) void openLoaded(record, root());
@@ -77,9 +81,9 @@ export function activate(context: vscode.ExtensionContext): void {
     lanesProvider.refresh();
   });
   const minute = setInterval(() => {
-    if (tree.visible) provider.refresh();
+    if (provider.visible) provider.refresh();
     // Worktrees come and go without a store write, so this view re-reads git.
-    if (lanesTree.visible) lanesProvider.refresh();
+    if (lanesProvider.visible) lanesProvider.refresh();
   }, 60_000);
   context.subscriptions.push({ dispose: () => clearInterval(minute) });
 
@@ -95,45 +99,49 @@ export function activate(context: vscode.ExtensionContext): void {
       if (target) void vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(target), { forceNewWindow: true });
     }),
 
-    vscode.commands.registerCommand("clearResume.openLoaded", (record?: StoredHandover) => openLoaded(record, root())),
+    vscode.commands.registerCommand("clearResume.openLoaded", (arg?: Target) => openLoaded(recordOf(arg, root()), root())),
 
     vscode.commands.registerCommand("clearResume.toggleArchived", async () => {
       await config().update("showArchived", !showArchived(), vscode.ConfigurationTarget.Global);
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.open", async (node?: HandoverNode) => {
-      if (node?.record) await openBody(node.record);
+    vscode.commands.registerCommand("clearResume.open", async (arg?: Target) => {
+      const record = recordOf(arg, root());
+      if (record) await openBody(record);
     }),
 
-    vscode.commands.registerCommand("clearResume.resume", async (node?: HandoverNode) => {
-      const record = node?.record;
+    vscode.commands.registerCommand("clearResume.resume", async (arg?: Target) => {
+      const record = recordOf(arg, root());
       if (!record) return;
       await resume(record, root());
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.pin", (node?: HandoverNode) => {
-      if (!node) return;
-      pushed(root(), () => setPinned(node.record.id, true, { root: root() }));
+    vscode.commands.registerCommand("clearResume.pin", (arg?: Target) => {
+      const record = recordOf(arg, root());
+      if (!record) return;
+      pushed(root(), () => setPinned(record.id, true, { root: root() }));
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.unpin", (node?: HandoverNode) => {
-      if (!node) return;
-      pushed(root(), () => setPinned(node.record.id, false, { root: root() }));
+    vscode.commands.registerCommand("clearResume.unpin", (arg?: Target) => {
+      const record = recordOf(arg, root());
+      if (!record) return;
+      pushed(root(), () => setPinned(record.id, false, { root: root() }));
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.delete", async (node?: HandoverNode) => {
-      if (!node) return;
+    vscode.commands.registerCommand("clearResume.delete", async (arg?: Target) => {
+      const record = recordOf(arg, root());
+      if (!record) return;
       const yes = await vscode.window.showWarningMessage(
-        `Delete "${node.record.title}"?`,
+        `Delete "${record.title}"?`,
         { modal: true, detail: "The handover disappears from this list. A record of the delete is kept for 90 days so it cannot come back from another machine, then it goes for good. Any original file it was imported from is left alone." },
         "Delete",
       );
       if (yes !== "Delete") return;
-      pushed(root(), () => remove(node.record.id, { root: root() }));
+      pushed(root(), () => remove(record.id, { root: root() }));
       provider.refresh();
     }),
 
@@ -142,6 +150,21 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {}
+
+/** What a handover command is handed: a record, a tree-style node, or the `{ id }` the sidebar page and its context menu send. */
+type Target = StoredHandover | { record?: StoredHandover; id?: string };
+
+function recordOf(arg: Target | undefined, root: string): StoredHandover | undefined {
+  const node = arg as { record?: StoredHandover; id?: string; title?: string } | undefined;
+  if (node?.record) return node.record;
+  if (node?.title && node.id) return node as StoredHandover;
+  if (!node?.id) return undefined;
+  try {
+    return read(node.id, root);
+  } catch {
+    return undefined;
+  }
+}
 
 /** A handover's body in an untitled markdown editor. */
 async function openBody(record: StoredHandover): Promise<void> {
