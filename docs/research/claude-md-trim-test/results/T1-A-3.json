@@ -1,0 +1,165 @@
+{
+ "id": "T1-A-3",
+ "t": "T1",
+ "arm": "A",
+ "r": 3,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 43518,
+  "stop_reason": "end_turn",
+  "session_id": "01ea4abe-a3f8-46a3-a63b-2cde8c3ca33d",
+  "total_cost_usd": 0.45220679999999996,
+  "usage": {
+   "input_tokens": 28,
+   "cache_creation_input_tokens": 69908,
+   "cache_read_input_tokens": 1221231,
+   "output_tokens": 5026,
+   "output_tokens_details": {
+    "thinking_tokens": 877
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 69908,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 315,
+     "cache_read_input_tokens": 98231,
+     "cache_creation_input_tokens": 1242,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1242
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1242,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013570000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 28,
+    "outputTokens": 5026,
+    "cacheReadInputTokens": 1221231,
+    "cacheCreationInputTokens": 69908,
+    "webSearchRequests": 0,
+    "costUSD": 0.4520711,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 877,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_01WCBRxaRFTsdJj48CLfDzpG",
+    "tool_input": {
+     "command": "Test-Path I:\\Scratch\\_trimtest\\T1-A-3\\node_modules; Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in 3000,3001,3100,3200 } | Select-Object LocalPort,OwningProcess",
+     "description": "Check node_modules and dev ports"
+    }
+   }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I looked at the new section on `/pricing` at 1440 and 390. It renders correctly, and the page has no console errors beyond the two entries Playwright logged on load, which I didn't open.\n\n- **1440:** \"Questions about Custom\" sits in the left column, and the three closed questions sit in the right column with a \"+\" on each. I opened the first one. It reads \"Up to 10 pages, 5 templates, with type, layout and motion drawn for your brand alone, and site search built in at no extra fee. Starter is one page on a ready-made site.\" The left column is empty below the heading, as it is in the section above it.\n- **390:** The heading stacks above the questions. Long questions wrap onto two lines without clipping, and the open answer is readable.\n\nI didn't open the other two answers, so I haven't seen their text rendered.\n\nA dev server is still running on port 3417 for this worktree, and I ran `npm ci` here because it had no `node_modules`. Nothing is committed.",
+  "ttft_ms": 4951,
+  "type": "result",
+  "duration_ms": 123236,
+  "uuid": "3656da06-b266-4425-979f-745abe4458e0",
+  "ttft_stream_ms": 4223,
+  "time_to_request_ms": 2770,
+  "time_to_request_phases_ms": {
+   "other": 30,
+   "system_prompt": 20,
+   "resume_other": 1,
+   "process_user_input": 3,
+   "input_attachments": 32,
+   "input_hooks": 2576,
+   "transcript_persist": 13,
+   "tool_pool_refresh": 4,
+   "system_prompt_rebuild": 4,
+   "init_message": 17,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 41,
+   "message_normalization": 8,
+   "client_creation": 4,
+   "request_build": 10
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 218,
+  "time_to_request_cpu_ms": 1062,
+  "time_to_request_major_faults": 8252,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 23,
+   "cpu_ms": 61,
+   "major_faults": 763
+  },
+  "first_content_frame_ms": 4223,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tapp/pricing/page.tsx\n",
+ "patch": "diff --git a/app/pricing/page.tsx b/app/pricing/page.tsx\nindex ecb1dfd6..7c1361e8 100644\n--- a/app/pricing/page.tsx\n+++ b/app/pricing/page.tsx\n@@ -134,10 +134,26 @@ const FAQ: FaqItem[] = [\n   },\n ];\n \n+/* Custom plan questions. Every fact renders from WEB_TIERS / lib/pricing.ts. */\n+const CUSTOM_FAQ: FaqItem[] = [\n+  {\n+    q: \"What does Custom include that Starter does not?\",\n+    a: `${CUSTOM.scope}, with type, layout and motion drawn for your brand alone, and site search built in at no extra fee. Starter is one page on a ready-made site.`,\n+  },\n+  {\n+    q: \"Do I need to bring my own photos?\",\n+    a: \"Yes. Photography is yours, and we design the site around it. We do not supply images.\",\n+  },\n+  {\n+    q: \"What does Custom cost, and what do I pay after launch?\",\n+    a: `${CUSTOM.price}, one-off, fixed and agreed in writing before we start. After launch, care is ${CARE_LITE_AMOUNT} a month with hosting included. Care has a 12-month minimum, then runs month to month.`,\n+  },\n+];\n+\n const faqLd = {\n   \"@context\": \"https://schema.org\",\n   \"@type\": \"FAQPage\",\n-  mainEntity: FAQ.map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n+  mainEntity: [...FAQ, ...CUSTOM_FAQ].map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n };\n \n function Thumbs({ items }: { items: { key: string; src: string; href: string; label: string }[] }) {\n@@ -328,6 +344,28 @@ export default function PricingPage() {\n           </div>\n         </section>\n \n+        {/* CUSTOM FAQ */}\n+        <section aria-labelledby=\"custom-faq\" className=\"bg-bg\">\n+          <div className=\"container-px grid gap-10 py-12 lg:grid-cols-12 lg:gap-16 lg:py-16\">\n+            <h2 id=\"custom-faq\" className=\"text-2xl font-semibold tracking-tight lg:col-span-5\">\n+              Questions about Custom\n+            </h2>\n+            <div className=\"lg:col-span-7\">\n+              {CUSTOM_FAQ.map(({ q, a }) => (\n+                <details key={q} className=\"group border-t border-line last:border-b\">\n+                  <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n+                    {q}\n+                    <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n+                      +\n+                    </span>\n+                  </summary>\n+                  <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">{a}</p>\n+                </details>\n+              ))}\n+            </div>\n+          </div>\n+        </section>\n+\n         {/* Inverted close, matching the service pages. The nav's Contact link\n             is a bare #contact fragment, so every public route carries the\n             anchor - this section is it. */}\n"
+}

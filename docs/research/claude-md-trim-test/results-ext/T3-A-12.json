@@ -1,0 +1,155 @@
+{
+ "id": "T3-A-12",
+ "t": "T3",
+ "arm": "A",
+ "r": 12,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 8376,
+  "stop_reason": "end_turn",
+  "session_id": "ab45a3d9-4ac1-4918-934a-3d41aade1edb",
+  "total_cost_usd": 0.2002519,
+  "usage": {
+   "input_tokens": 2,
+   "cache_creation_input_tokens": 47457,
+   "cache_read_input_tokens": 29565,
+   "output_tokens": 733,
+   "output_tokens_details": {
+    "thinking_tokens": 244
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 47457,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 733,
+     "cache_read_input_tokens": 29565,
+     "cache_creation_input_tokens": 47457,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 47457
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1214,
+    "outputTokens": 24,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013340000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 2,
+    "outputTokens": 733,
+    "cacheReadInputTokens": 29565,
+    "cacheCreationInputTokens": 47457,
+    "webSearchRequests": 0,
+    "costUSD": 0.2001185,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 244,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Restart note: you reloaded every window on 2026-10-12 13:36 AWST, so test whether the status bar follows the focused Claude tab when you switch sessions in the same workspace.\n\n**Walk-in offer (5 sentences, in person):**\n\n1. \"Hi, I'm Macdara, I build websites for local gyms, and I looked at yours before walking in.\"\n2. \"Three things on your current site are costing you sign-ups: [defect 1, e.g. the trial button sits below the fold on mobile], [defect 2], [defect 3].\"\n3. \"Squarespace limits how far those can be fixed, so I'd build you a new custom site rather than patch this one.\"\n4. \"I've already made a demo of what yours would look like, and I can show you on my phone right now.\"\n5. \"If you like it, I host and look after it too, so you never touch a plugin or a template again; can I show you the demo?\"\n\n**Notes:**\n- The brief says we don't polish a builder site in place (the 2026-09-18 ruling), so sentence 3 pitches a rebuild, not a nicer-looking Squarespace.\n- Sentence 2 needs three real defects from `docs/playbooks/squarespace-polish.md`, found on their actual site. I haven't invented any.\n- I left out price, per your no-unasked-billing rule.\n- Sentence 4 assumes you built the demo first via `/prospect-to-pitch`. If you haven't, drop it and end on \"can I send you a mockup of your own gym?\"",
+  "ttft_ms": 6162,
+  "type": "result",
+  "duration_ms": 12421,
+  "uuid": "73c88b2e-3bcd-4a8c-a43d-95b1a3cf07be",
+  "ttft_stream_ms": 4063,
+  "time_to_request_ms": 2707,
+  "time_to_request_phases_ms": {
+   "other": 29,
+   "system_prompt": 18,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 22,
+   "input_hooks": 2559,
+   "transcript_persist": 10,
+   "tool_pool_refresh": 5,
+   "init_message": 14,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 3,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 28,
+   "message_normalization": 4,
+   "client_creation": 3,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 237,
+  "time_to_request_cpu_ms": 749,
+  "time_to_request_major_faults": 6250,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 13,
+   "cpu_ms": 31,
+   "major_faults": 712
+  },
+  "first_content_frame_ms": 4064,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

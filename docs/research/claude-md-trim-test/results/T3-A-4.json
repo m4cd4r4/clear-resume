@@ -1,0 +1,156 @@
+{
+ "id": "T3-A-4",
+ "t": "T3",
+ "arm": "A",
+ "r": 4,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 11690,
+  "stop_reason": "end_turn",
+  "session_id": "439f5401-0b36-433b-a123-629ae3fed23e",
+  "total_cost_usd": 0.20001190000000002,
+  "usage": {
+   "input_tokens": 2,
+   "cache_creation_input_tokens": 47267,
+   "cache_read_input_tokens": 29565,
+   "output_tokens": 785,
+   "output_tokens_details": {
+    "thinking_tokens": 248
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 47267,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 785,
+     "cache_read_input_tokens": 29565,
+     "cache_creation_input_tokens": 47267,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 47267
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1214,
+    "outputTokens": 24,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013340000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 2,
+    "outputTokens": 785,
+    "cacheReadInputTokens": 29565,
+    "cacheCreationInputTokens": 47267,
+    "webSearchRequests": 0,
+    "costUSD": 0.19987850000000001,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 248,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Restart note: you reloaded every window at 13:36 AWST; test whether the status bar follows the focused Claude tab when you switch sessions in the same workspace.\n\n**Draft walk-in offer (5 sentences, spoken):**\n\n1. \"Hi, I'm Macdara, I build websites for gyms around here, and I had a look at yours before coming in.\"\n2. \"Three things stood out: [defect 1 from their live site], [defect 2], and [defect 3].\"\n3. \"Those come from the Squarespace template and plugins, so I can't polish them in place; what I do instead is build you a new custom site off Squarespace, so you stop paying for the builder and its add-ons.\"\n4. \"I've already put together a demo of what yours could look like, built for a gym, and I can show you on my phone right now.\"\n5. \"If you like it, I host and look after it as well, so you never touch the technical side, and if not, you've lost two minutes.\"\n\n**Why it's shaped this way:**\n- Sentence 3 is deliberate. Since 2026-09-18 Solaisoft doesn't offer in-place Squarespace enhancement, so \"nicer-looking\" gets answered with a rebuild, not a restyle.\n- The defects are placeholders. I won't invent them; run `/prospect-to-pitch` for the named gym to get three real ones and the demo URL.\n- No price is stated, per your no-unasked-billing ruling. Sentence 5 reflects the \"care is not optional\" ruling.\n- It's spoken in person, with no email follow-up until after you've met them.\n\nSentences 3 and 5 are new pitch wording, so please pick or edit them before use.",
+  "ttft_ms": 9900,
+  "type": "result",
+  "duration_ms": 17018,
+  "uuid": "da659e91-c98e-40ca-a5ba-df123937ee60",
+  "ttft_stream_ms": 7895,
+  "time_to_request_ms": 3756,
+  "time_to_request_phases_ms": {
+   "other": 28,
+   "system_prompt": 16,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 21,
+   "input_hooks": 3607,
+   "transcript_persist": 13,
+   "tool_pool_refresh": 4,
+   "system_prompt_rebuild": 3,
+   "init_message": 16,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 1,
+   "model_gates": 0,
+   "tool_schema_build": 27,
+   "message_normalization": 4,
+   "client_creation": 3,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 351,
+  "time_to_request_cpu_ms": 749,
+  "time_to_request_major_faults": 7973,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 13,
+   "cpu_ms": 31,
+   "major_faults": 998
+  },
+  "first_content_frame_ms": 7895,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

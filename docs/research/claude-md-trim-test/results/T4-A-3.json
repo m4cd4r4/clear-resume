@@ -1,0 +1,163 @@
+{
+ "id": "T4-A-3",
+ "t": "T4",
+ "arm": "A",
+ "r": 3,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 26729,
+  "stop_reason": "end_turn",
+  "session_id": "b64d8e78-d703-41c8-b437-6d0a9f2c4982",
+  "total_cost_usd": 0.3700289,
+  "usage": {
+   "input_tokens": 16,
+   "cache_creation_input_tokens": 67496,
+   "cache_read_input_tokens": 660952,
+   "output_tokens": 3379,
+   "output_tokens_details": {
+    "thinking_tokens": 418
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 67496,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 447,
+     "cache_read_input_tokens": 96747,
+     "cache_creation_input_tokens": 314,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 314
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1197,
+    "outputTokens": 16,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001277,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 16,
+    "outputTokens": 3379,
+    "cacheReadInputTokens": 660952,
+    "cacheCreationInputTokens": 67496,
+    "webSearchRequests": 0,
+    "costUSD": 0.3699012,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 418,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_018pmfuHXWQqfbTazasBRzA9",
+    "tool_input": {
+     "command": "cd I:/Scratch/_trimtest/T4-A-3 && ls node_modules 2>&1 | head -3; sed -n 20,30p vitest.config.ts"
+    }
+   }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The `/partners` gate is added to `proxy.ts`, but I couldn't run any tests. Nothing is committed.\n\n- **Gate:** `/partners` and `/partners/*` need a valid `sol_client` session, checked with the same `verifyClientSessionEdge` the `/client` gate uses. Anyone without one is redirected to `/client/login`. Path normalisation (encoding, `..`, case) is the same as for `/client`. I also added a header comment noting the reuse.\n- **Test not run:** `tests/proxy-partners.test.ts` checks that a request with no cookie is redirected and one with a valid cookie passes. Vitest failed to load `vitest.config.ts` because dependencies aren't installed in this worktree. A deny rule blocked me from listing `node_modules`, so I couldn't confirm that is the cause. Run `npm install` here, then `npx vitest run tests/proxy-partners.test.ts`.\n- **\"Password check\":** the `/client` gate checks a signed session cookie. Passwords are only checked at `/client/login`, which mints that cookie. So `/partners` accepts any valid client session, including any client's, with no slug check. If you want it limited to specific workspaces or a separate partner login, say so.\n- **No route yet:** `app/partners` doesn't exist, so the gate only matters once the page does.",
+  "ttft_ms": 4680,
+  "type": "result",
+  "duration_ms": 44014,
+  "uuid": "2e7acf57-bc50-4dd7-9b2a-ab45791883e1",
+  "ttft_stream_ms": 3978,
+  "time_to_request_ms": 2511,
+  "time_to_request_phases_ms": {
+   "other": 23,
+   "system_prompt": 13,
+   "resume_other": 0,
+   "process_user_input": 2,
+   "input_attachments": 18,
+   "input_hooks": 2390,
+   "transcript_persist": 10,
+   "tool_pool_refresh": 3,
+   "init_message": 13,
+   "engine_pickup": 1,
+   "message_prep": 1,
+   "model_config_wait": 1,
+   "autocompact": 2,
+   "query_setup": 0,
+   "model_gates": 1,
+   "tool_schema_build": 22,
+   "message_normalization": 3,
+   "client_creation": 2,
+   "request_build": 6
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 188,
+  "time_to_request_cpu_ms": 468,
+  "time_to_request_major_faults": 7855,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 12,
+   "cpu_ms": 15,
+   "major_faults": 686
+  },
+  "first_content_frame_ms": 3979,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\tproxy.ts\nA\ttests/proxy-partners.test.ts\n",
+ "patch": "diff --git a/proxy.ts b/proxy.ts\nindex 7921fccb..6c6bce3d 100644\n--- a/proxy.ts\n+++ b/proxy.ts\n@@ -23,6 +23,8 @@ import { PORTAL_ACTIVE_SLUG_HEADER } from \"./lib/portal/active-slug-header\";\n //    /client/admin is the owner-only surface nested inside it and is checked\n //    FIRST, so a tenant session can never open it.\n //\n+//    /partners reuses this same cookie check (any valid client session).\n+//\n // 3. /lab gate (always on in a deployed build): the nine design-prototype\n //    routes. They carry noindex, which stops Google indexing them but does\n //    NOT stop the sixteen AI crawlers robots.txt names by allowing them - and\n@@ -145,6 +147,12 @@ export async function proxy(req: NextRequest) {\n     p.startsWith(\"/internal/\") ||\n     rawLower === \"/internal\" ||\n     rawLower.startsWith(\"/internal/\");\n+  // /partners - same gate as /client: any valid sol_client session opens it.\n+  const underPartners =\n+    p === \"/partners\" ||\n+    p.startsWith(\"/partners/\") ||\n+    rawLower === \"/partners\" ||\n+    rawLower.startsWith(\"/partners/\");\n   // The login pages and auth endpoints stay public (a viewer must be able to\n   // reach them without a session), and bypass the site-wide gate so sign-in\n   // works even while the rest of the site is in pre-launch lockdown.\n@@ -219,6 +227,14 @@ export async function proxy(req: NextRequest) {\n     else headers.delete(PORTAL_ACTIVE_SLUG_HEADER);\n     return NextResponse.next({ request: { headers } });\n   }\n+  // --- Gate 2a: /partners. Same session cookie and login as /client; no slug\n+  // check because the namespace is not per-tenant. ---\n+  if (underPartners) {\n+    const cookie = req.cookies.get(CLIENT_COOKIE)?.value;\n+    const session = cookie ? await verifyClientSessionEdge(cookie) : null;\n+    if (!session) return NextResponse.redirect(new URL(\"/client/login\", req.url));\n+    return NextResponse.next();\n+  }\n   // --- Gate 2b: /client-docs/<slug>/* (per-tenant static reference docs) ---\n   // A client may only reach a slug their session was granted, so client A can\n   // never fetch client B's doc.\ndiff --git a/tests/proxy-partners.test.ts b/tests/proxy-partners.test.ts\nnew file mode 100644\nindex 00000000..a5bca398\n--- /dev/null\n+++ b/tests/proxy-partners.test.ts\n@@ -0,0 +1,36 @@\n+import { beforeAll, describe, expect, it } from \"vitest\";\n+import { NextRequest } from \"next/server\";\n+import { proxy } from \"../proxy\";\n+import { CLIENT_COOKIE } from \"../lib/client-auth-edge\";\n+\n+const SECRET = \"test-only-session-secret-not-used-in-prod-0123456789\";\n+\n+async function mintClientCookie(slug: string): Promise<string> {\n+  const payload = btoa(JSON.stringify({ method: \"client\", slug, issuedAt: Date.now() }));\n+  const key = await crypto.subtle.importKey(\n+    \"raw\",\n+    new TextEncoder().encode(SECRET),\n+    { name: \"HMAC\", hash: \"SHA-256\" },\n+    false,\n+    [\"sign\"],\n+  );\n+  const mac = new Uint8Array(await crypto.subtle.sign(\"HMAC\", key, new TextEncoder().encode(payload)));\n+  return `${payload}.${Array.from(mac, (b) => b.toString(16).padStart(2, \"0\")).join(\"\")}`;\n+}\n+\n+beforeAll(() => {\n+  process.env.SESSION_SECRET = SECRET;\n+});\n+\n+describe(\"proxy() gate on /partners\", () => {\n+  it(\"redirects to /client/login without a session and passes with one\", async () => {\n+    const url = \"https://solaisoft.com/partners/anything\";\n+    const denied = await proxy(new NextRequest(url));\n+    expect(denied.headers.get(\"location\") || \"\").toContain(\"/client/login\");\n+\n+    const cookie = await mintClientCookie(\"station-street-fitness\");\n+    const headers = new Headers({ cookie: `${CLIENT_COOKIE}=${cookie}` });\n+    const ok = await proxy(new NextRequest(url, { headers }));\n+    expect(ok.headers.get(\"location\")).toBeNull();\n+  });\n+});\n"
+}

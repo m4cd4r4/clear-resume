@@ -1,0 +1,155 @@
+{
+ "id": "T2-A-4",
+ "t": "T2",
+ "arm": "A",
+ "r": 4,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 31950,
+  "stop_reason": "end_turn",
+  "session_id": "fd5951b6-c13d-4c8e-b86f-76b90e4af8b5",
+  "total_cost_usd": 0.5515576,
+  "usage": {
+   "input_tokens": 6,
+   "cache_creation_input_tokens": 58659,
+   "cache_read_input_tokens": 192740,
+   "output_tokens": 2179,
+   "output_tokens_details": {
+    "thinking_tokens": 429
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 58659,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 1476,
+     "cache_read_input_tokens": 86159,
+     "cache_creation_input_tokens": 2263,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2263
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1221,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013360000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-opus-5-5": {
+    "inputTokens": 6,
+    "outputTokens": 2179,
+    "cacheReadInputTokens": 192740,
+    "cacheCreationInputTokens": 58659,
+    "webSearchRequests": 0,
+    "costUSD": 0.551424,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 429,
+    "canonicalModel": "claude-opus-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Restart note from yesterday (2026-10-12 13:36 AWST): you reloaded every window, so test whether the new mod works when you switch between sessions in the same workspace. The status bar should follow the focused Claude tab.\n\n## Plan: change one hero heading on ERF (Squarespace 7.1)\n\nTwo checks before step 1:\n\n- **Is ERF still in scope?** Memory says the engagement ends in early October, and today is 2026-10-13. Only make this change if Eoin asked for it. ERF gets defects and requested changes only.\n- **The copy has to come from you or Eoin.** I don't write new display copy alone. I'd put options to you first, then run the paraphrase and slot tests on the line you pick.\n\n| # | Step | How I verify it |\n|---|---|---|\n| 1 | Create the change folder `docs/clients/engineroomfitness/hero-copy-2026-10-13/` and record the exact page URL and the approved line. | The folder exists and the line is quoted word for word from you or Eoin. |\n| 2 | **Read the live page anonymously first:** `curl -sL https://<erf-domain>/<page>` and save it as `live-before.html`. Find the current hero text in the raw HTML. This is also the restore point. | The old hero string is in the saved HTML. If it isn't, the page or block isn't what I think it is, so stop. |\n| 3 | Grep the repo and live pages for the same claim (timetable, prices, trial wording), as the slot test asks. | No other page says something that contradicts the new line, or each conflict goes to you. |\n| 4 | Open the admin (Brave on 9222) and check `location.href`. | I'm on the ERF admin host, not `login.squarespace.com`. The session expires silently after about 30-40 minutes, and only you can log back in. |\n| 5 | **Probe script** `01-probe.mjs`: open the page editor and list every `.tiptap.ProseMirror` element in the iframe with its index and text. Save the hero block's `innerHTML` as `block-before.html`. | Exactly one editor holds the old hero string. Zero or several matches means stop. |\n| 6 | Write the payload `payload.html` from the live block's markup, keeping its tag, `class`, `style` and `data-rte-preserve-empty`, and swapping only the text. | A diff of `block-before.html` against `payload.html` shows only the text changed. |\n| 7 | **Apply script** `02-apply.mjs`: `editor.commands.setContent(payload, true)`. Never `innerHTML`, paste or Ctrl+A/Backspace. On a single-line heading, Backspace deletes the block itself. | The script reads the block back. It must equal the new line and must no longer contain the old string, and the block count must be unchanged. Only if all three pass does it click SAVE. Otherwise it returns `{saved:false}` and I leave the page without saving, which discards the edit cleanly. |\n| 8 | **Check from outside the admin:** run `curl` again (no cookies) and save it as `live-after.html`. The admin session can't show what the public sees. | The new string is present, the old one is gone, and the status is 200. |\n| 9 | Screenshot the public page at 1440 and 390 and read both images myself. | The hero isn't wrapping badly or overflowing on mobile, and the hero video/image and CTA are unchanged. |\n| 10 | Log it: run `change-log.js --project engineroomfitness`, add the client-log entry for Eoin's request, update the row in ERF's `PROJECT-PLAN.md`, and commit the folder. | The entry shows in `change-log.js --list --project engineroomfitness`. |\n\n**Rollback:** re-run step 7 with `block-before.html` as the payload, then repeat steps 8 and 9.\n\n**Unverified assumption:** I'm assuming the hero text is a TipTap text block. If it's a Squarespace section title or image-block overlay, step 7 changes. The probe in step 5 shows which before anything is written.",
+  "ttft_ms": 11013,
+  "type": "result",
+  "duration_ms": 41645,
+  "uuid": "a10d72cf-f526-4595-8d38-a1f8f3d4fb2e",
+  "ttft_stream_ms": 9072,
+  "time_to_request_ms": 4435,
+  "time_to_request_phases_ms": {
+   "other": 59,
+   "system_prompt": 36,
+   "resume_other": 0,
+   "process_user_input": 4,
+   "input_attachments": 78,
+   "input_hooks": 4066,
+   "transcript_persist": 23,
+   "tool_pool_refresh": 8,
+   "init_message": 36,
+   "engine_pickup": 2,
+   "message_prep": 2,
+   "model_config_wait": 1,
+   "autocompact": 5,
+   "query_setup": 1,
+   "model_gates": 3,
+   "tool_schema_build": 77,
+   "message_normalization": 8,
+   "client_creation": 6,
+   "request_build": 20
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 566,
+  "time_to_request_cpu_ms": 1266,
+  "time_to_request_major_faults": 7665,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 45,
+   "cpu_ms": 109,
+   "major_faults": 1273
+  },
+  "first_content_frame_ms": 9072,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}

@@ -1,0 +1,164 @@
+{
+ "id": "T1-B-3",
+ "t": "T1",
+ "arm": "B",
+ "r": 3,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 37037,
+  "stop_reason": "end_turn",
+  "session_id": "aa2a4824-327c-427d-b177-42d4d2d70630",
+  "total_cost_usd": 0.39923790000000003,
+  "usage": {
+   "input_tokens": 18,
+   "cache_creation_input_tokens": 69780,
+   "cache_read_input_tokens": 746662,
+   "output_tokens": 4528,
+   "output_tokens_details": {
+    "thinking_tokens": 738
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 69780,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 479,
+     "cache_read_input_tokens": 99151,
+     "cache_creation_input_tokens": 194,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 194
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1242,
+    "outputTokens": 23,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.00013570000000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 18,
+    "outputTokens": 4528,
+    "cacheReadInputTokens": 746662,
+    "cacheCreationInputTokens": 69780,
+    "webSearchRequests": 0,
+    "costUSD": 0.3991022000000001,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 738,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_01E6nasMVr3izzF6v2h5kv2H",
+    "tool_input": {
+     "command": "cd I:/Scratch/_trimtest/T1-B-3 && ls node_modules 2>/dev/null | head -3; ls I:/Scratch/solaisoft/node_modules 2>/dev/null | wc -l; powershell.exe -NoProfile -Command \"Get-NetTCPConnection -State Listen | Where-Object LocalPort -ge 3000 | Where-Object LocalPort -le 3010 | Select-Object LocalPort\"",
+     "description": "Check node_modules and listening dev ports"
+    }
+   }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I haven't seen the page render, so nothing here describes how it looks. This worktree has no `node_modules` (no `next` package), so there's no route to serve and nothing to screenshot at 1440 or 390. My shell command to check for a running dev server was also denied.\n\nWhat I know from the code only (page-claim:allow):\n- I added a second FAQ block to `app/pricing/page.tsx`, below the existing one, with an `<h2>` reading \"Custom\".\n- The new block reuses the existing FAQ markup and spacing classes.\n- The \"Custom\" `<h2>` may fail the label test in `.claude/CLAUDE.md`. The page already has a Custom card, so the heading may add no new fact. I haven't checked how it reads.\n\nTo get a real look I'd need to run `npm ci` here and start a dev server. That downloads the full dependency tree into this worktree and starts a long-running process, and you told me to stop once the section was written, so I haven't done it. Say the word and I'll install, serve `/pricing`, and screenshot it at both widths.",
+  "ttft_ms": 5106,
+  "type": "result",
+  "duration_ms": 47915,
+  "uuid": "23b8198b-d46a-4ac9-a214-f8c15300ac93",
+  "ttft_stream_ms": 4625,
+  "time_to_request_ms": 3137,
+  "time_to_request_phases_ms": {
+   "other": 87,
+   "system_prompt": 26,
+   "resume_other": 0,
+   "process_user_input": 4,
+   "input_attachments": 38,
+   "input_hooks": 2856,
+   "transcript_persist": 19,
+   "tool_pool_refresh": 5,
+   "init_message": 27,
+   "engine_pickup": 1,
+   "message_prep": 2,
+   "model_config_wait": 2,
+   "autocompact": 3,
+   "query_setup": 4,
+   "model_gates": 1,
+   "tool_schema_build": 43,
+   "message_normalization": 7,
+   "client_creation": 3,
+   "request_build": 9
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 234,
+  "time_to_request_cpu_ms": 1000,
+  "time_to_request_major_faults": 7893,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 24,
+   "cpu_ms": 62,
+   "major_faults": 1374
+  },
+  "first_content_frame_ms": 4625,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "M\t.claude/CLAUDE.md\nM\tapp/pricing/page.tsx\n",
+ "patch": "diff --git a/.claude/CLAUDE.md b/.claude/CLAUDE.md\nindex c27be4a8..7b7ff892 100644\n--- a/.claude/CLAUDE.md\n+++ b/.claude/CLAUDE.md\n@@ -4,213 +4,41 @@ Project-specific guidance for AI coding agents.\n \n ## Display copy: the paraphrase test (MANDATORY before committing)\n \n-Measured 2026-08-14: of the ~12 copy lines Macdara rejected as \"nonsense\" or\n-\"ridiculous\" in the preceding week, `check:copy` could have caught almost none.\n-The two classes that actually drove the churn, and the test each one needs,\n-run on EVERY changed headline, hero line, H2, card caption or CTA before you\n-commit it:\n-\n-1. **Paraphrase it, literally.** Restate the line's claim in Simplified\n-   Technical English (ASD-STE100 register: active voice, one claim per\n-   sentence, common words, no metaphor). If you cannot say what it concretely promises, the\n-   line dies. Real failures, all shipped and all reverted: \"Cut where the\n-   light can check it\" (what light? checking what?), \"Every claim footnoted,\n-   set like a printed page\", \"One line worth holding while it runs\", \"Know\n-   what the fee buys\". Grammatical, plausible, meaningless - the exact class\n-   no regex reaches.\n-2. **Read the slot, not just the line.** Check the sentence against what\n-   surrounds it on the rendered page: the neighbouring card (\"Everything\"\n-   next to a dearer tier), the section's job (contract reassurance where\n-   results belong), the domain (\"settings only the owner can see\" said of\n-   site code), and every other surface stating the same fact (a timeline or\n-   cadence changed in one place contradicts three others - grep before you\n-   commit). A line can be fine in isolation and false on the page.\n-\n-Both are judgement checks, so they are yours, not a script's. Do them on the\n-rendered output or the full section, never on the one line in the diff.\n-`check:copy` still runs (phrase bans, intensifiers, ungrounded claim shapes);\n-it covers the third, smallest class.\n+Run on EVERY changed headline, hero line, H2, card caption or CTA, on the rendered section, never on the one line in the diff. These are judgement checks, so they are yours, not a script's (`check:copy` covers phrase bans, intensifiers and ungrounded claim shapes only).\n \n-## The label test: an eyebrow is EARNED, never inherited (MANDATORY)\n-\n-Third test, run alongside the paraphrase test on every eyebrow, section\n-heading and intro line before it is committed:\n-\n-**Name the fact the label adds that the section's own content does not already\n-show. No fact, no label.** Write the section without it first and read the\n-rendered page: if nothing is missing, nothing was missing.\n-\n-Two habits produce almost all of these, and both are reasoning failures rather\n-than copy failures:\n+1. **Paraphrase it, literally.** Restate the claim in Simplified Technical English (ASD-STE100: active voice, one claim per sentence, common words, no metaphor). If you cannot say what it concretely promises, the line dies. Shipped and reverted: \"Cut where the light can check it\", \"Every claim footnoted, set like a printed page\", \"One line worth holding while it runs\", \"Know what the fee buys\".\n+2. **Read the slot as well as the line.** Check it against the neighbouring card, the section's job, the domain, and every other surface stating the same fact (grep before you commit).\n \n-1. **Matching the neighbours instead of judging the section.** Every other\n-   section has an eyebrow and a lead line, so this one gets them too. The\n-   neighbouring sections are not evidence; they are the same mistake made\n-   earlier.\n-2. **Letting the jump nav justify a heading.** The nav needs a label for its\n-   link. That is the nav's job, and `id` + the nav's own text do it. It is not\n-   a reason to print a heading on the section.\n-\n-Two shapes are always wrong and `check:structure` now fails on them:\n-\n-- **A heading that restates what is under it** (`restates-below`) - \"Before and\n-  after\" over a frame whose two halves are labelled Before and After.\n-- **A line telling the reader how to work the control under it**\n-  (`ui-instruction`) - \"Drag the bar across it\", over a bar with a drag handle\n-  on it. A control needing a sentence of instructions has a design problem; one\n-  that does not need it does not need the sentence. Either way the line is the\n-  wrong fix.\n+## The label test: an eyebrow is EARNED, never inherited (MANDATORY)\n \n-The case that produced this: `/work/handymanclonakilty`'s before/after section,\n-cut by hand 2026-09-20 after the same pattern had been cleaned off several\n-pages that week. The mechanical half is `scripts/lib/structure-rules.mjs`\n-(unit-tested) run by `npm run check:structure`; this section is the half a\n-script cannot decide.\n+Run on every eyebrow, section heading and intro line. **Name the fact the label adds that the section's own content does not already show. No fact, no label.** Write the section without it first and read the rendered page. The neighbouring sections are not evidence, and the jump nav is not a reason to print a heading. `check:structure` catches headings that restate what is under them and instruction lines over controls; the rest is yours.\n \n-## Word budgets: `check:words` (run before every prod deploy)\n+## Word budgets and acceptance scenarios\n \n-Every public section has a visible-word budget in `scripts/word-budgets.json`,\n-seeded 2026-09-15 from live 214940d1 as a ratchet: words can go down, never up.\n-Run it against the build you are about to ship, not against source:\n+Run `npm run check:words` against the build you are about to ship, before every prod deploy (budgets only go down; details in `scripts/word-budgets.json` and the script help). Before a deploy, gate change, copy change or client-platform edit, read `docs/SCENARIOS.md` (only checks a script cannot make).\n \n-    npm run build -- --webpack && npx next start -p 3100\n-    npm run check:words -- --base http://localhost:3100\n+## Service line: web design (WaaS retainer)\n \n-A new section fails as unbudgeted until you record it (`--update`, which only\n-ever lowers or adds). Raising a budget is a hand edit to the JSON, argued for\n-in the PR. It is NOT in CI (no `next build` there - cost decision 2026-09-15).\n+Sold at solaisoft.com/web-design; Station Street Fitness is the founding client. Use `/tam-builder` (who to approach) before `/prospect-to-pitch` (one named prospect to a live demo); `/cold-email-craft` consumes tam-builder's CSV and owns the AU Spam Act gate.\n \n-## Acceptance scenarios: `docs/SCENARIOS.md`\n+**Since 2026-09-18 (Macdara):** every new client site is a custom Astro or Next.js build. Solaisoft no longer advertises or offers in-place enhancement of a site-builder site on ANY platform (Squarespace, WordPress, Webflow, Wix, Shopify). The pitch to a builder-site owner is a move onto a site we build and host: a builder reading is a reason to pitch a rebuild, never a polish. The demo is the custom site we would deliver, and the walk-in script offers a new build. Naming three specific defects on their current site still opens the conversation (`docs/playbooks/squarespace-polish.md`). `/services/site-refresh` is deleted and 308s to `/websites`; Schedule A4 and `lib/agreement/terms.ts` are retired for new agreements but kept for signed clients; `scripts/mint-agreement-token.mjs` refuses to mint one, no override. Starter is the one-page look only; the /pricing \"I already have a site\" answer is Complete.\n \n-Before a deploy, a gate change, a copy change or a client-platform edit, read\n-`docs/SCENARIOS.md`. It holds ONLY the checks a script cannot make - the ones\n-needing a human verifying from outside the system that performed the action (an\n-anonymous `curl`, not the admin browser; the live URL, not the exit code). The\n-The vitest suite and the `check:*` scripts cover everything mechanical; do not\n-duplicate them there.\n+**Not retired:** existing Squarespace clients keep their work (Engine Room Fitness included). AI audits, AI visibility and AEO, SEO and Google-reviews management continue on clients' Squarespace sites and are still sold, and the Squarespace tooling stays in use. Frame it as capability, never as an offer.\n \n-## Service line: web design (WaaS retainer)\n+## Editing a client's Squarespace site: read the reference FIRST\n \n-Solaisoft sells a web-design retainer at solaisoft.com/web-design. Station Street Fitness\n-is the founding client. Two skills own the funnel, and they are not interchangeable:\n-\n-- **`/tam-builder`** builds the prospect list. Sources businesses from Google Places by\n-  category and suburb, then scrapes each site for the signals the pitch is made of: what\n-  platform it runs on, whether it has a booking link, whether it publishes an email.\n-  Reach for this whenever the question is *who* to approach - \"who should I pitch\",\n-  \"find businesses with no booking link\", \"build me a list\", \"which suburb next\".\n-- **`/prospect-to-pitch`** takes one named prospect to a live demo and a walk-in script.\n-  Reach for this once you already know who you are approaching.\n-\n-Use tam-builder before prospect-to-pitch, not instead of it. A prospect list with no\n-demo is a spreadsheet; a demo with no list is one cold walk.\n-\n-`/cold-email-craft` consumes tam-builder's exported CSV and owns the AU Spam Act gate.\n-\n-**What the funnel sells, since 2026-09-18 (Macdara).** Every new client site is a custom\n-Astro or Next.js build. **Solaisoft no longer advertises or offers in-place enhancement of\n-a site-builder site on ANY platform** - Squarespace, WordPress, Webflow, Wix, Shopify;\n-template, theme or section. In Macdara's words it \"muddies the waters, cheapens my\n-offerings, and is by far the most time-consuming and unreliable service to guarantee\".\n-The pitch to a builder-site owner is moving them off the builder and its paid plugins onto\n-a site we build and host. So:\n-\n-- `/tam-builder` still records the platform a prospect runs on. A builder reading is a\n-  reason to pitch a rebuild, never a reason to pitch a polish.\n-- `/prospect-to-pitch` builds the demo as the custom site we would deliver. A prospect on\n-  a builder is converted, not enhanced in place, and the walk-in script offers a new\n-  build. Naming three specific defects on their current site is still the evidence that\n-  opens the conversation - `docs/playbooks/squarespace-polish.md` is how you name them\n-  precisely on Squarespace.\n-- `/services/site-refresh` is deleted and 308s to `/websites`.\n-  Schedule A4 and `lib/agreement/terms.ts` are retired for new agreements but kept for\n-  signed clients; `scripts/mint-agreement-token.mjs` refuses to mint one,\n-  unconditionally, with no override flag. Starter is the one-page look only, and the /pricing \"I already have\n-  a site\" answer is Complete (a move to a custom build).\n-\n-**Three things this did NOT retire, and confusing them is the expensive mistake.** Existing\n-Squarespace clients keep their work, Engine Room Fitness included. AI audits, AI visibility\n-and AEO, SEO and Google-reviews management all continue on clients' Squarespace sites and\n-are still sold. The Squarespace tooling and reference docs stay fully intact and in use -\n-ERF edits still happen through them.\n-\n-## Editing a client's Squarespace site - read the reference FIRST\n-\n-**This capability is retained in full and is NOT deprecated.** Since 2026-09-18 Solaisoft\n-does not sell site-builder visual enhancement to new clients (see the service-line section\n-above), but every existing client's site, and all the audit, SEO, AI-visibility and\n-Google-reviews work that runs on Squarespace sites, still goes through the tooling and the\n-reference below. Frame it as capability, never as an offer.\n-\n-Engine Room Fitness is the client on Squarespace 7.1 (Basic). Handyman Clonakilty left\n-Squarespace at its 2026-08-28 Astro cutover - see its workspace map. **Before any\n-browser-driven edit to a Squarespace site, read `docs/portal/SQUARESPACE-REFERENCE.md`.** It is the accumulated map of an admin\n-that punishes guessing, and several obvious-looking approaches are actively destructive.\n-The three that cost the most time so far:\n-\n-- **Replacing text in a rich-text block: use `element.editor.commands.setContent(html, true)`.**\n-  The blocks are TipTap. `innerHTML` does nothing, and a clipboard paste appends\n-  *underneath* the old copy rather than replacing it - silently, so the block looks right\n-  in a truncated check while holding both versions.\n-- **New and duplicated pages are created ENABLED** - publicly live the moment they exist,\n-  with no \"create as draft\". Disable as the very next action, before touching content.\n-- **An authenticated admin fetch returns 200 for a disabled page.** Enabled vs disabled can\n-  only be told apart by an unauthenticated request (plain `curl`), never from inside the\n-  admin browser.\n-\n-Always verify a block's new content before clicking SAVE, and never save a page whose\n-verification failed - navigating away discards cleanly.\n-\n-**Custom CSS is compiled as LESS, and one bad line kills EVERY rule.** An unescaped\n-`calc()` doing maths on a custom property throws at compile time, and Squarespace then\n-serves an error banner as the *whole* `custom.css` - silently dropping every other rule\n-from the live site while the panel still reports \"saved\". Wrap such values in `~\"...\"`,\n-save a restore point first, and verify by fetching the compiled `custom.css`.\n-\n-**Squarespace fixes pinned to platform internals** (block IDs, Squarespace's own CSS\n-variables, used because Basic has no code injection) undo silently if a change is made\n-without knowing about them. `docs/clients/handymanclonakilty/FRAGILITY-REGISTER.md` is the\n-worked example of recording them. HMC's own entries retired at its cutover.\n-\n-**For design judgement rather than mechanics, the file is\n-`docs/playbooks/squarespace-polish.md`** - what to fix first on an inherited Squarespace\n-site (section padding, heading hierarchy, the mobile pass), the platform features worth\n-using, and the pre-handover checklist. Use it to diagnose a site for an audit or a\n-prospect walk-in, and read its Scope section: since 2026-09-18 the fixes it lists are how\n-we name a defect, not a service we sell to a new client. It does NOT apply to ERF, which\n-is being replaced by a custom build, so polish spend there is throwaway. HMC is already\n-off Squarespace.\n+Before any browser-driven edit to a Squarespace site, **read `docs/portal/SQUARESPACE-REFERENCE.md`**. Several obvious approaches are destructive: new and duplicated pages are created ENABLED (disable as the very next action), rich-text blocks need `element.editor.commands.setContent(html, true)`, and enabled vs disabled can only be told apart by an unauthenticated `curl`. Design judgement: `docs/playbooks/squarespace-polish.md`.\n \n ## Middleware is proxy.ts (Next 16)\n \n-Route middleware lives in `proxy.ts` (`export function proxy`) - Next 16's rename of\n-`middleware.ts`. It holds all four auth gates: /nomadik, /handymanclonakilty, /client,\n-and the dormant site-wide pre-launch gate. A `middleware.ts` you add will be ignored\n-and the gate silently won't run.\n-\n-## Client work: open the client folder's CLAUDE.md first\n+Route middleware lives in `proxy.ts` (`export function proxy`), Next 16's rename of `middleware.ts`. It holds all four auth gates: /nomadik, /handymanclonakilty, /client and the dormant pre-launch gate. A `middleware.ts` you add will be ignored and the gate silently won't run.\n \n-Before planning or doing anything for a client, **Read `docs/clients/<slug>/CLAUDE.md`**\n-if it exists. It is the workspace map: what to read per task, how a live change runs,\n-and which local files are stale snapshots. Claude Code only auto-loads it after you\n-read a file inside that folder, and a Glob or Grep does not count - so open it\n-explicitly. Today: `engineroomfitness`, `handymanclonakilty`.\n+## Where to read first\n \n-## Anything in docs/: Read `docs/CLAUDE.md` first\n-\n-Before searching `docs/` or writing a new doc there, **Read `docs/CLAUDE.md`**. It maps\n-its folders: which one owns each task, which are frozen, which files are only\n-snapshots of a live source, and where new work goes. Same load rule as above: a Glob\n-or Grep does not load it.\n+Before client work, **Read `docs/clients/<slug>/CLAUDE.md`** if it exists (today: `engineroomfitness`, `handymanclonakilty`). Before searching or writing in `docs/`, **Read `docs/CLAUDE.md`**. Claude Code loads a nested CLAUDE.md only after a Read in that folder; Glob and Grep do not count.\n \n ## Work-surface data files - do not mix\n \n - `lib/work.ts` = Solaisoft's OWN SaaS\n - `lib/case-studies.ts` = paid CLIENT work\n - `lib/showcases.ts` = Studio Showcase\n-\n-## /client portal: TailAdmin since PR #839 (2026-09-09)\n-\n-The gated `/client` portal was rebuilt on TailAdmin, monochrome-skinned, in PR #839. The\n-Astryx package it replaced is gone (zero importers, not in package.json);\n-`docs/portal/ASTRYX-ADOPTION.md` is history only.\ndiff --git a/app/pricing/page.tsx b/app/pricing/page.tsx\nindex ecb1dfd6..cf2ad624 100644\n--- a/app/pricing/page.tsx\n+++ b/app/pricing/page.tsx\n@@ -8,6 +8,7 @@ import { buildsFor } from \"@/components/web-catalogue/web-catalogue\";\n import { BOOKING_HREF, BOOKING_NOTE } from \"@/lib/booking\";\n import {\n   CARE_CHANGES_LINE,\n+  CARE_CHANGES_SHORT,\n   CARE_CHANGE_LIMIT,\n   CARE_LITE,\n   CARE_LITE_AMOUNT,\n@@ -134,12 +135,58 @@ const FAQ: FaqItem[] = [\n   },\n ];\n \n+/* CUSTOM QUESTIONS. Drafted unreviewed on 2026-10-13 at Macdara's request\n+ * (\"write the copy yourself, I will review it afterwards\"). Facts come from\n+ * lib/pricing.ts; the wording awaits his edit. */\n+const CUSTOM_FAQ: FaqItem[] = [\n+  {\n+    q: \"What do I get on Custom?\",\n+    a: `${CUSTOM.price}: a site designed around your brand, with up to 10 pages, site search built in at no extra fee, and the search foundation set up before launch. The scope and timeline are agreed in writing with your quote.`,\n+  },\n+  {\n+    q: \"Do I need to supply my own photos?\",\n+    a: `Yes. Photography is yours and we design around it. If you want booking or other extras, they are priced separately: ${WEB_ADDONS.map((a) => `${lcfirst(a.name)} ${a.price}`).join(\", \")}.`,\n+  },\n+  {\n+    q: \"What does Custom cost after launch?\",\n+    a: `Care is ${CARE_LITE_AMOUNT} a month. It covers hosting, security, updates, the site-health portal and ${CARE_CHANGES_SHORT}. Care has a 12-month minimum from the first payment, then runs month to month. ${OWNERSHIP_LINE}`,\n+  },\n+];\n+\n const faqLd = {\n   \"@context\": \"https://schema.org\",\n   \"@type\": \"FAQPage\",\n-  mainEntity: FAQ.map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n+  mainEntity: [...FAQ, ...CUSTOM_FAQ].map(({ q, a }) => ({ \"@type\": \"Question\", name: q, acceptedAnswer: { \"@type\": \"Answer\", text: a } })),\n };\n \n+function FaqList({ items }: { items: FaqItem[] }) {\n+  return (\n+    <>\n+      {items.map(({ q, a, more }) => (\n+        <details key={q} className=\"group border-t border-line last:border-b\">\n+          <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n+            {q}\n+            <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n+              +\n+            </span>\n+          </summary>\n+          <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n+            {a}\n+            {more && (\n+              <>\n+                {\" \"}\n+                <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n+                  {more.label}\n+                </a>\n+              </>\n+            )}\n+          </p>\n+        </details>\n+      ))}\n+    </>\n+  );\n+}\n+\n function Thumbs({ items }: { items: { key: string; src: string; href: string; label: string }[] }) {\n   return (\n     <ul className=\"grid grid-cols-4 gap-3\">\n@@ -303,27 +350,17 @@ export default function PricingPage() {\n               </li>\n             </ul>\n             <div className=\"lg:col-span-7\">\n-              {FAQ.map(({ q, a, more }) => (\n-                <details key={q} className=\"group border-t border-line last:border-b\">\n-                  <summary className=\"flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-base font-semibold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden\">\n-                    {q}\n-                    <span aria-hidden className=\"mt-0.5 flex-none text-fg-3 group-open:rotate-45\">\n-                      +\n-                    </span>\n-                  </summary>\n-                  <p className=\"max-w-[68ch] pb-5 text-sm leading-relaxed text-fg-2\">\n-                    {a}\n-                    {more && (\n-                      <>\n-                        {\" \"}\n-                        <a href={more.href} className=\"font-medium text-accent-text underline-offset-4 hover:underline\">\n-                          {more.label}\n-                        </a>\n-                      </>\n-                    )}\n-                  </p>\n-                </details>\n-              ))}\n+              <FaqList items={FAQ} />\n+            </div>\n+          </div>\n+        </section>\n+\n+        {/* CUSTOM FAQ */}\n+        <section aria-label=\"Custom questions\" className=\"bg-bg-soft\">\n+          <div className=\"container-px grid gap-6 pb-12 lg:grid-cols-12 lg:gap-16 lg:pb-16\">\n+            <h2 className=\"text-2xl font-semibold tracking-tight lg:col-span-5\">Custom</h2>\n+            <div className=\"lg:col-span-7\">\n+              <FaqList items={CUSTOM_FAQ} />\n             </div>\n           </div>\n         </section>\n"
+}

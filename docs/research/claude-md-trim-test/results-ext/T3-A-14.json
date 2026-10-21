@@ -1,0 +1,155 @@
+{
+ "id": "T3-A-14",
+ "t": "T3",
+ "arm": "A",
+ "r": 14,
+ "status": 0,
+ "result": {
+  "duration_api_ms": 14604,
+  "stop_reason": "end_turn",
+  "session_id": "ce3904a6-0a63-4f71-9ec2-2f6e90691584",
+  "total_cost_usd": 0.20555839999999997,
+  "usage": {
+   "input_tokens": 2,
+   "cache_creation_input_tokens": 47046,
+   "cache_read_input_tokens": 29565,
+   "output_tokens": 1428,
+   "output_tokens_details": {
+    "thinking_tokens": 893
+   },
+   "server_tool_use": {
+    "web_search_requests": 0,
+    "web_fetch_requests": 0
+   },
+   "service_tier": "standard",
+   "cache_creation": {
+    "ephemeral_1h_input_tokens": 47046,
+    "ephemeral_5m_input_tokens": 0
+   },
+   "inference_geo": "global",
+   "iterations": [
+    {
+     "input_tokens": 2,
+     "output_tokens": 1428,
+     "cache_read_input_tokens": 29565,
+     "cache_creation_input_tokens": 47046,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 47046
+     },
+     "type": "message"
+    }
+   ],
+   "speed": "standard",
+   "fallback_credit": null
+  },
+  "modelUsage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 1214,
+    "outputTokens": 25,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0.0001339,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   },
+   "claude-sonnet-5-5": {
+    "inputTokens": 2,
+    "outputTokens": 1428,
+    "cacheReadInputTokens": 29565,
+    "cacheCreationInputTokens": 47046,
+    "webSearchRequests": 0,
+    "costUSD": 0.20542449999999998,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 893,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "extra_usage_disabled",
+  "subagent_stats": {
+   "spawned": 0,
+   "requested": {
+    "background": 0,
+    "foreground": 0,
+    "unset": 0
+   },
+   "started_in_background": 0,
+   "max_depth": 0,
+   "spawned_by_subagents": 0,
+   "completed": 0,
+   "failed": 0,
+   "killed": {
+    "parent": 0,
+    "user": 0,
+    "system": 0
+   },
+   "refused": {
+    "depth_limit": 0,
+    "concurrency_limit": 0,
+    "budget": 0
+   },
+   "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Restart note: you reloaded every window on 2026-10-12 at 13:36 AWST; test whether the status bar follows the focused Claude tab when you switch sessions in the same workspace.\n\n**Walk-in offer draft (5 sentences)**\n\n1. \"Hi, I'm Macdara, I build websites for gyms around here, and I looked at yours before I came in.\"\n2. \"Three things stood out on it: [defect 1], [defect 2], [defect 3].\"\n3. \"I don't patch Squarespace sites, because the template limits how far a fix can go, so I rebuild the site from scratch instead.\"\n4. \"You'd get a new custom site that looks the way you want, we host and look after it, and you stop paying Squarespace and its plugins.\"\n5. \"I can show you what yours would look like on my phone right now, or I can leave my card and come back when it suits you.\"\n\n**Before you use it:**\n- **Defects (sentence 2):** these must be three real, specific problems found on their live site. Use `docs/playbooks/squarespace-polish.md` to name them precisely. Don't use generic ones.\n- **Demo (sentence 5):** it only works if you've built the demo first with `/prospect-to-pitch`. Otherwise use the card-only ending.\n- **Price:** I left it out on purpose, per your no-unasked-quotes ruling. Add it only if you want it in the pitch.\n- **Fit with your 2026-09-18 rule:** this is a rebuild pitch, not an in-place enhancement. Sentence 3 states that outright.\n- **Sentence 3 wording:** it is my line, so you may want to reword it.",
+  "ttft_ms": 12457,
+  "type": "result",
+  "duration_ms": 18911,
+  "uuid": "428c3083-b9c8-42a1-a88b-63e9d2b00d16",
+  "ttft_stream_ms": 4444,
+  "time_to_request_ms": 3040,
+  "time_to_request_phases_ms": {
+   "other": 50,
+   "system_prompt": 28,
+   "resume_other": 0,
+   "process_user_input": 6,
+   "input_attachments": 44,
+   "input_hooks": 2788,
+   "transcript_persist": 11,
+   "tool_pool_refresh": 6,
+   "init_message": 25,
+   "engine_pickup": 2,
+   "message_prep": 1,
+   "model_config_wait": 2,
+   "autocompact": 4,
+   "query_setup": 1,
+   "model_gates": 1,
+   "tool_schema_build": 47,
+   "message_normalization": 8,
+   "client_creation": 5,
+   "request_build": 11
+  },
+  "turn_start_resume_kind": "none",
+  "process_turn_index": 0,
+  "time_to_request_loop_lag_ms": 262,
+  "time_to_request_cpu_ms": 859,
+  "time_to_request_major_faults": 7525,
+  "input_attachments_detail": {
+   "slowest_producer": "deferred_tools_delta",
+   "slowest_producer_ms": 28,
+   "cpu_ms": 78,
+   "major_faults": 1090
+  },
+  "first_content_frame_ms": 4445,
+  "queued_turn_count": 0,
+  "result_index": 0
+ },
+ "stderr": "",
+ "names": "",
+ "patch": ""
+}
