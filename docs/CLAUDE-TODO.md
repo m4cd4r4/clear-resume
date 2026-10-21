@@ -119,3 +119,13 @@ timer in every session, idle off included; each look reads `<key>.idle.json`. Wi
 toast or status message (`idleCheck` returns before any), and it costs no model tokens. The overhead is
 not measured. Either measure it (CPU and file reads over a long idle-off session), or start the timer only
 when the picker file first appears.
+
+## 10. Sidebar webview: not verified with a real screen reader
+
+The restyled sidebar (`extension/src/sidebar-page.ts`) is an ARIA tree with arrow, Home/End and one tab stop.
+Only the DOM and key handling were measured. NVDA or Narrator has not been run against it.
+
+## 11. Sidebar search box scrolls away with the list
+
+The Handovers search box is part of the scrolling list, not sticky. Left as is in the restyle.
+

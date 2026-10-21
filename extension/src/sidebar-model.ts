@@ -1,0 +1,168 @@
+// What the sidebar page draws, built from the store's records. No vscode import and
+// no I/O, so vitest runs it directly. Every string here comes from handover data or
+// from the labels the tree views already used.
+import type { StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { loadedAge, shortAge, treeGroups } from "../../plugin/packages/store/view.mjs";
+import { stamp, type Lane, type NextUp } from "../../plugin/packages/store/lanes.mjs";
+
+export type RowKind = "waiting" | "loaded" | "archived";
+
+export interface RowModel {
+  /** Unique within the page; a record can sit in Loaded and Archived at once. */
+  key: string;
+  /** The handover's id, which the host looks the record up by. */
+  id: string;
+  title: string;
+  /** Repo and branch. */
+  meta: string;
+  /** "3h", or "loaded 25m ago" on a Loaded row. */
+  age: string;
+  /** 1 for a fresh handover down to FADE_FLOOR for an old one. */
+  fade: number;
+  kind: RowKind;
+  pinned: boolean;
+  /** The first lines of the handover's Next action, or of its body. */
+  peek: string[];
+}
+
+export interface SectionModel {
+  id: string;
+  /** Empty when a lone group needs no heading. */
+  label: string;
+  rows: RowModel[];
+}
+
+export interface LaneModel {
+  key: string;
+  title: string;
+  main: boolean;
+  /** "started 10-04 11:50 · handover waiting 3h · ux-plan #4/4". */
+  meta: string;
+  why: string;
+  path: string;
+  /** What the open-window command receives: the lane's .code-workspace, else its folder. */
+  target: string;
+  /** The lane's newest handover when it is waiting: Resume acts on it in place. */
+  resumable: RowModel | null;
+  handovers: RowModel[];
+}
+
+export interface NextModel {
+  key: string;
+  title: string;
+  meta: string;
+  why: string;
+}
+
+export interface LanesModel {
+  lanes: LaneModel[];
+  next: NextModel[];
+}
+
+/** Oldest handovers fade to this, so they recede without vanishing. */
+export const FADE_FLOOR = 0.4;
+const FADE_DAYS = 14;
+
+export function fadeOf(createdAt: string, now: Date): number {
+  const days = (now.getTime() - new Date(createdAt).getTime()) / 86_400_000;
+  if (!Number.isFinite(days) || days <= 0) return 1;
+  return Math.max(FADE_FLOOR, 1 - (days / FADE_DAYS) * (1 - FADE_FLOOR));
+}
+
+const clip = (s: string, max: number) => (s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`);
+
+/**
+ * The lines that say what the handover is for: its "Next action" section, else the
+ * first lines under its title. At most three, each cut to fit a narrow sidebar.
+ */
+export function peekOf(body: string, lines = 3): string[] {
+  const text = String(body ?? "");
+  const m = text.match(/(?:^|\n)##\s+Next action[^\S\n]*\r?\n([\s\S]*?)(?=\r?\n##\s|$)/i);
+  const source = m ? m[1] : text.replace(/^#[^\n]*\n/, "");
+  return source
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim())
+    .filter((l) => l && !l.startsWith("#"))
+    .slice(0, lines)
+    .map((l) => clip(l, 160));
+}
+
+const where = (r: StoredHandover) => [r.repo, r.branch].filter(Boolean).join(" · ");
+
+export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; prefix?: string } = {}): RowModel {
+  const loaded = opts.loaded === true;
+  return {
+    key: `${opts.prefix ?? (loaded ? "loaded" : "h")}:${r.id}`,
+    id: r.id,
+    title: r.title,
+    meta: where(r),
+    age: loaded ? loadedAge(r, now) : shortAge(r, now),
+    fade: loaded ? 1 : fadeOf(r.createdAt, now),
+    kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
+    pinned: r.pinned === true,
+    peek: peekOf(r.body),
+  };
+}
+
+/** The Handovers section: the tree's groups, in the tree's order, as rows. */
+export function handoverSections(
+  records: StoredHandover[],
+  opts: { repoPath: string; roots: string[]; now: Date; showArchived: boolean },
+): SectionModel[] {
+  const groups = treeGroups(records, opts);
+  const sections = groups.map((g) => ({
+    id: g.id,
+    label: g.label,
+    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded" })),
+  }));
+  // One group alone needs no heading, except Loaded, whose heading says these rows
+  // were loaded and are not waiting.
+  if (sections.length === 1 && sections[0].id !== "loaded") sections[0].label = "";
+  return sections;
+}
+
+export function lanesModel(
+  data: { lanes: Lane[]; next: NextUp[] },
+  opts: { now: Date; targetOf: (lane: Lane) => string },
+): LanesModel {
+  const lanes = data.lanes.map((lane): LaneModel => {
+    const handovers = lane.handovers.map((r) => rowOf(r, opts.now, { prefix: `lane:${lane.path}` }));
+    const newest = lane.handovers[0];
+    return {
+      key: `lane:${lane.path}`,
+      // The home icon marks the main checkout, so its label is only the branch.
+      title: lane.main ? lane.title : `${lane.seq}. ${lane.title}`,
+      main: lane.main,
+      meta: [lane.startedAt && `started ${stamp(lane.startedAt)}`, lane.state, lane.context].filter(Boolean).join(" · "),
+      why: lane.why,
+      path: lane.path,
+      target: opts.targetOf(lane),
+      resumable: newest?.status === "waiting" ? handovers[0] : null,
+      handovers,
+    };
+  });
+  const next = data.next.map((n, i): NextModel => ({
+    key: `next:${i}`,
+    title: n.short,
+    meta: [n.context, n.queuedAt && `queued ${stamp(n.queuedAt)}`].filter(Boolean).join(" · "),
+    why: n.entry.why || "",
+  }));
+  return { lanes, next };
+}
+
+/** Whether text matches the search box: every word of the query appears in it. */
+export function matches(text: string, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const hay = text.toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+
+const rowText = (r: RowModel) => `${r.title} ${r.meta}`;
+
+/** Rows whose title, repo or branch match; a group left empty drops out. */
+export function filterSections(sections: SectionModel[], query: string): SectionModel[] {
+  if (!query.trim()) return sections;
+  return sections
+    .map((s) => ({ ...s, rows: s.rows.filter((r) => matches(rowText(r), query)) }))
+    .filter((s) => s.rows.length > 0);
+}
