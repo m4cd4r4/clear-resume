@@ -51,7 +51,7 @@ describe("lastContextTokens", () => {
 });
 
 describe("Stop nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
+  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {
@@ -190,7 +190,7 @@ describe("Stop nudge", () => {
   it("honours a custom threshold and ignores a bad one", () => {
     write(call(160_000));
     expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(250_000);
+    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
   });
 
   it("the footer's per-window nudge size beats the env, for any session in that window's chain", () => {
@@ -288,7 +288,7 @@ describe("lastContextTokens past a huge line", () => {
 // turn to end - which is exactly how session 83cc6aa6 was compacted on
 // 2026-09-20 after climbing 136k to 216k with no turn-end in between.
 describe("mid-turn nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
+  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {

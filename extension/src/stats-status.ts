@@ -30,7 +30,7 @@ import {
 } from "../../plugin/packages/store/relay-state.mjs";
 
 const POLL_MS = 5_000;
-const DEFAULT_NUDGE_AT = 250_000;
+const DEFAULT_NUDGE_AT = 180_000;
 // Read a transcript in pieces: they reach hundreds of MB, and the first read of
 // one is the whole file.
 const CHUNK = 4 * 1024 * 1024;

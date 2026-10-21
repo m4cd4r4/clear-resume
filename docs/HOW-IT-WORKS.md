@@ -123,7 +123,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 | Variable | Default | What it does |
 |---|---|---|
 | `CLEAR_RESUME_AUTO` | off | `1` turns on the context-size nudge. |
-| `CLEAR_RESUME_NUDGE_AT` | `250000` | Context size, in tokens, that triggers the nudge. |
+| `CLEAR_RESUME_NUDGE_AT` | `180000` | Context size, in tokens, that triggers the nudge. |
 | `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
@@ -136,7 +136,7 @@ without editing `settings.json`: with `/plugin configure clear-resume@clear-resu
 `claude plugin install clear-resume@clear-resume --config auto_nudge=true --config nudge_at=150000`.
 Sessions started after that use the new values. Claude Code keeps `nudge_at` between 50000 and
 1000000. `CLEAR_RESUME_AUTO` wins over `auto_nudge` whenever it is set. `CLEAR_RESUME_NUDGE_AT` wins
-over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 250000.
+over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 180000.
 
 The third plugin option, `relay`, is `off` (the default), a number of clears per Claude Code
 window, or `unlimited`. Set it the same way, for example `--config relay=10`. See

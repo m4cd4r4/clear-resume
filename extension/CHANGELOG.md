@@ -8,7 +8,6 @@ Needs a clear-resume plugin with the hand-over poll in its relay mod.
   for the same session, which used to lose the pick and fall back to the plugin option. The new
   file takes the newest pick made on any relay file holding the same session. A new tab still
   starts at the default.
-- The default nudge size is 250k (was 180k), in the plugin and the extension.
 
 - The handover status-bar item is gone. The context pie's hover card now shows the handover
   the focused tab's Claude process loaded, so a parallel session's handover no longer shows in
