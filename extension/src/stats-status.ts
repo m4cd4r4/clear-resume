@@ -266,8 +266,21 @@ export function statsStatus(
     try {
       const roots = folders();
       // The focused tab's session, when compass has named it; sticky while a file tab has focus.
-      const tab = rowForTab(compassRows(), vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? "", Date.now());
+      const active = vscode.window.tabGroups.activeTabGroup.activeTab;
+      const rows = compassRows();
+      const tab = rowForTab(rows, active?.label ?? "", Date.now());
       if (tab) focused = tab.id;
+      // A Claude tab compass has no row for yet (a fresh one) is not the tab we
+      // last followed: show nothing rather than that tab's count as this one's.
+      // Only when compass is running; without it no tab ever has a row.
+      else if (rows.length && active?.input instanceof vscode.TabInputWebview && active.input.viewType.endsWith("claudeVSCodePanel")) {
+        focused = null;
+        pieItem.hide();
+        relayItem.hide();
+        nudgeItem.hide();
+        handoverItem.hide();
+        return;
+      }
       const procs = claudeProcesses();
       const live = withFocus(
         liveSessions(procs, (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),

@@ -4,6 +4,10 @@
 
 Needs a clear-resume plugin with the hand-over poll in its relay mod.
 
+- A fresh Claude tab no longer shows the previous tab's context count. While compass has no
+  row for the focused tab, the pie, relay, nudge and Hand over items are hidden, and the
+  relay lookup returns nothing instead of a sibling tab's file.
+
 - The nudge size you pick in the footer now survives a reload. A reload writes a new relay file
   for the same session, which used to lose the pick and fall back to the plugin option. The new
   file takes the newest pick made on any relay file holding the same session. A new tab still
