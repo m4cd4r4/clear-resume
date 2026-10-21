@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><title>clear-resume accent options</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --bg:#1e1e1e; --fg:#cccccc; --mute:#9d9d9d; --line:#ffffff1f; --hover:#2a2d2e; --sel:#37373d; }
+.light { --bg:#f3f3f3; --fg:#3b3b3b; --mute:#717171; --line:#0000001f; --hover:#e8e8e8; --sel:#e4e6f1; }
+body { margin:0; padding:24px; background:#111; color:#ddd; font:14px/1.4 system-ui,sans-serif; }
+h1 { font-size:16px; margin:0 0 4px; } p.n { color:#999; margin:0 0 20px; max-width:70ch; }
+.grid { display:flex; flex-wrap:wrap; gap:24px; }
+.col { display:flex; flex-direction:column; gap:12px; }
+.col > b { font-weight:600; }
+.side { width:300px; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui,sans-serif; padding:6px 0 12px; border:1px solid var(--line); }
+.side.narrow { width:200px; }
+.sec { padding:10px 12px 6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--mute); display:flex; gap:8px; }
+.pill { font-size:11px; padding:0 8px; border-radius:999px; background:color-mix(in srgb,var(--fg) 14%,transparent); color:var(--mute); }
+.pill.a { background:color-mix(in srgb,var(--accent) 24%,transparent); color:var(--accent); }
+.card { display:grid; grid-template-columns:10px 1fr auto; gap:2px 10px; align-items:center; padding:8px 12px; margin:1px 8px; border-radius:9px; }
+.card:hover { background:var(--hover); }
+.card.sel { background:var(--sel); box-shadow:inset 2px 0 0 var(--accent); }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--accent); }
+.dot.ok { background:#4ec27a; } .dot.old { background:var(--mute); opacity:.5; }
+.t { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .sel .t { font-weight:600; }
+.age { color:var(--mute); font-size:12px; }
+.meta { grid-column:2/4; color:var(--mute); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chip { font-size:11px; padding:1px 7px; border-radius:5px; background:color-mix(in srgb,var(--accent) 22%,transparent); color:var(--accent); }
+.btn { margin:8px 12px 0; padding:5px 10px; border:0; border-radius:6px; background:var(--accent); color:#111; font:inherit; font-weight:600; width:calc(100% - 24px); }
+</style></head><body>
+<h1>clear-resume accent options</h1>
+<p class="n">Same rows, real labels only (title, repo, branch, age, loaded). Compass uses #d1805f, so it is not offered. Dark and light, wide and narrow.</p>
+<div class="grid" id="g"></div>
+<script>
+const opts = [
+  ["A. Teal", "#2fb5a8", "#17867c"],
+  ["B. Violet", "#9a86f0", "#6a54d0"],
+  ["C. Gold", "#d6a93a", "#8f6a00"],
+];
+function side(narrow) {
+  return `<div class="side${narrow ? " narrow" : ""}">
+  <div class="sec">Loaded <span class="pill a">1</span></div>
+  <div class="card sel"><span class="dot ok"></span><span class="t">restyle-webview: kickoff</span><span class="age"></span><span class="meta">loaded 1m ago</span></div>
+  <div class="sec">Current repo <span class="pill">2</span></div>
+  <div class="card"><span class="dot"></span><span class="t">autonudge: wire cache TTL</span><span class="age">3h</span><span class="meta">clear-resume · feat/nudge</span></div>
+  <div class="card"><span class="dot"></span><span class="t">spare cycles polish</span><span class="age">2d</span><span class="meta">clear-resume · main</span></div>
+  <div class="sec">Stale <span class="pill">1</span></div>
+  <div class="card"><span class="dot old"></span><span class="t">old relay spike</span><span class="age">3w</span><span class="meta">clear-resume</span></div>
+  <button class="btn">Resume</button></div>`;
+}
+document.getElementById("g").innerHTML = opts.map(([n, dark, light]) =>
+  [["", dark], ["light", light]].map(([mode, c]) =>
+    `<div class="col ${mode}" style="--accent:${c}"><b style="color:#ddd">${n}${mode ? " (light)" : " (dark)"} ${c}</b>
+     <div class="grid ${mode}" style="gap:12px">${side(false)}${side(true)}</div></div>`).join("")
+).join("");
+document.querySelectorAll(".col.light .side").forEach(e => e.parentElement.classList.add("light"));
+</script></body></html>
