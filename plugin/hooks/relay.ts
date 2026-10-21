@@ -65,6 +65,17 @@ export function idleMode(raw: unknown): IdleMode {
   return s === 'toast' || s === 'smart' || s === 'auto' ? s : 'off'
 }
 
+// The mode picked in the VS Code status bar, from <key>.idle.json: one of the four,
+// else undefined and the plugin option stands.
+export function idleOverride(raw: unknown): IdleMode | undefined {
+  try {
+    const m = JSON.parse(String(raw))?.mode
+    return m === 'off' || m === 'toast' || m === 'smart' || m === 'auto' ? m : undefined
+  } catch {
+    return undefined
+  }
+}
+
 // A positive number from an option, else the default.
 export function positive(raw: unknown, fallback: number): number {
   const n = Number(raw)
@@ -194,6 +205,8 @@ type Relay = {
   // Idle handover: the settings, the clock reading and context size at the end of
   // the last main-thread reply, tool calls and turns now running, and the timer.
   idle: IdleMode
+  // The plugin option's mode, which stands when no mode is picked in the status bar.
+  idleBase: IdleMode
   ttlMin: number
   minTokens: number
   lastReplyAt: number | undefined
@@ -399,9 +412,24 @@ function resetIdle(r: Relay): void {
   r.idleAsked = false
 }
 
+// The mode this window runs on: the one picked in the status bar (<key>.idle.json)
+// while that file holds a valid mode, else the plugin option. Read on every look, so
+// a pick takes effect in a running session; dropping the file puts the option back.
+async function takeIdleMode($: Engine, r: Relay): Promise<void> {
+  let picked: IdleMode | undefined
+  try {
+    const dir = await relayDir($)
+    if (dir) picked = idleOverride(await $.fs.read(`${dir}/${r.key}.idle.json`))
+  } catch {
+    // No file: the plugin option stands.
+  }
+  r.idle = idleEffective(picked ?? r.idleBase, r.ttlMin)
+}
+
 // One look at the idle state. Acts at most once per session.
 async function idleCheck($: Engine, r: Relay): Promise<void> {
   const now = await $.clock.now()
+  await takeIdleMode($, r)
   // A gap far past one tick means the machine was asleep: the cache clock moved
   // while this one did not, so nothing is submitted on that look.
   const woke = idleWoke(r.lastTickAt, now)
@@ -440,7 +468,8 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
 
 // The idle check's timer, once per process. Not under the headless runner.
 async function idleTick($: Engine, r: Relay): Promise<void> {
-  if (r.ticking || r.idle === 'off') return
+  // Runs with idle off too: a mode picked in the status bar can turn it on later.
+  if (r.ticking) return
   r.ticking = true
   if (await headlessRun($)) return
   let busy = false
@@ -546,6 +575,7 @@ export const register: Register = (on, options) => {
     polling: false,
     warned: undefined,
     idle: idleEffective(idleMode(options.idle_handover), positive(options.cache_ttl_minutes, DEFAULT_TTL_MIN)),
+    idleBase: idleMode(options.idle_handover),
     ttlMin: positive(options.cache_ttl_minutes, DEFAULT_TTL_MIN),
     minTokens: positive(options.idle_min_tokens, DEFAULT_IDLE_MIN_TOKENS),
     lastReplyAt: undefined,
@@ -591,27 +621,25 @@ export const register: Register = (on, options) => {
     return { text: relayStatus(r.limit, r.used) }
   })
 
-  // Only with the idle handover on: count tool calls in flight, any thread (one
-  // may be waiting on a permission prompt), and turns running. With it off these
-  // hooks are not registered at all.
-  if (r.idle !== 'off') {
-    on('tool.call', async ($, e, next) => {
-      r.tools++
-      try {
-        return await next(e)
-      } finally {
-        r.tools = Math.max(0, r.tools - 1)
-      }
-    })
+  // Count tool calls in flight, any thread (one may be waiting on a permission
+  // prompt), and turns running. Registered with the idle handover off too: a mode
+  // picked in the status bar can turn it on in a session that began without it.
+  on('tool.call', async ($, e, next) => {
+    r.tools++
+    try {
+      return await next(e)
+    } finally {
+      r.tools = Math.max(0, r.tools - 1)
+    }
+  })
 
-    on('turn.start', async ($, e, next) => {
-      r.turns.add(e.turnId)
-      // The idle message stays until the user is back and a turn starts.
-      r.idleShown = false
-      $.ui.status(shown(r))
-      return next(e)
-    })
-  }
+  on('turn.start', async ($, e, next) => {
+    r.turns.add(e.turnId)
+    // The idle message stays until the user is back and a turn starts.
+    r.idleShown = false
+    $.ui.status(shown(r))
+    return next(e)
+  })
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
@@ -635,7 +663,7 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) return result
     // Only a turn that answered counts as the user's last reply: an aborted or
     // failed one did not refresh the cache the way a finished request does.
-    if (r.idle !== 'off' && e.reason === 'answer') r.lastReplyAt = await $.clock.now()
+    if (e.reason === 'answer') r.lastReplyAt = await $.clock.now()
     await takeOverride($, r)
     await decide($, r, e.reason)
     await publish($, r)

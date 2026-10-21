@@ -4,7 +4,16 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import * as vscode from "vscode";
-import { IDLE_DETAIL, IDLE_MODES, idleText, readIdleMode, writeIdleMode } from "./idle-mode";
+import {
+  IDLE_DETAIL,
+  IDLE_MODES,
+  clearWindowIdleMode,
+  idleText,
+  setWindowIdleMode,
+  settingsIdleMode,
+  windowIdleMode,
+  type IdleMode,
+} from "./idle-mode";
 import { ownedProcess } from "./window-owner";
 import { storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { statusText } from "../../plugin/packages/store/view.mjs";
@@ -344,9 +353,12 @@ export function statsStatus(
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
-        const idle = readIdleMode();
+        const ownIdle = windowIdleMode(relayDir(), window.key);
+        const idle = ownIdle ?? settingsIdleMode();
         idleItem.text = idleText(idle);
-        idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. Applies to Claude sessions started after you change it. Click to change.`;
+        idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. ${
+          ownIdle ? `Picked for this ${scope}` : "From your settings (idle_handover)"
+        }; a change reaches the running session within 30 seconds. Click to change.`;
         idleItem.command = "clearResume.pickIdle";
         idleItem.show();
       } else {
@@ -463,23 +475,26 @@ export function statsStatus(
   };
 
   const pickIdle = async () => {
-    const now = readIdleMode();
-    const chosen = await vscode.window.showQuickPick(
-      IDLE_MODES.map((m) => ({
-        label: `${m === now ? "$(check)" : "$(blank)"} ${m}`,
-        description: IDLE_DETAIL[m],
-        mode: m,
-      })),
-      {
-        title: "Idle handover",
-        placeHolder: `Now: ${now}. Applies to Claude sessions started after this; one already running keeps its mode.`,
-      },
-    );
-    if (!chosen || chosen.mode === now) return;
-    if (!writeIdleMode(chosen.mode)) {
-      void vscode.window.showWarningMessage("clear-resume: could not read ~/.claude/settings.json, so the idle mode was not changed.");
+    if (!window) {
+      void vscode.window.showInformationMessage("clear-resume: no relay in this window yet. It starts with the next Claude session here.");
       return;
     }
+    const target = window;
+    const own = windowIdleMode(relayDir(), target.key);
+    const now = own ?? settingsIdleMode();
+    const items: { label: string; description: string; mode: IdleMode | null }[] = IDLE_MODES.map((m) => ({
+      label: `${m === now ? "$(check)" : "$(blank)"} ${m}`,
+      description: IDLE_DETAIL[m],
+      mode: m,
+    }));
+    items.push({ label: "$(discard) Use my settings", description: `drop this window's choice (idle_handover: ${settingsIdleMode()})`, mode: null });
+    const chosen = await vscode.window.showQuickPick(items, {
+      title: `Idle handover for this ${scope}`,
+      placeHolder: `Now: ${now}. Takes effect in the running session within 30 seconds.`,
+    });
+    if (!chosen) return;
+    if (chosen.mode === null) clearWindowIdleMode(relayDir(), target.key);
+    else setWindowIdleMode(relayDir(), target.key, chosen.mode);
     await update();
   };
 
