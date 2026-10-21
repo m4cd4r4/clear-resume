@@ -164,6 +164,16 @@ describe("hoverText", () => {
     ]);
   });
 
+  it("carries the nudge and hand-over actions, and says to /clear when the relay is off", () => {
+    const base = { context: 144_000, threshold: 250_000, totals: { sessions: 1, replies: 1, tokens: 1, saved: 0 } };
+    const links = { nudge: "command:n", handNow: "command:h" };
+    const on = hoverText({ ...base, relay: { limit: 15, used: 0 }, links }).split("\n\n");
+    expect(on.at(-1)).toBe("[Nudge at 250k](command:n) · [Hand over now](command:h)");
+    const off = hoverText({ ...base, relay: { limit: 0, used: 0 }, links }).split("\n\n");
+    expect(off.at(-1)).toBe("[Nudge at 250k](command:n) · [Hand over now](command:h) (relay off: type /clear after)");
+    expect(hoverText({ ...base, relay: null, links: {} })).not.toContain("Hand over now");
+  });
+
   it("puts the loaded handover line after the relay line and escapes Markdown in the title", () => {
     const md = hoverText({
       context: 0,
