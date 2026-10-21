@@ -111,3 +111,11 @@ When the final cut of findings is decided, the scene list in `site/video/index.h
 - Resolve why the CLI `total_cost_usd` for a 247k cold write (US$2.257) is about 2.2x the list-price figure (US$1.024).
 - API-key 5 minute cache path: needs Macdara's yes on a dollar figure first.
 - `smart` decline accuracy at scale: a spread of finished and unfinished sessions, not one of each.
+
+## Idle-off overhead from the live mode override (PR #136)
+
+With the per-window override, the relay registers the tool and turn counters and runs the 30 second idle
+timer in every session, idle off included; each look reads `<key>.idle.json`. With idle off it shows no
+toast or status message (`idleCheck` returns before any), and it costs no model tokens. The overhead is
+not measured. Either measure it (CPU and file reads over a long idle-off session), or start the timer only
+when the picker file first appears.

@@ -1,62 +1,68 @@
 // tdd-guard:allow  backfill: the module was written first, these tests pin its behaviour.
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { idleText, parseIdleMode, readIdleMode, writeIdleMode } from "../extension/src/idle-mode.ts";
+import {
+  clearWindowIdleMode,
+  idleText,
+  parseIdleMode,
+  setWindowIdleMode,
+  settingsIdleMode,
+  windowIdleMode,
+} from "../extension/src/idle-mode.ts";
 
-const tmp = () => join(mkdtempSync(join(tmpdir(), "idle-mode-")), "settings.json");
+const dir = () => mkdtempSync(join(tmpdir(), "idle-mode-"));
 
-describe("idle mode setting", () => {
+describe("idle mode from the plugin option", () => {
   it("reads off when the file is missing or unreadable", () => {
-    const p = tmp();
-    expect(readIdleMode(p)).toBe("off");
+    const p = join(dir(), "settings.json");
+    expect(settingsIdleMode(p)).toBe("off");
     writeFileSync(p, "{ not json");
-    expect(readIdleMode(p)).toBe("off");
+    expect(settingsIdleMode(p)).toBe("off");
   });
 
   it("reads the plugin option and treats anything unknown as off", () => {
-    const p = tmp();
+    const p = join(dir(), "settings.json");
     writeFileSync(p, JSON.stringify({ pluginConfigs: { "clear-resume@clear-resume": { options: { idle_handover: "Smart" } } } }));
-    expect(readIdleMode(p)).toBe("smart");
+    expect(settingsIdleMode(p)).toBe("smart");
     expect(parseIdleMode("sometimes")).toBe("off");
     expect(parseIdleMode(undefined)).toBe("off");
   });
+});
 
-  it("writes into a missing file", () => {
-    const p = tmp();
-    expect(writeIdleMode("auto", p)).toBe(true);
-    expect(readIdleMode(p)).toBe("auto");
+describe("idle mode picked for a window", () => {
+  it("is null with no file, and null for a file that is not a mode", () => {
+    const d = dir();
+    expect(windowIdleMode(d, "k1")).toBeNull();
+    writeFileSync(join(d, "k1.idle.json"), JSON.stringify({ mode: "sometimes" }));
+    expect(windowIdleMode(d, "k1")).toBeNull();
+    writeFileSync(join(d, "k1.idle.json"), "{ not json");
+    expect(windowIdleMode(d, "k1")).toBeNull();
   });
 
-  it("keeps every other setting and every other option", () => {
-    const p = tmp();
-    const before = {
-      model: "sonnet",
-      permissions: { allow: ["Read"] },
-      pluginConfigs: {
-        "other@plugin": { options: { a: 1 } },
-        "clear-resume@clear-resume": { options: { cache_ttl_minutes: 60, nudge_at: 130000 }, extra: true },
-      },
-    };
-    writeFileSync(p, JSON.stringify(before));
-    expect(writeIdleMode("toast", p)).toBe(true);
-    const after = JSON.parse(readFileSync(p, "utf8"));
-    expect(after.model).toBe("sonnet");
-    expect(after.permissions).toEqual(before.permissions);
-    expect(after.pluginConfigs["other@plugin"]).toEqual(before.pluginConfigs["other@plugin"]);
-    expect(after.pluginConfigs["clear-resume@clear-resume"]).toEqual({
-      options: { cache_ttl_minutes: 60, nudge_at: 130000, idle_handover: "toast" },
-      extra: true,
-    });
+  it("round-trips each mode in the file the relay reads, and leaves no temp file", () => {
+    const d = dir();
+    for (const m of ["off", "toast", "smart", "auto"]) {
+      setWindowIdleMode(d, "k1", m);
+      expect(windowIdleMode(d, "k1")).toBe(m);
+      expect(JSON.parse(readFileSync(join(d, "k1.idle.json"), "utf8")).mode).toBe(m);
+    }
+    expect(readdirSync(d)).toEqual(["k1.idle.json"]);
   });
 
-  it("refuses to overwrite a settings file it cannot read, and leaves no temp file", () => {
-    const p = tmp();
-    writeFileSync(p, "{ not json");
-    expect(writeIdleMode("auto", p)).toBe(false);
-    expect(readFileSync(p, "utf8")).toBe("{ not json");
-    expect(readdirSync(join(p, "..")).filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  it("is per window: another key is untouched", () => {
+    const d = dir();
+    setWindowIdleMode(d, "k1", "auto");
+    expect(windowIdleMode(d, "k2")).toBeNull();
+  });
+
+  it("clearing drops the pick, and clearing nothing is fine", () => {
+    const d = dir();
+    setWindowIdleMode(d, "k1", "auto");
+    clearWindowIdleMode(d, "k1");
+    expect(existsSync(join(d, "k1.idle.json"))).toBe(false);
+    expect(() => clearWindowIdleMode(d, "k1")).not.toThrow();
   });
 
   it("labels the status item with the mode", () => {

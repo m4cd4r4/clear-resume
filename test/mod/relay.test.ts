@@ -20,6 +20,7 @@ import {
   idleEffective,
   idleFireAfterMs,
   idleMode,
+  idleOverride,
   idleToast,
   idleWoke,
   positive,
@@ -40,7 +41,7 @@ type World = {
 // The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json
 // override or the .handover.json request. The engine resolves the path before a
 // hook sees it, so on Windows it is C:\home\me\...
-const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set|\.handover)\.json$/
+const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set|\.handover|\.idle)\.json$/
 
 function world(on: On, env: Record<string, string> = {}) {
   const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [], files: new Map() }
@@ -670,6 +671,70 @@ describe('idle handover', () => {
     expect(w.toasts.length).toBe(1)
   })
 
+  test('a picked mode is one of the four; anything else is no pick', () => {
+    expect(['off', 'toast', 'smart', 'auto'].map(m => idleOverride(JSON.stringify({ mode: m })))).toEqual(['off', 'toast', 'smart', 'auto'])
+    const none = [JSON.stringify({ mode: 'AUTO' }), JSON.stringify({ mode: 'sometimes' }), '{ no', undefined, '{}']
+    expect(none.map(idleOverride)).toEqual([undefined, undefined, undefined, undefined, undefined])
+  })
+
+  // The status bar's mode for this window: <key>.idle.json beside the state file.
+  const idleFile = (state: { path: string }) => state.path.replace(/\.json$/, '.idle.json')
+  const pick = (w: { files: Map<string, string> }, state: { path: string }, mode: unknown) =>
+    w.files.set(idleFile(state), JSON.stringify({ mode, at: 1 }))
+
+  test('live: a session started with idle off fires once a toast is picked in the status bar', opts('off'), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    pick(w, state(), 'toast')
+    await clock.advance(100 * S)
+    expect(w.toasts.length).toBe(1)
+  })
+
+  test('live: a pick of off stops a session that started on auto', auto(), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    pick(w, state(), 'off')
+    await clock.advance(400 * S)
+    expect(w.prompts).toEqual([])
+    expect(w.toasts).toEqual([])
+  })
+
+  test('live: a pick of auto on a session that started on toast submits the handover request', opts('toast', { cache_ttl_minutes: 10 }), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    pick(w, state(), 'auto')
+    await clock.advance(310 * S)
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+  })
+
+  test('live: a pick still obeys the TTL rule, so auto on a 2 minute cache is a toast', opts('off'), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    pick(w, state(), 'auto')
+    await clock.advance(100 * S)
+    expect(w.prompts).toEqual([])
+    expect(w.toasts.length).toBe(1)
+  })
+
+  test('live: a pick that is not a mode falls back to the plugin option', auto(), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    pick(w, state(), 'sometimes')
+    await clock.advance(310 * S)
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+  })
+
+  test('live: dropping the pick returns to the plugin option', auto(), async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.turn.complete(turn)
+    const st = state()
+    pick(w, st, 'off')
+    await clock.advance(290 * S)
+    w.files.delete(idleFile(st))
+    await clock.advance(30 * S)
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+  })
+
   test('the toast text states the single measurement', () => {
     expect(idleToast(5)).toContain('Measured once')
     expect(idleToast(5)).toContain('about 5x cheaper')
@@ -936,11 +1001,11 @@ describe('idle handover', () => {
     expect(w.prompts).toEqual([])
   })
 
-  test('the counting hooks are registered only when idle_handover is on', async ($, on) => {
+  test('the counting hooks are registered with idle_handover off too, so a status-bar mode can start it live', async ($, on) => {
     const off = world(on)
     const before = off.w.status.length
     await $.turn.start({ text: 'x', turnId: 't1' })
-    expect(off.w.status.length).toBe(before)
+    expect(off.w.status.length).toBe(before + 1)
   })
 
   test('with idle_handover on, a turn start is seen by the counting hook', opts('toast'), async ($, on) => {
