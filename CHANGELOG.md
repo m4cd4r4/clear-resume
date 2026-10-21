@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The default nudge size is now 250k tokens (was 180k).** It is the setting the author chose from
+  daily use, not a measured result: the A/B found no cost benefit between 180k and 250k.
+
 - **`idle_handover: smart`.** Like `auto`, but the idle ask lets Claude answer "Nothing to hand over."
   when the work is finished and no step remains; then nothing is saved, the session is not cleared,
   and a toast says so. The check rides on the warm turn `auto` already pays for, so it adds no
