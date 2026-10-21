@@ -123,7 +123,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 | Variable | Default | What it does |
 |---|---|---|
 | `CLEAR_RESUME_AUTO` | off | `1` turns on the context-size nudge. |
-| `CLEAR_RESUME_NUDGE_AT` | `180000` | Context size, in tokens, that triggers the nudge. |
+| `CLEAR_RESUME_NUDGE_AT` | `250000` | Context size, in tokens, that triggers the nudge. |
 | `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
@@ -136,7 +136,7 @@ without editing `settings.json`: with `/plugin configure clear-resume@clear-resu
 `claude plugin install clear-resume@clear-resume --config auto_nudge=true --config nudge_at=150000`.
 Sessions started after that use the new values. Claude Code keeps `nudge_at` between 50000 and
 1000000. `CLEAR_RESUME_AUTO` wins over `auto_nudge` whenever it is set. `CLEAR_RESUME_NUDGE_AT` wins
-over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 180000.
+over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 250000.
 
 The third plugin option, `relay`, is `off` (the default), a number of clears per Claude Code
 window, or `unlimited`. Set it the same way, for example `--config relay=10`. See
@@ -242,7 +242,7 @@ all of these hold:
 - the context is at least `idle_min_tokens`. It is read only at that point, from
   `$.session.usage()`, else from the session transcript through `scripts/context-tokens.mjs`;
 - this session has not had its idle message yet. The mod keeps its own mark,
-  `<store>/.idle/<session id>`, so the 180k nudge (the `.nudged` mark) and this can each fire once.
+  `<store>/.idle/<session id>`, so the 250k nudge (the `.nudged` mark) and this can each fire once.
 
 `toast` puts a message in the status line, which stays until your next turn starts, and shows a
 short toast too. `auto` asks Claude for the handover with a prompt that says you are away and that
