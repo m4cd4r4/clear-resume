@@ -232,13 +232,7 @@ export function statsStatus(
   pieItem.name = "clear-resume: context";
   const relayItem = vscode.window.createStatusBarItem("clearResume.relay", vscode.StatusBarAlignment.Left, 0.5);
   relayItem.name = "clear-resume: relay";
-  const handoverItem = vscode.window.createStatusBarItem("clearResume.handover", vscode.StatusBarAlignment.Left, 0.4);
-  handoverItem.name = "clear-resume: hand over now";
-  handoverItem.text = "$(debug-step-out) Hand over";
-  handoverItem.command = "clearResume.handoverNow";
-  const nudgeItem = vscode.window.createStatusBarItem("clearResume.nudge", vscode.StatusBarAlignment.Left, 0.45);
-  nudgeItem.name = "clear-resume: nudge size";
-  context.subscriptions.push(pieItem, relayItem, nudgeItem, handoverItem);
+  context.subscriptions.push(pieItem, relayItem);
 
   const transcripts = new Transcripts();
   let window: RelayFile | null = null;
@@ -277,8 +271,6 @@ export function statsStatus(
         focused = null;
         pieItem.hide();
         relayItem.hide();
-        nudgeItem.hide();
-        handoverItem.hide();
         return;
       }
       const procs = claudeProcesses();
@@ -327,12 +319,16 @@ export function statsStatus(
             links: {
               handover: shown ? "command:clearResume.openContextHandover" : undefined,
               log: window ? "command:clearResume.relayLog" : undefined,
+              nudge: window ? "command:clearResume.pickNudge" : undefined,
+              handNow: window ? "command:clearResume.handoverNow" : undefined,
             },
             scope: pick.byTab ? "tab" : "window",
             handover: shown ? statusText(shown, new Date()) : undefined,
           }),
         );
-        md.isTrusted = { enabledCommands: ["clearResume.openContextHandover", "clearResume.relayLog"] };
+        md.isTrusted = {
+          enabledCommands: ["clearResume.openContextHandover", "clearResume.relayLog", "clearResume.pickNudge", "clearResume.handoverNow"],
+        };
         pieItem.tooltip = md;
         pieItem.command = { command: "clearResume.openContextHandover", title: "Open loaded handover" };
         pieItem.show();
@@ -345,29 +341,13 @@ export function statsStatus(
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
-        const own = windowNudge(window);
-        nudgeItem.text = `$(bell) nudge ${Math.round(nudgeAt(window) / 1000)}k`;
-        nudgeItem.tooltip = own
-          ? "Nudge size for this window and the sessions it continues into. Click to change."
-          : "Nudge size from your settings (nudge_at). Click to set one for this window.";
-        nudgeItem.command = "clearResume.pickNudge";
-        nudgeItem.show();
-        handoverItem.tooltip =
-          relay.limit === 0
-            ? `Have Claude write a handover now. The relay is off in this ${scope}, so type /clear when it is saved.`
-            : "Have Claude write a handover now, then clear and continue from it. Waits for the current reply to finish.";
-        handoverItem.show();
       } else {
         relayItem.hide();
-        nudgeItem.hide();
-        handoverItem.hide();
       }
     } catch {
       // A status-bar item must never break the extension.
       pieItem.hide();
       relayItem.hide();
-      nudgeItem.hide();
-      handoverItem.hide();
     } finally {
       busy = false;
       if (rerun) {
