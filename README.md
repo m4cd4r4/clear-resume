@@ -104,7 +104,7 @@ To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay
 
 Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
 
-**Pick the nudge size for your setup.** The default, 180k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
+**Pick the nudge size for your setup.** The default, 250k tokens, is what the author uses on a 1M-token context window. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
 
 To change it, use any one of these (new sessions pick it up; the range is 50000 to 1000000):
 
@@ -245,7 +245,7 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** (auto mode) is off by default. Past 180k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
+**The nudge** (auto mode) is off by default. Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
 
 <details>
 <summary><b>Turn the nudge on</b></summary>

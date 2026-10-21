@@ -22,7 +22,7 @@
       "type": "number",
       "title": "Nudge at (tokens)",
       "description": "Context size, in tokens, that triggers the nudge. Set it above the size a new session starts at, and below the size where Claude Code compacts on its own. A CLEAR_RESUME_NUDGE_AT line in settings.json wins over this.",
-      "default": 180000,
+      "default": 250000,
       "min": 50000,
       "max": 1000000
     },

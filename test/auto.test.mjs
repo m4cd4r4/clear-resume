@@ -51,7 +51,7 @@ describe("lastContextTokens", () => {
 });
 
 describe("Stop nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root });
+  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {
@@ -190,7 +190,7 @@ describe("Stop nudge", () => {
   it("honours a custom threshold and ignores a bad one", () => {
     write(call(160_000));
     expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(180_000);
+    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(250_000);
   });
 
   it("the footer's per-window nudge size beats the env, for any session in that window's chain", () => {
@@ -204,6 +204,18 @@ describe("Stop nudge", () => {
     expect(runStop(input(), { env: e }).systemMessage).toMatch(/nudge at 120k/);
     writeFileSync(join(root, "relay", "w1.nudge.json"), JSON.stringify({ limit: 5, at: 2 }));
     expect(threshold(e, "s1")).toBe(170_000);
+  });
+
+  it("a reload's new relay file for the same session keeps that session's nudge size; a new session gets the default", () => {
+    mkdirSync(join(root, "relay"), { recursive: true });
+    writeFileSync(join(root, "relay", "old.json"), JSON.stringify({ key: "old", sessions: ["s1"] }));
+    writeFileSync(join(root, "relay", "old.nudge.json"), JSON.stringify({ limit: 250_000, at: 1 }));
+    writeFileSync(join(root, "relay", "new.json"), JSON.stringify({ key: "new", sessions: ["s1"] }));
+    const e = { ...env(), CLEAR_RESUME_NUDGE_AT: "130000" };
+    expect(threshold(e, "s1")).toBe(250_000);
+    expect(threshold(e, "fresh")).toBe(130_000);
+    writeFileSync(join(root, "relay", "new.nudge.json"), JSON.stringify({ limit: 200_000, at: 2 }));
+    expect(threshold(e, "s1")).toBe(200_000);
   });
 
   it("turns on and takes its threshold from the plugin options set in /config", () => {
@@ -276,7 +288,7 @@ describe("lastContextTokens past a huge line", () => {
 // turn to end - which is exactly how session 83cc6aa6 was compacted on
 // 2026-09-20 after climbing 136k to 216k with no turn-end in between.
 describe("mid-turn nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root });
+  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {
