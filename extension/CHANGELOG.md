@@ -4,6 +4,10 @@
 
 Needs a clear-resume plugin with the hand-over poll in its relay mod.
 
+- A fresh Claude tab no longer shows the previous tab's context count. While compass has no
+  row for the focused tab, the pie, relay, nudge and Hand over items are hidden, and the
+  relay lookup returns nothing instead of a sibling tab's file.
+
 - The handover status-bar item is gone. The context pie's hover card now shows the handover
   the focused tab's Claude process loaded, so a parallel session's handover no longer shows in
   every tab. Open handover is a link in the same card.
