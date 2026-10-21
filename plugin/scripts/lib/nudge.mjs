@@ -72,15 +72,26 @@ export function windowNudgeAt(env, sessionId) {
   if (!sessionId) return null;
   try {
     const dir = join(storeRoot(env), "relay");
+    // A reload writes a new relay file for the same session, with no choice of its
+    // own, so the newest choice on any file holding this session wins.
+    let best = null;
     for (const name of readdirSync(dir)) {
       if (!name.endsWith(".json") || /\.(set|handover|nudge)\.json$/.test(name)) continue;
-      const file = JSON.parse(readFileSync(join(dir, name), "utf8"));
-      if (!Array.isArray(file?.sessions) || !file.sessions.includes(sessionId) || typeof file.key !== "string") continue;
-      const n = Number(JSON.parse(readFileSync(join(dir, `${file.key}.nudge.json`), "utf8"))?.limit);
-      return Number.isFinite(n) && n >= 50_000 && n <= 1_000_000 ? n : null;
+      try {
+        const file = JSON.parse(readFileSync(join(dir, name), "utf8"));
+        if (!Array.isArray(file?.sessions) || !file.sessions.includes(sessionId) || typeof file.key !== "string") continue;
+        const j = JSON.parse(readFileSync(join(dir, `${file.key}.nudge.json`), "utf8"));
+        const n = Number(j?.limit);
+        if (!(Number.isFinite(n) && n >= 50_000 && n <= 1_000_000)) continue;
+        const at = Number(j?.at) || 0;
+        if (!best || at > best.at) best = { n, at };
+      } catch {
+        // A file with no choice, or half written: look at the next.
+      }
     }
+    return best ? best.n : null;
   } catch {
-    // No relay folder, or a half-written file: use the environment.
+    // No relay folder: use the environment.
   }
   return null;
 }

@@ -45,15 +45,29 @@ const NUDGE_MAX = 1_000_000;
 const NUDGE_PICKS = [60_000, 100_000, 130_000, 150_000, 180_000, 250_000, 400_000, 600_000];
 
 /** The window's nudge size from the footer picker (<key>.nudge.json), which the nudge hooks read too. */
-function windowNudge(key: string | undefined): number | null {
-  if (!key) return null;
-  const n = Number(readJson<{ limit?: number }>(join(relayDir(), `${key}.nudge.json`))?.limit);
-  return Number.isFinite(n) && n >= NUDGE_MIN && n <= NUDGE_MAX ? n : null;
+function windowNudge(win: Pick<RelayFile, "key" | "sessions"> | null | undefined): number | null {
+  if (!win?.key) return null;
+  const read = (key: string) => {
+    const j = readJson<{ limit?: number; at?: number }>(join(relayDir(), `${key}.nudge.json`));
+    const n = Number(j?.limit);
+    return Number.isFinite(n) && n >= NUDGE_MIN && n <= NUDGE_MAX ? { n, at: Number(j?.at) || 0 } : null;
+  };
+  const own = read(win.key);
+  if (own) return own.n;
+  // A reload writes a new relay file for the same session, with no choice of its own:
+  // take the newest choice made on any relay file that holds one of this window's sessions.
+  let best: { n: number; at: number } | null = null;
+  for (const f of relayFiles()) {
+    if (f.key === win.key || !f.sessions?.some((id) => win.sessions?.includes(id))) continue;
+    const c = read(f.key);
+    if (c && (!best || c.at > best.at)) best = c;
+  }
+  return best ? best.n : null;
 }
 
 /** nudge_at from the plugin's options in ~/.claude/settings.json, else the default. */
-function nudgeAt(key?: string): number {
-  const own = windowNudge(key);
+function nudgeAt(win?: Pick<RelayFile, "key" | "sessions"> | null): number {
+  const own = windowNudge(win);
   if (own !== null) return own;
   try {
     const s = JSON.parse(readFileSync(join(homedir(), ".claude", "settings.json"), "utf8"));
@@ -294,7 +308,7 @@ export function statsStatus(
       if (!current || current.last === null) {
         pieItem.hide();
       } else {
-        const threshold = nudgeAt(window?.key);
+        const threshold = nudgeAt(window);
         const p = pie(current.last, threshold);
         const relay = window ? effective(window, readJson<RelaySet>(setPath(window.key))) : null;
         pieItem.text = p.text;
@@ -331,8 +345,8 @@ export function statsStatus(
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
-        const own = windowNudge(window.key);
-        nudgeItem.text = `$(bell) nudge ${Math.round(nudgeAt(window.key) / 1000)}k`;
+        const own = windowNudge(window);
+        nudgeItem.text = `$(bell) nudge ${Math.round(nudgeAt(window) / 1000)}k`;
         nudgeItem.tooltip = own
           ? "Nudge size for this window and the sessions it continues into. Click to change."
           : "Nudge size from your settings (nudge_at). Click to set one for this window.";
@@ -411,7 +425,7 @@ export function statsStatus(
       return;
     }
     const target = window;
-    const now = nudgeAt(target.key);
+    const now = nudgeAt(target);
     const sizes = NUDGE_PICKS.includes(now) ? NUDGE_PICKS : [...NUDGE_PICKS, now].sort((a, b) => a - b);
     const items = sizes.map((n) => ({
       label: `${n === now ? "$(check)" : "$(blank)"} ${Math.round(n / 1000)}k`,

@@ -206,6 +206,18 @@ describe("Stop nudge", () => {
     expect(threshold(e, "s1")).toBe(170_000);
   });
 
+  it("a reload's new relay file for the same session keeps that session's nudge size; a new session gets the default", () => {
+    mkdirSync(join(root, "relay"), { recursive: true });
+    writeFileSync(join(root, "relay", "old.json"), JSON.stringify({ key: "old", sessions: ["s1"] }));
+    writeFileSync(join(root, "relay", "old.nudge.json"), JSON.stringify({ limit: 250_000, at: 1 }));
+    writeFileSync(join(root, "relay", "new.json"), JSON.stringify({ key: "new", sessions: ["s1"] }));
+    const e = { ...env(), CLEAR_RESUME_NUDGE_AT: "130000" };
+    expect(threshold(e, "s1")).toBe(250_000);
+    expect(threshold(e, "fresh")).toBe(130_000);
+    writeFileSync(join(root, "relay", "new.nudge.json"), JSON.stringify({ limit: 200_000, at: 2 }));
+    expect(threshold(e, "s1")).toBe(200_000);
+  });
+
   it("turns on and takes its threshold from the plugin options set in /config", () => {
     write(call(160_000));
     const opts = { CLEAR_RESUME_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
