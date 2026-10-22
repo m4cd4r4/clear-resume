@@ -23,12 +23,16 @@ export interface RowModel {
   pinned: boolean;
   /** The first lines of the handover's Next action, or of its body. */
   peek: string[];
+  /** What the search box matches: title, repo and branch, even where the row shows one. */
+  search: string;
 }
 
 export interface SectionModel {
   id: string;
   /** Empty when a lone group needs no heading. */
   label: string;
+  /** Closed until the person opens it; their own choice overrides this. */
+  collapsed?: boolean;
   rows: RowModel[];
 }
 
@@ -87,7 +91,29 @@ export function peekOf(body: string, lines = 3): string[] {
     .map((l) => clip(l, 160));
 }
 
-const where = (r: StoredHandover) => [r.repo, r.branch].filter(Boolean).join(" · ");
+/** Whether `needle` stands in `hay` as whole words ("main" is not in "domain"). */
+function hasWords(hay: string, needle: string): boolean {
+  const h = hay.toLowerCase(), n = needle.toLowerCase();
+  for (let i = h.indexOf(n); n && i >= 0; i = h.indexOf(n, i + 1)) {
+    if (!/[a-z0-9]/.test(h[i - 1] ?? "") && !/[a-z0-9]/.test(h[i + n.length] ?? "")) return true;
+  }
+  return false;
+}
+
+/**
+ * Repo and branch, once each. A worktree is usually named for its branch
+ * ("app-ship" on "feat/ship"), so when the branch's last segment is already in the
+ * repo name only the repo shows, and when the branch already holds the repo name only
+ * the branch does.
+ */
+function where(r: Pick<StoredHandover, "repo" | "branch">): string {
+  const repo = r.repo ?? "", branch = r.branch ?? "";
+  if (repo && branch) {
+    if (hasWords(repo, branch.split("/").pop() ?? "")) return repo;
+    if (hasWords(branch, repo)) return branch;
+  }
+  return [repo, branch].filter(Boolean).join(" · ");
+}
 
 export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; prefix?: string } = {}): RowModel {
   const loaded = opts.loaded === true;
@@ -101,23 +127,31 @@ export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; pr
     kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
     pinned: r.pinned === true,
     peek: peekOf(r.body),
+    search: [r.title, r.repo, r.branch].filter(Boolean).join(" "),
   };
 }
 
-/** The Handovers section: the tree's groups, in the tree's order, as rows. */
+/** Top to bottom: what is waiting for a person, then what a session loaded, then the rest. */
+const ORDER = ["current", "other", "loaded", "stale", "archived"];
+const rank = (id: string) => ORDER.indexOf(id);
+/** Finished or old: closed until opened, so a thousand archived rows cost one line. */
+const COLLAPSED = new Set(["stale", "archived"]);
+
+/** The Handovers section: the tree's groups, waiting ones first, as rows. */
 export function handoverSections(
   records: StoredHandover[],
   opts: { repoPath: string; roots: string[]; now: Date; showArchived: boolean },
 ): SectionModel[] {
-  const groups = treeGroups(records, opts);
+  const groups = treeGroups(records, opts).sort((a, b) => rank(a.id) - rank(b.id));
   const sections = groups.map((g) => ({
     id: g.id,
     label: g.label,
+    collapsed: COLLAPSED.has(g.id),
     rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded" })),
   }));
   // One group alone needs no heading, except Loaded, whose heading says these rows
-  // were loaded and are not waiting.
-  if (sections.length === 1 && sections[0].id !== "loaded") sections[0].label = "";
+  // were loaded and are not waiting, and a collapsed one, which needs its heading to open.
+  if (sections.length === 1 && sections[0].id !== "loaded" && !sections[0].collapsed) sections[0].label = "";
   return sections;
 }
 
@@ -157,12 +191,10 @@ export function matches(text: string, query: string): boolean {
   return words.every((w) => hay.includes(w));
 }
 
-const rowText = (r: RowModel) => `${r.title} ${r.meta}`;
-
 /** Rows whose title, repo or branch match; a group left empty drops out. */
 export function filterSections(sections: SectionModel[], query: string): SectionModel[] {
   if (!query.trim()) return sections;
   return sections
-    .map((s) => ({ ...s, rows: s.rows.filter((r) => matches(rowText(r), query)) }))
+    .map((s) => ({ ...s, rows: s.rows.filter((r) => matches(r.search, query)) }))
     .filter((s) => s.rows.length > 0);
 }
