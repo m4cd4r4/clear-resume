@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { archiveRecord, listAll, prune, read, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { archiveMerged } from "../../plugin/packages/store/merged.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
@@ -70,6 +71,17 @@ export function activate(context: vscode.ExtensionContext): void {
   } catch {
     // A prune failure must never stop the view from opening.
   }
+
+  // Archive waiting handovers whose branch has shipped. It asks GitHub, so it runs
+  // after activation returns and never holds the view up; a failure leaves them waiting.
+  void archiveMerged({ root: root() })
+    .then((done) => {
+      if (done.length) {
+        provider.refresh();
+        lanesProvider.refresh();
+      }
+    })
+    .catch(() => undefined);
 
   statsStatus(context, loadedLookup(root), (record) => {
     if (record) void openLoaded(record, root());

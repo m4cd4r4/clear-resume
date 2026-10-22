@@ -171,7 +171,8 @@ this order of cost:
    `store.mjs`, `via: "abandoned"`; this machine's records only, and the folder's parent must exist).
 2. ~~A session has started in its folder.~~ Dropped: unsafe. The session that saved a handover keeps running
    in that folder and would archive its own handover.
-3. Its branch's PR is merged. Ask the forge (`gh pr list --head <branch> --state all`), not git ancestry,
+3. **Done** (`merged.mjs`, `via: "merged"`, run async once per extension activation; counts a PR merged
+   after the handover was written, none open). Its branch's PR is merged. Ask the forge (`gh pr list --head <branch> --state all`), not git ancestry,
    since squash merges defeat ancestry. Costs a network call, so run it off the refresh path.
 
 Archive with `archivedBy.via` of a new value (the five done by hand used "manual"), and keep it out of
