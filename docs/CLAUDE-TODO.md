@@ -129,3 +129,15 @@ Only the DOM and key handling were measured. NVDA or Narrator has not been run a
 
 The Handovers search box is part of the scrolling list, not sticky. Left as is in the restyle.
 
+
+## 12. Sidebar session strip and group-header bulk actions (from the hierarchy pass)
+
+Left out of the hierarchy PR (#139) by choice, each its own change: a session strip showing context, nudge,
+idle and Hand over in the sidebar, and bulk actions on a group header (for example clearing Stale). Both
+need Macdara's go-ahead, and any new display copy goes to him as options first.
+
+## 13. Second-line rule is only checked on repo and branch strings
+
+`where()` in `extension/src/sidebar-model.ts` hides the branch when its last segment is a whole word in the
+repo name, and the repo when the branch already contains it. It is tested on six hand-picked pairs, not
+against the real store. Run it over every record in `~/.clear-resume` and read the rows it collapses.
