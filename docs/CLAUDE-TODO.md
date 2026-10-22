@@ -167,9 +167,10 @@ repos as waiting for 5 to 6 days after the work shipped, because nothing consume
 guardrails to an Archive button. A waiting handover should archive itself when any of these holds, checked in
 this order of cost:
 
-1. Its worktree folder (`repoPath`) no longer exists on disk. No network.
-2. A session has started in its folder since it was written: a kickoff stub exists only to launch that first
-   session. No network.
+1. Its worktree folder (`repoPath`) no longer exists on disk. No network. **Done** (`prune()` in
+   `store.mjs`, `via: "abandoned"`; this machine's records only, and the folder's parent must exist).
+2. ~~A session has started in its folder.~~ Dropped: unsafe. The session that saved a handover keeps running
+   in that folder and would archive its own handover.
 3. Its branch's PR is merged. Ask the forge (`gh pr list --head <branch> --state all`), not git ancestry,
    since squash merges defeat ancestry. Costs a network call, so run it off the refresh path.
 

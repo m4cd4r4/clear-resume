@@ -12,8 +12,8 @@
 // tombstone and only the prune, ninety days later, removes the file - otherwise a
 // synced copy on another machine puts the record straight back.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { homedir, hostname } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileName, isExpired, isPurgeable, normalise, recordId } from "./schema.mjs";
 import { pruneLoaded } from "./loaded.mjs";
 
@@ -158,6 +158,21 @@ export function listAll(root = storeRoot(), { includeDeleted = false } = {}) {
 }
 
 /**
+ * A waiting, unpinned handover written on this machine whose repo folder has been
+ * removed: the worktree was finished, so there is nothing left to resume into.
+ *
+ * Three guards against archiving something live. Another machine's record is left
+ * alone (its path will not exist here). The folder's parent must still exist, so an
+ * unmounted drive does not read as "gone". And an empty repoPath proves nothing.
+ */
+function isAbandoned(record) {
+  if (record.status !== "waiting" || record.pinned) return false;
+  if (!record.repoPath || record.machine !== hostname()) return false;
+  const folder = resolve(record.repoPath);
+  return !existsSync(folder) && existsSync(dirname(folder));
+}
+
+/**
  * Two-stage clutter control.
  *
  * An archived record past its 30-day window becomes a tombstone rather than
@@ -181,6 +196,9 @@ export function prune({ root = storeRoot(), now = new Date() } = {}) {
       affected.push(record.id);
     } else if (isPurgeable(record, now)) {
       if (unlink(record.id, root)) affected.push(record.id);
+    } else if (isAbandoned(record)) {
+      archiveRecord(record.id, { root, now, by: { owner: "", pid: String(process.pid), via: "abandoned" } });
+      affected.push(record.id);
     }
   }
   pruneLoaded({ root, now });

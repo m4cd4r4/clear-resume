@@ -1,5 +1,5 @@
 import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { archiveRecord, handoversDir, listAll, prune, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
@@ -105,6 +105,14 @@ describe("prune", () => {
     // the other machine can be told it went.
     const tombs = listAll(root, { includeDeleted: true }).filter((r) => r.status === "deleted");
     expect(tombs.map((r) => r.machine)).toEqual(["old-archived"]);
+  });
+
+  it("archives a waiting record on this machine whose repo folder is gone", () => {
+    const { id } = save({ ...BASE, machine: hostname(), repoPath: join(root, "gone-worktree") }, { root });
+    expect(prune({ root, now: new Date("2026-09-20T00:00:00.000Z") })).toEqual([id]);
+    const after = read(id, root);
+    expect(after.status).toBe("archived");
+    expect(after.archivedBy.via).toBe("abandoned");
   });
 
   it("unlinks a tombstone only once it is 90 days old", () => {
