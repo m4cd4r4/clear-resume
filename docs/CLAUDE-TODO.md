@@ -141,3 +141,38 @@ need Macdara's go-ahead, and any new display copy goes to him as options first.
 `where()` in `extension/src/sidebar-model.ts` hides the branch when its last segment is a whole word in the
 repo name, and the repo when the branch already contains it. It is tested on six hand-picked pairs, not
 against the real store. Run it over every record in `~/.clear-resume` and read the rows it collapses.
+
+## 14. Group Stale and Archived by repo
+
+Macdara asked (2026-10-23) whether handovers should be organised by repo. Decided: not for Loaded or the
+waiting groups, where newest first matters and a third tree level would bury it. Stale (98) and Archived
+(1,167) are the lists that would gain from a repo level, with counts, collapsed by default. A row's "repo"
+is the worktree folder name (`examworthy-seal-flip`), but every record also carries `mainPath`, the root
+repo's path (`schema.mjs` fills it, falling back to `repoPath`), so a group can key on `mainPath` and label
+itself with that folder's name. Check old records written before `mainPath` existed: they fall back to
+`repoPath`, so their worktrees would still form their own group.
+
+## 15. Loaded above the waiting groups only when it is from this repo
+
+Today the order is Current repo, Other repos, Loaded, Stale, Archived. Right after `/clear` a person wants to
+see what they just resumed, which sits under Other repos when other projects have waiting handovers. Idea:
+put Loaded first only when a loaded handover belongs to the open repo or its worktrees (the same test
+`loadedHere` in `plugin/packages/store/view.mjs` already applies). Model change in `handoverSections`, with a
+test for each order.
+
+## 16. Waiting handovers archive themselves when the work is done
+
+Found 2026-10-23: five examworthy seal kickoff stubs (written 10-18 at worktree creation) sat under Other
+repos as waiting for 5 to 6 days after the work shipped, because nothing consumed them. Macdara prefers
+guardrails to an Archive button. A waiting handover should archive itself when any of these holds, checked in
+this order of cost:
+
+1. Its worktree folder (`repoPath`) no longer exists on disk. No network.
+2. A session has started in its folder since it was written: a kickoff stub exists only to launch that first
+   session. No network.
+3. Its branch's PR is merged. Ask the forge (`gh pr list --head <branch> --state all`), not git ancestry,
+   since squash merges defeat ancestry. Costs a network call, so run it off the refresh path.
+
+Archive with `archivedBy.via` of a new value (the five done by hand used "manual"), and keep it out of
+`LOADED_VIA` so it never shows as Loaded. Tests: a record per rule, one that must stay waiting, and a check
+that a kickoff in a live worktree with no session yet is left alone.
