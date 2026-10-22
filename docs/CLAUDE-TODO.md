@@ -146,10 +146,11 @@ against the real store. Run it over every record in `~/.clear-resume` and read t
 
 Macdara asked (2026-10-23) whether handovers should be organised by repo. Decided: not for Loaded or the
 waiting groups, where newest first matters and a third tree level would bury it. Stale (98) and Archived
-(1,167) are the lists that would gain from a repo level, with counts, collapsed by default. Catch: a row's
-"repo" is the worktree folder name, and only the open repo's worktree roots are known (`worktreePaths`), so
-other repos' worktrees would each form their own group. Needs a way to find a worktree's root repo for any
-record before it is worth building.
+(1,167) are the lists that would gain from a repo level, with counts, collapsed by default. A row's "repo"
+is the worktree folder name (`examworthy-seal-flip`), but every record also carries `mainPath`, the root
+repo's path (`schema.mjs` fills it, falling back to `repoPath`), so a group can key on `mainPath` and label
+itself with that folder's name. Check old records written before `mainPath` existed: they fall back to
+`repoPath`, so their worktrees would still form their own group.
 
 ## 15. Loaded above the waiting groups only when it is from this repo
 
