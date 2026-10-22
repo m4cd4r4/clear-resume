@@ -141,3 +141,20 @@ need Macdara's go-ahead, and any new display copy goes to him as options first.
 `where()` in `extension/src/sidebar-model.ts` hides the branch when its last segment is a whole word in the
 repo name, and the repo when the branch already contains it. It is tested on six hand-picked pairs, not
 against the real store. Run it over every record in `~/.clear-resume` and read the rows it collapses.
+
+## 14. Group Stale and Archived by repo
+
+Macdara asked (2026-10-23) whether handovers should be organised by repo. Decided: not for Loaded or the
+waiting groups, where newest first matters and a third tree level would bury it. Stale (98) and Archived
+(1,167) are the lists that would gain from a repo level, with counts, collapsed by default. Catch: a row's
+"repo" is the worktree folder name, and only the open repo's worktree roots are known (`worktreePaths`), so
+other repos' worktrees would each form their own group. Needs a way to find a worktree's root repo for any
+record before it is worth building.
+
+## 15. Loaded above the waiting groups only when it is from this repo
+
+Today the order is Current repo, Other repos, Loaded, Stale, Archived. Right after `/clear` a person wants to
+see what they just resumed, which sits under Other repos when other projects have waiting handovers. Idea:
+put Loaded first only when a loaded handover belongs to the open repo or its worktrees (the same test
+`loadedHere` in `plugin/packages/store/view.mjs` already applies). Model change in `handoverSections`, with a
+test for each order.
