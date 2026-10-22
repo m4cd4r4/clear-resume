@@ -29,6 +29,9 @@ svg { display: block; flex: none; }
 .row { margin: 1px 6px; border-radius: 6px; box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent) calc(var(--fade, 1) * 100%), transparent); }
 .row[data-kind=loaded] { box-shadow: inset 2px 0 0 var(--ok); }
 .row[data-kind=archived], .row[data-kind=lane], .row[data-kind=next] { box-shadow: none; }
+/* Finished work recedes: muted title, hollow dot, no rail. Hover and focus bring it back. */
+.row[data-kind=archived] .t { color: var(--mute); }
+.row[data-kind=archived]:hover .t, .row[data-kind=archived]:focus-within .t { color: var(--ink); }
 .row:hover, .row:focus-within { background: var(--hover); }
 .row:focus-visible { background: var(--sel); }
 .line { display: grid; grid-template-columns: 16px 1fr auto; column-gap: 4px; align-items: center; padding: 6px 8px 6px 6px; }
@@ -177,7 +180,8 @@ function items(m) {
   const out = [];
   if (m.section === "handovers") {
     for (const s of m.sections) {
-      const key = "g:" + s.id, open = isOpen(key, true) || !s.label;
+      // A search opens every group that has a match, so a hit is never hidden under a closed header.
+      const key = "g:" + s.id, open = isOpen(key, !s.collapsed || !!m.query) || !s.label;
       if (s.label) out.push(headEl(key, s.label, s.rows.length, open));
       if (open) for (const r of s.rows) out.push(rowEl(r, s.label ? 2 : 1));
     }
