@@ -49,7 +49,7 @@ svg { display: block; flex: none; }
 .row:focus-visible .acts { background: var(--sel); }
 .row:hover > .line .acts, .row:focus-within > .line .acts { display: flex; }
 .meta { grid-column: 2 / 4; grid-row: 2; color: var(--mute); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* In a narrow sidebar the age leaves the title line for the meta line, so the title keeps the width. */
+/* In a narrow sidebar the age leaves the title line for the end of the meta line, so the title keeps the width and the repo is cut last. */
 .agei { display: none; }
 @media (max-width: 240px) { .age { display: none; } .agei { display: inline; } }
 .ib { height: 22px; min-width: 22px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: var(--mute); border: 0; background: none; cursor: pointer; }
@@ -118,8 +118,6 @@ function rowEl(r, level) {
   const expandable = r.peek.length > 0;
   const open = expandable && isOpen(r.key, false);
   const mark = r.kind === "loaded" ? h("span", { class: "ok" }, icon("check")) : h("span", { class: "dot" });
-  // A Loaded row's age is its news ("loaded 9m ago"); on the right it would squeeze the title, so it leads the second line.
-  const sub = r.kind === "loaded" ? [r.age, r.meta].filter(Boolean).join(" · ") : r.meta;
   const acts = [
     r.kind !== "archived" ? btn("Resume", "play", { type: "resume", id: r.id }, "go") : null,
     r.pinned ? btn("Unpin", "unpin", { type: "unpin", id: r.id }) : btn("Pin", "pin", { type: "pin", id: r.id }),
@@ -135,9 +133,9 @@ function rowEl(r, level) {
     h("div", { class: "line" },
       expandable ? chev(r.key, open) : spacer(),
       h("span", { class: "t", title: r.title }, mark, r.pinned ? h("span", { class: "pin" }, icon("pin", 12)) : null, h("span", {}, r.title)),
-      h("span", { class: "age" }, r.kind === "loaded" ? "" : r.age),
+      h("span", { class: "age" }, r.age),
       h("span", { class: "acts" }, acts),
-      h("span", { class: "meta", title: sub }, r.kind === "loaded" ? null : h("span", { class: "agei" }, r.age + " · "), sub)),
+      h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
     open ? h("div", { class: "peek" }, r.peek.map((l) => h("p", {}, l))) : null);
 }
 function headEl(key, label, count, open) {
