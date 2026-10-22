@@ -207,7 +207,7 @@ function relayLine(r) {
 // is not shown. `scope` ("tab" or "window") says whose number it is. `handover`
 // is the status line for the handover this tab loaded (`Handover: <title> (loaded
 // 3h ago)`), left out when there is none.
-export function hoverText({ context, threshold, relay, totals, links, scope, handover }) {
+export function hoverText({ context, threshold, relay, totals, links, scope, handover, idle }) {
   const out = [`\`${pie(context, threshold).bar}\` ${k(context)} of ${k(threshold)} nudge${scope ? ` · this ${scope}` : ""}`];
   const r = relayLine(relay);
   if (r) out.push(r);
@@ -226,6 +226,8 @@ export function hoverText({ context, threshold, relay, totals, links, scope, han
   if (links.nudge) a.push(`[Nudge at ${k(threshold)}](${links.nudge})`);
   if (links.handNow) a.push(`[Hand over now](${links.handNow})${relay && relay.limit === 0 ? " (relay off: type /clear after)" : ""}`);
   if (a.length) out.push(a.join(" · "));
+  // `idle` is the window's idle-handover mode; its name opens the picker.
+  if (idle) out.push(`Idle handover: ${links.idle ? `[${idle}](${links.idle})` : idle}`);
   return out.join("\n\n");
 }
 

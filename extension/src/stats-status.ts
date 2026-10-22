@@ -8,6 +8,7 @@ import {
   IDLE_DETAIL,
   IDLE_MODES,
   clearWindowIdleMode,
+  idleBarVisible,
   idleText,
   setWindowIdleMode,
   settingsIdleMode,
@@ -308,6 +309,8 @@ export function statsStatus(
         const u = await transcripts.usage(id, window?.cwd ?? roots[0]);
         if (u) usages.push(u);
       }
+      const ownIdle = window ? windowIdleMode(relayDir(), window.key) : null;
+      const idle = ownIdle ?? settingsIdleMode();
       const current = usages.at(-1);
       if (!current || current.last === null) {
         pieItem.hide();
@@ -333,13 +336,21 @@ export function statsStatus(
               log: window ? "command:clearResume.relayLog" : undefined,
               nudge: window ? "command:clearResume.pickNudge" : undefined,
               handNow: window ? "command:clearResume.handoverNow" : undefined,
+              idle: window ? "command:clearResume.pickIdle" : undefined,
             },
             scope: pick.byTab ? "tab" : "window",
             handover: shown ? statusText(shown, new Date()) : undefined,
+            idle: window ? idle : undefined,
           }),
         );
         md.isTrusted = {
-          enabledCommands: ["clearResume.openContextHandover", "clearResume.relayLog", "clearResume.pickNudge", "clearResume.handoverNow"],
+          enabledCommands: [
+            "clearResume.openContextHandover",
+            "clearResume.relayLog",
+            "clearResume.pickNudge",
+            "clearResume.handoverNow",
+            "clearResume.pickIdle",
+          ],
         };
         pieItem.tooltip = md;
         pieItem.command = { command: "clearResume.openContextHandover", title: "Open loaded handover" };
@@ -353,14 +364,16 @@ export function statsStatus(
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "clearResume.pickRelay";
         relayItem.show();
-        const ownIdle = windowIdleMode(relayDir(), window.key);
-        const idle = ownIdle ?? settingsIdleMode();
-        idleItem.text = idleText(idle);
-        idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. ${
-          ownIdle ? `Picked for this ${scope}` : "From your settings (idle_handover)"
-        }; a change reaches the running session within 30 seconds. Click to change.`;
-        idleItem.command = "clearResume.pickIdle";
-        idleItem.show();
+        if (idleBarVisible(idle)) {
+          idleItem.text = idleText(idle);
+          idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. ${
+            ownIdle ? `Picked for this ${scope}` : "From your settings (idle_handover)"
+          }; a change reaches the running session within 30 seconds. Click to change.`;
+          idleItem.command = "clearResume.pickIdle";
+          idleItem.show();
+        } else {
+          idleItem.hide();
+        }
       } else {
         relayItem.hide();
         idleItem.hide();

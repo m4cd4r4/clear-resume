@@ -174,6 +174,14 @@ describe("hoverText", () => {
     expect(hoverText({ ...base, relay: null, links: {} })).not.toContain("Hand over now");
   });
 
+  it("ends with an idle line whose mode opens the picker, and omits it without a mode", () => {
+    const base = { context: 144_000, threshold: 250_000, relay: null, totals: { sessions: 1, replies: 1, tokens: 1, saved: 0 } };
+    const md = hoverText({ ...base, links: { nudge: "command:n", idle: "command:i" }, idle: "auto" }).split("\n\n");
+    expect(md.at(-1)).toBe("Idle handover: [auto](command:i)");
+    expect(hoverText({ ...base, links: {}, idle: "off" }).split("\n\n").at(-1)).toBe("Idle handover: off");
+    expect(hoverText({ ...base, links: { idle: "command:i" } })).not.toContain("Idle handover");
+  });
+
   it("puts the loaded handover line after the relay line and escapes Markdown in the title", () => {
     const md = hoverText({
       context: 0,
