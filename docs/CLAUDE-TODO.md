@@ -159,3 +159,20 @@ see what they just resumed, which sits under Other repos when other projects hav
 put Loaded first only when a loaded handover belongs to the open repo or its worktrees (the same test
 `loadedHere` in `plugin/packages/store/view.mjs` already applies). Model change in `handoverSections`, with a
 test for each order.
+
+## 16. Waiting handovers archive themselves when the work is done
+
+Found 2026-10-23: five examworthy seal kickoff stubs (written 10-18 at worktree creation) sat under Other
+repos as waiting for 5 to 6 days after the work shipped, because nothing consumed them. Macdara prefers
+guardrails to an Archive button. A waiting handover should archive itself when any of these holds, checked in
+this order of cost:
+
+1. Its worktree folder (`repoPath`) no longer exists on disk. No network.
+2. A session has started in its folder since it was written: a kickoff stub exists only to launch that first
+   session. No network.
+3. Its branch's PR is merged. Ask the forge (`gh pr list --head <branch> --state all`), not git ancestry,
+   since squash merges defeat ancestry. Costs a network call, so run it off the refresh path.
+
+Archive with `archivedBy.via` of a new value (the five done by hand used "manual"), and keep it out of
+`LOADED_VIA` so it never shows as Loaded. Tests: a record per rule, one that must stay waiting, and a check
+that a kickoff in a live worktree with no session yet is left alone.
