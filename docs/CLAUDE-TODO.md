@@ -136,11 +136,13 @@ Left out of the hierarchy PR (#139) by choice, each its own change: a session st
 idle and Hand over in the sidebar, and bulk actions on a group header (for example clearing Stale). Both
 need Macdara's go-ahead, and any new display copy goes to him as options first.
 
-## 13. Second-line rule is only checked on repo and branch strings
+## 13. The repo-and-branch rule is only checked on six pairs (low priority)
 
-`where()` in `extension/src/sidebar-model.ts` hides the branch when its last segment is a whole word in the
-repo name, and the repo when the branch already contains it. It is tested on six hand-picked pairs, not
-against the real store. Run it over every record in `~/.clear-resume` and read the rows it collapses.
+Every row is one line now (PRs #146, #147), so `where()` in `extension/src/sidebar-model.ts` no longer builds
+a visible second line. It still builds the tooltip and the opened peek: it hides the branch when its last
+segment is a whole word in the repo name, and the repo when the branch already contains it. It is tested on
+six hand-picked pairs, not against the real store. Run it over every record in `~/.clear-resume` and read
+what it collapses if a tooltip ever looks wrong.
 
 ## 14. Group Stale and Archived by repo (done)
 
