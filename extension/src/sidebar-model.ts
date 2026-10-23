@@ -18,6 +18,8 @@ export interface RowModel {
   meta: string;
   /** One line: the group heading already names the repo, so `meta` stays off the row (tooltip and peek only). */
   compact: boolean;
+  /** Repo name shown small before the title; only on rows whose group heading does not name the repo. */
+  tag: string;
   /** "3h", or "loaded 25m ago" on a Loaded row. */
   age: string;
   /** 1 for a fresh handover down to FADE_FLOOR for an old one. */
@@ -128,6 +130,7 @@ export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; pr
     title: r.title,
     meta: where(r),
     compact: opts.compact === true,
+    tag: loaded ? r.repo ?? "" : "",
     age: loaded ? loadedAge(r, now) : shortAge(r, now),
     fade: loaded ? 1 : fadeOf(r.createdAt, now),
     kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
@@ -177,8 +180,8 @@ export function handoverSections(
     id: g.id,
     label: g.label,
     collapsed: COLLAPSED.has(g.id),
-    // Loaded mixes repos under one heading, so its rows keep the repo on a second line.
-    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded", compact: g.id !== "loaded" })),
+    // Loaded mixes repos under one heading, so its rows carry the repo as a small tag before the title.
+    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded", compact: true })),
     ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now, COLLAPSED.has(g.id)) } : {}),
   }));
   // One group alone needs no heading, except Loaded, whose heading says these rows

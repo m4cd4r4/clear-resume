@@ -163,7 +163,9 @@ describe("handoverSections", () => {
       rec({ id: "s", createdAt: ago(40 * D) }),
     ];
     const compact = Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.compact)]));
-    expect(compact).toEqual({ loaded: [false], current: [true], other: [true], stale: [true] });
+    expect(compact).toEqual({ loaded: [true], current: [true], other: [true], stale: [true] });
+    // Only Loaded rows tag the repo; the other groups already name it in their heading.
+    expect(Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.tag)]))).toEqual({ loaded: ["clear-resume"], current: [""], other: [""], stale: [""] });
     // The row still carries the repo and branch, for its tooltip and its peek.
     expect(handoverSections(records, opts).find((s) => s.id === "other")?.rows[0].meta).toBe("other \u00b7 feat/nudge");
   });
