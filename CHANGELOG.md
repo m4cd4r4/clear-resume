@@ -3,7 +3,7 @@
 ## Unreleased
 
 - **The default nudge size is now 250k tokens (was 180k).** It is the setting the author chose from
-  daily use, not a measured result: the A/B found no cost benefit between 180k and 250k.
+  daily use, not a measured result: no run compares it with 180k, only a cost model supports it ([why](docs/RESEARCH.md#why-the-nudge-defaults-to-250k-tokens)).
 
 - **`idle_handover: smart`.** Like `auto`, but the idle ask lets Claude answer "Nothing to hand over."
   when the work is finished and no step remains; then nothing is saved, the session is not cleared,
