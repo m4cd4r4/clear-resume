@@ -58,6 +58,7 @@ svg { display: block; flex: none; }
 .row.compact .line { padding-block: 4px; }
 .row.compact .acts { bottom: auto; top: 50%; transform: translateY(-50%); }
 .row.compact:hover > .line .age, .row.compact:focus-within > .line .age { visibility: hidden; }
+.rt { flex: none; max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; letter-spacing: .02em; color: var(--mute); }
 .peek .where { color: var(--ink); opacity: .8; }
 .ib { height: 22px; min-width: 22px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: var(--mute); border: 0; background: none; cursor: pointer; }
 .ib:hover { background: var(--vscode-toolbar-hoverBackground, var(--hover)); color: var(--ink); }
@@ -140,7 +141,7 @@ function rowEl(r, level) {
   },
     h("div", { class: "line" },
       expandable ? chev(r.key, open) : spacer(),
-      h("span", { class: "t", title: r.compact ? r.title + "\\n" + r.meta : r.title }, mark, r.pinned ? h("span", { class: "pin" }, icon("pin", 12)) : null, h("span", {}, r.title)),
+      h("span", { class: "t", title: r.compact ? r.title + "\\n" + r.meta : r.title }, mark, r.pinned ? h("span", { class: "pin" }, icon("pin", 12)) : null, r.tag ? h("span", { class: "rt" }, r.tag) : null, h("span", {}, r.title)),
       h("span", { class: "age" }, r.age),
       h("span", { class: "acts" }, acts),
       r.compact ? null : h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
