@@ -26,7 +26,7 @@ gains a Quality section from the same data pipeline (`site/extract-results.mjs` 
 
 ## Decisions (Macdara, 2026-10-11, later the same day)
 
-The A/B found no cost benefit in handing over at 180k to 250k tokens, and a ~10x saving on an idle return. New direction:
+The A/B found no cost benefit in handing over at 180k against auto-compaction (no published arm used 250k; corrected 2026-10-23), and a ~10x saving on an idle return. New direction:
 
 - **Lead with the idle handover.** The page and README lead with handing over before the prompt cache expires, cost on the
   axis. The relay-vs-compaction charts move to a research page, kept as evidence. The README's top video (the relay

@@ -9,19 +9,20 @@
   <a href="https://m4cd4r4.github.io/clear-resume"><img alt="Website: m4cd4r4.github.io/clear-resume" src="https://img.shields.io/badge/website-m4cd4r4.github.io%2Fclear--resume-262626?style=flat-square&labelColor=0a0a0a"></a>
 </p>
 
-<p align="center"><sub>A real run, replayed in 75 seconds. Claude builds the <a href="https://m4cd4r4.github.io/clear-resume">project site</a> across 15 sessions: each time the chat gets long it saves a handover, clears itself and carries on, with no one typing after the first prompt. Left, every tool call. Right, the context per call, dropping at each clear. Below, the page as each commit lands. Sound on: a tick per tool call, a chime at each save, clear and load.</sub></p>
+<p align="center"><b>Clear a long Claude Code chat without losing your place.</b><br>Claude writes a short note, you type <code>/clear</code>, and the fresh session carries on from it.</p>
 
-https://github.com/user-attachments/assets/f9641132-034a-4747-ae0f-ac794faf03d6
+<p align="center">
+  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /clear-resume:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
+</p>
 
-## Pause a long chat cheaply, and carry on from a note you can read
+<p align="center"><sub>Watch the context bar, top right: full before <code>/clear</code>, almost empty after.</sub></p>
 
-**Step away from a long chat and come back for less.** Claude Code's prompt cache lasts 60 minutes on a subscription. Return to a 390k-token session after that and the first message rewrites the whole context: US$1.56 in each of 3 runs. With the [idle handover](#pick-how-it-runs) on, Claude writes a handover while the cache is still warm, and a fresh session reads it: US$0.15 to US$0.17 in all (n=3). Both measured on Sonnet 5.5 on 10 Oct 2026. The fresh session continues from the note, and the saving exists only if you come back.
+## What it does
 
-**A handover you can read and edit.** It is a plain text file in `~/.clear-resume`: the goal, the next action, where things stand, the decisions made and what already failed. Open it, change it, paste it into another chat, or load it on a second machine with [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional). Auto-compaction keeps its summary inside the chat. This follows from how each is built; it was not measured.
-
-**Switch models mid-task.** Moving a 390k-token Sonnet 5.5 session to Opus cost US$3.13, one full rewrite of the context on Opus. Writing a handover first and starting a fresh Opus session from it cost US$0.24, about 13x less. One run (n=1, 8 Oct 2026), measured with a scripted handover outside the plugin.
-
-**On long builds, it matches auto-compaction.** On a 30-item site build with Sonnet 5.5, the relay and Claude Code's own auto-compaction (at about 177k tokens) each finished 5 of 6 runs. Their finished runs used 37.4M and 35.3M tokens on average (n=5 each). A session that never compacts used, on average, 1.6x the relay's tokens (n=3 against n=5). Every run and chart: [the results page](https://m4cd4r4.github.io/clear-resume/).
+- **Keeps your place across `/clear`.** One command saves a short note: the goal, the next action, where things stand, the decisions made and what already failed. The fresh session loads it and carries on.
+- **Can run with nobody typing.** Turn on the relay and, after your first prompt, it saves, clears and continues for you, up to the number of clears you allow.
+- **A note you can read and edit.** It is a plain text file in `~/.clear-resume`: open it, change it, paste it into another chat, or load it on a second machine with [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
+- **Optional extras.** A [VS Code sidebar](#optional-a-vs-code-sidebar-and-a-nudge-when-the-chat-gets-long) lists your handovers by repo, and a footer shows how full the chat is.
 
 ## Install: two commands in your terminal
 
@@ -94,17 +95,17 @@ The relay stops, and says why, when it uses up its clears for that Claude Code w
 
 To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
 
-**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context. Measured on one 390k-token Sonnet 5.5 session with the 60 minute cache, on 10 Oct 2026: the first message back after the cache expired cost US$1.56 in each of 3 runs, writing about 390k tokens. A handover written while the cache was still warm, plus a fresh session reading it, cost US$0.15 to US$0.17 in total (n=3), about 9 to 10 times less. On 9 Oct the CLI priced cache reads higher, and the same pair cost US$0.30 against the same US$1.56 (n=1). The handover path continues from a note, not from the full conversation. The saving exists only if you come back. With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
+**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context; a handover written while the cache is still warm costs about a tenth of that ([the measurements](docs/RESEARCH.md#idle-handover-against-a-cold-return)). With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
 
 | Setting | Default | What it does |
 |---|---|---|
 | `idle_handover` | `off` | `off`, `toast`, `smart` or `auto`. `smart` is `auto` where Claude may decline: if the work is finished and no step remains it replies "Nothing to hand over.", and nothing is saved or cleared. A wrong "finished" costs the cold rewrite you would have paid anyway; no work is lost. Whether the model declines correctly was not measured. |
-| `cache_ttl_minutes` | `60` | Your prompt cache lifetime. Only the 60 minute subscription cache was measured; 5 minutes is the documented default with an API key and was not measured. The mod acts 5 minutes before it (half of it, if shorter). `auto` needs 10 or more, else it acts as `toast`. |
+| `cache_ttl_minutes` | `60` | Your prompt cache lifetime: 60 on a subscription. On an API key the default is 5 minutes (measured, n=1), or 60 with `ENABLE_PROMPT_CACHING_1H=1`. Set this to match. The mod acts 5 minutes before it (half of it, if shorter). `auto` needs 10 or more, else it acts as `toast`. |
 | `idle_min_tokens` | `100000` | Below this context size a cold rewrite is cheap, so nothing happens. |
 
 Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-IT-WORKS.md#headless-runs-no-clear-at-all) does the same job: each segment ends at the nudge, and the next starts from its handover.
 
-**Pick the nudge size for your setup.** The default, 250k tokens, is a setting the author chose from ongoing use and experimentation, not a research result. It leaves about 180k tokens between handovers, which the author found a good sweet spot. If your sessions start with a smaller context, set **Nudge at** lower to keep a similar gap (a larger start, a higher setting). The author uses a 1M-token context window. More testing of the best handover window is planned. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
+**Pick the nudge size for your setup.** The default, 250k tokens, is a setting the author chose from ongoing use and experimentation, not a research result ([why, and what was measured](docs/RESEARCH.md#why-the-nudge-defaults-to-250k-tokens)). It leaves about 180k tokens between handovers, which the author found a good sweet spot. If your sessions start with a smaller context, set **Nudge at** lower to keep a similar gap (a larger start, a higher setting). The author uses a 1M-token context window. More testing of the best handover window is planned. On a 200k window, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. Either way, keep it well above the size your sessions start at (your rules, CLAUDE.md and tool schemas), or every fresh session is nudged almost at once.
 
 To change it, use any one of these (new sessions pick it up; the range is 50000 to 1000000):
 
@@ -114,34 +115,8 @@ To change it, use any one of these (new sessions pick it up; the range is 50000 
 
 </details>
 
-## Why: in a long chat, the work gets buried
-
-<p align="center">
-  <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
-</p>
-
-Claude rereads the whole context for every reply. In a long chat, the goal and the decisions sit under every file read and test run since the chat began, and each reply is slower and uses more of your plan or budget. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
-
-<details>
-<summary><b>How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code></b></summary>
-<br>
-
-| | Claude keeps | You lose | Chat size after |
-|:--|:--|:--|:--|
-| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |
-| `--resume` | The whole chat | Nothing | Same as before |
-| `/clear` | Nothing | Everything, including where you were | Empty |
-| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
-
-</details>
-
 ## The manual way: one command before `/clear`
 
-<p align="center">
-  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /clear-resume:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
-</p>
-
-<p align="center"><sub>Watch the context bar, top right: full before <code>/clear</code>, almost empty after.</sub></p>
 
 | Step | Type | What happens |
 |:--|:--|:--|
@@ -177,16 +152,6 @@ Use it when a chat has grown long and you want to `/clear`. The handover keeps t
 
 > [!NOTE]
 > Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
-
-## The handover is under 1% of what `/clear` removes
-
-Claude counts context in tokens. A token is a small piece of text, roughly a word.
-
-<p align="center">
-  <img src="docs/media/numbers.png" width="640" alt="Two bars drawn to scale. 102,088 tokens a typical /clear frees: a full-width bar. About 780 tokens in the handover, an estimate: a sliver under 1% as wide. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.">
-</p>
-
-<p align="center"><sub>The bars are drawn to scale: 780 / 102,088 = 0.76%. The handover's size is an estimate, its characters divided by 4. The author's sessions start at about 77k to 99k tokens. With a leaner setup, a <code>/clear</code> at the same size frees more.</sub></p>
 
 ## Also built in, with no setup
 
@@ -266,6 +231,37 @@ claude plugin install clear-resume@clear-resume --config auto_nudge=true
 If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
 
 </details>
+
+## Why: in a long chat, the work gets buried
+
+<p align="center">
+  <img src="docs/media/problem.png" width="100%" alt="A long Claude Code chat in the widget-shop project, on branch fix/cart-rounding, with the context bar almost full. A card beside it reads: Context: everything Claude is holding in mind for this chat.">
+</p>
+
+Claude rereads the whole context for every reply. In a long chat, the goal and the decisions sit under every file read and test run since the chat began, and each reply is slower and uses more of your plan or budget. `/compact` shrinks it to Claude's own summary, which can leave things out. `/clear` empties it, and the next session starts knowing nothing.
+
+<details>
+<summary><b>How this compares with <code>/compact</code>, <code>--resume</code> and <code>/clear</code></b></summary>
+<br>
+
+| | Claude keeps | You lose | Chat size after |
+|:--|:--|:--|:--|
+| `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |
+| `--resume` | The whole chat | Nothing | Same as before |
+| `/clear` | Nothing | Everything, including where you were | Empty |
+| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
+
+</details>
+
+## What the testing found
+
+Everything is in [docs/RESEARCH.md](docs/RESEARCH.md), with each number's n, model and date. The short version:
+
+- **Coming back to an idle chat costs less.** Claude Code's prompt cache lasts 60 minutes on a subscription (5 minutes by default on an API key). After that, the first message back rewrites the whole context: US$1.56 on a 390k-token Sonnet 5.5 session, in each of 3 runs. A handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 in all (n=3, 10 Oct 2026). The saving exists only if you come back, and the fresh session continues from the note, not the full chat. Turn on the [idle handover](#pick-how-it-runs) to use it.
+- **It does not make a whole build cheaper.** On a 30-item site build with Sonnet 5.5, the relay and Claude Code's own auto-compaction cost the same (US$9.08 against US$9.19, n=5 each) and each finished 5 of 6 runs. Use the plugin for the convenience, idle returns and switching models, not to cut the bill on one long session.
+- **Switching models mid-task costs less.** Moving a 390k-token Sonnet 5.5 session to Opus cost US$3.13; a handover first, then a fresh Opus session, cost US$0.24, about 13x less (n=1, 8 Oct 2026).
+- **A fresh session did not remember more than the full chat.** In recall tests the plugin's note never overtook the full context at any size from 50k to 450k tokens. The saved note keeps the plan and the rules; the recent-activity trail added to it recovers the last commands and files (17 of 17 questions on 6 sessions, tuned on those questions).
+- **The 250k nudge size is a judgement,** not a result: [what supports it and what does not](docs/RESEARCH.md#why-the-nudge-defaults-to-250k-tokens).
 
 ## Built with it: Spare Cycles
 
