@@ -53,7 +53,12 @@ svg { display: block; flex: none; }
 .meta { grid-column: 2 / 4; grid-row: 2; color: var(--mute); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* In a narrow sidebar the age leaves the title line for the end of the meta line, so the title keeps the width and the repo is cut last. */
 .agei { display: none; }
-@media (max-width: 240px) { .age { display: none; } .agei { display: inline; } }
+@media (max-width: 240px) { .row:not(.compact) .age { display: none; } .agei { display: inline; } }
+/* One line: the buttons take the age's place on hover instead of a second line. */
+.row.compact .line { padding-block: 4px; }
+.row.compact .acts { bottom: auto; top: 50%; transform: translateY(-50%); }
+.row.compact:hover > .line .age, .row.compact:focus-within > .line .age { visibility: hidden; }
+.peek .where { color: var(--ink); opacity: .8; }
 .ib { height: 22px; min-width: 22px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: var(--mute); border: 0; background: none; cursor: pointer; }
 .ib:hover { background: var(--vscode-toolbar-hoverBackground, var(--hover)); color: var(--ink); }
 .ib.go { color: var(--accent-ink); }
@@ -117,7 +122,8 @@ function chev(key, open) {
 const spacer = () => h("span", { class: "chev" });
 
 function rowEl(r, level) {
-  const expandable = r.peek.length > 0;
+  // A one-line row keeps its repo and branch off the row, so opening it is how you read them.
+  const expandable = r.peek.length > 0 || r.compact;
   const open = expandable && isOpen(r.key, false);
   const mark = r.kind === "loaded" ? h("span", { class: "ok" }, icon("check")) : h("span", { class: "dot" });
   const acts = [
@@ -126,7 +132,7 @@ function rowEl(r, level) {
     btn("Delete", "trash", { type: "delete", id: r.id }),
   ];
   return h("div", {
-    class: "row", role: "treeitem", "data-key": r.key, "data-kind": r.kind, "aria-level": level, tabindex: "-1", style: "--fade:" + r.fade,
+    class: r.compact ? "row compact" : "row", role: "treeitem", "data-key": r.key, "data-kind": r.kind, "aria-level": level, tabindex: "-1", style: "--fade:" + r.fade,
     "aria-label": [r.title, r.meta, r.age, r.pinned ? "pinned" : ""].filter(Boolean).join(", "),
     "aria-expanded": expandable ? String(open) : null,
     "data-vscode-context": ctx({ webviewSection: "handover", id: r.id, pinned: r.pinned, archived: r.kind === "archived" }),
@@ -134,11 +140,11 @@ function rowEl(r, level) {
   },
     h("div", { class: "line" },
       expandable ? chev(r.key, open) : spacer(),
-      h("span", { class: "t", title: r.title }, mark, r.pinned ? h("span", { class: "pin" }, icon("pin", 12)) : null, h("span", {}, r.title)),
+      h("span", { class: "t", title: r.compact ? r.title + "\\n" + r.meta : r.title }, mark, r.pinned ? h("span", { class: "pin" }, icon("pin", 12)) : null, h("span", {}, r.title)),
       h("span", { class: "age" }, r.age),
       h("span", { class: "acts" }, acts),
-      h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
-    open ? h("div", { class: "peek" }, r.peek.map((l) => h("p", {}, l))) : null);
+      r.compact ? null : h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
+    open ? h("div", { class: "peek" }, r.compact && r.meta ? h("p", { class: "where" }, r.meta) : null, r.peek.map((l) => h("p", {}, l))) : null);
 }
 function headEl(key, label, count, open, level) {
   return h("div", { role: "treeitem", "data-key": key, "data-kind": "group", "aria-level": level || 1, "aria-expanded": String(open), "aria-label": label + ", " + count, tabindex: "-1", on: { click: () => setOpen(key, !open) } },
@@ -186,7 +192,7 @@ function items(m) {
       if (open && s.groups) {
         // Stale and Archived split by repo, each closed until opened (or until a search hits it).
         for (const g of s.groups) {
-          const gkey = "g:" + s.id + ":" + g.id, gopen = isOpen(gkey, !!m.query);
+          const gkey = "g:" + s.id + ":" + g.id, gopen = isOpen(gkey, !g.collapsed || !!m.query);
           out.push(headEl(gkey, g.label, g.rows.length, gopen, 2));
           if (gopen) for (const r of g.rows) out.push(rowEl(r, 3));
         }
