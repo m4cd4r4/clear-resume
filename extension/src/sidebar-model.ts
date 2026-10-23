@@ -2,7 +2,8 @@
 // no I/O, so vitest runs it directly. Every string here comes from handover data or
 // from the labels the tree views already used.
 import type { StoredHandover } from "../../plugin/packages/store/store.mjs";
-import { loadedAge, shortAge, treeGroups } from "../../plugin/packages/store/view.mjs";
+import { loadedAge, loadedHere, shortAge, treeGroups } from "../../plugin/packages/store/view.mjs";
+import { normalisePath } from "../../plugin/packages/store/schema.mjs";
 import { stamp, type Lane, type NextUp } from "../../plugin/packages/store/lanes.mjs";
 
 export type RowKind = "waiting" | "loaded" | "archived";
@@ -34,6 +35,8 @@ export interface SectionModel {
   /** Closed until the person opens it; their own choice overrides this. */
   collapsed?: boolean;
   rows: RowModel[];
+  /** The same rows split by repo, closed until opened. Only Stale and Archived have them. */
+  groups?: { id: string; label: string; rows: RowModel[] }[];
 }
 
 export interface LaneModel {
@@ -133,21 +136,46 @@ export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; pr
 
 /** Top to bottom: what is waiting for a person, then what a session loaded, then the rest. */
 const ORDER = ["current", "other", "loaded", "stale", "archived"];
-const rank = (id: string) => ORDER.indexOf(id);
+/** Right after /clear, what this window just resumed comes first. */
+const LOADED_FIRST = ["loaded", "current", "other", "stale", "archived"];
 /** Finished or old: closed until opened, so a thousand archived rows cost one line. */
 const COLLAPSED = new Set(["stale", "archived"]);
+
+/**
+ * Stale and Archived hold hundreds of rows, so they split by repo. A row's repo is its
+ * main checkout, not its worktree: forty `examworthy-seal-*` worktrees are one repo.
+ * A record written before `mainPath` existed falls back to its own folder. Newest
+ * repo first, newest row first inside it.
+ */
+const BY_REPO = new Set(["stale", "archived"]);
+
+function byRepo(records: StoredHandover[], now: Date): SectionModel["groups"] {
+  const newest = [...records].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  const groups = new Map<string, { id: string; label: string; rows: RowModel[] }>();
+  for (const r of newest) {
+    const path = normalisePath(String(r.mainPath || r.repoPath || ""));
+    let g = groups.get(path);
+    if (!g) groups.set(path, (g = { id: path, label: path.split("/").filter(Boolean).pop() || "unknown", rows: [] }));
+    g.rows.push(rowOf(r, now));
+  }
+  return [...groups.values()];
+}
 
 /** The Handovers section: the tree's groups, waiting ones first, as rows. */
 export function handoverSections(
   records: StoredHandover[],
   opts: { repoPath: string; roots: string[]; now: Date; showArchived: boolean },
 ): SectionModel[] {
-  const groups = treeGroups(records, opts).sort((a, b) => rank(a.id) - rank(b.id));
+  // Loaded leads only when one is from the open repo or its worktrees; another
+  // project's load stays below what is waiting here.
+  const order = loadedHere(records, opts) ? LOADED_FIRST : ORDER;
+  const groups = treeGroups(records, opts).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   const sections = groups.map((g) => ({
     id: g.id,
     label: g.label,
     collapsed: COLLAPSED.has(g.id),
     rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded" })),
+    ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now) } : {}),
   }));
   // One group alone needs no heading, except Loaded, whose heading says these rows
   // were loaded and are not waiting, and a collapsed one, which needs its heading to open.
@@ -195,6 +223,12 @@ export function matches(text: string, query: string): boolean {
 export function filterSections(sections: SectionModel[], query: string): SectionModel[] {
   if (!query.trim()) return sections;
   return sections
-    .map((s) => ({ ...s, rows: s.rows.filter((r) => matches(r.search, query)) }))
+    .map((s) => ({
+      ...s,
+      rows: s.rows.filter((r) => matches(r.search, query)),
+      ...(s.groups
+        ? { groups: s.groups.map((g) => ({ ...g, rows: g.rows.filter((r) => matches(r.search, query)) })).filter((g) => g.rows.length > 0) }
+        : {}),
+    }))
     .filter((s) => s.rows.length > 0);
 }

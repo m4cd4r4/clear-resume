@@ -23,6 +23,8 @@ svg { display: block; flex: none; }
 [role=treeitem] { position: relative; cursor: pointer; user-select: none; }
 .hd { display: flex; align-items: center; gap: 4px; padding: 8px 10px 4px 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .hd .n { margin-left: auto; font-weight: 400; letter-spacing: 0; }
+.row[aria-level="3"] { margin-left: 18px; }
+.hd.sub { padding: 4px 10px 2px 18px; font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
 .chev { width: 16px; height: 16px; display: grid; place-items: center; transition: transform .15s; color: var(--mute); }
 [aria-expanded="false"] > .line > .chev, [aria-expanded="false"] > .hd > .chev { transform: rotate(-90deg); }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
@@ -138,9 +140,9 @@ function rowEl(r, level) {
       h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
     open ? h("div", { class: "peek" }, r.peek.map((l) => h("p", {}, l))) : null);
 }
-function headEl(key, label, count, open) {
-  return h("div", { role: "treeitem", "data-key": key, "data-kind": "group", "aria-level": 1, "aria-expanded": String(open), "aria-label": label + ", " + count, tabindex: "-1", on: { click: () => setOpen(key, !open) } },
-    h("div", { class: "hd" }, chev(key, open), label, h("span", { class: "n" }, count)));
+function headEl(key, label, count, open, level) {
+  return h("div", { role: "treeitem", "data-key": key, "data-kind": "group", "aria-level": level || 1, "aria-expanded": String(open), "aria-label": label + ", " + count, tabindex: "-1", on: { click: () => setOpen(key, !open) } },
+    h("div", { class: level > 1 ? "hd sub" : "hd" }, chev(key, open), label, h("span", { class: "n" }, count)));
 }
 function laneEl(l) {
   const expandable = l.handovers.length > 0;
@@ -181,7 +183,14 @@ function items(m) {
       // A search opens every group that has a match, so a hit is never hidden under a closed header.
       const key = "g:" + s.id, open = isOpen(key, !s.collapsed || !!m.query) || !s.label;
       if (s.label) out.push(headEl(key, s.label, s.rows.length, open));
-      if (open) for (const r of s.rows) out.push(rowEl(r, s.label ? 2 : 1));
+      if (open && s.groups) {
+        // Stale and Archived split by repo, each closed until opened (or until a search hits it).
+        for (const g of s.groups) {
+          const gkey = "g:" + s.id + ":" + g.id, gopen = isOpen(gkey, !!m.query);
+          out.push(headEl(gkey, g.label, g.rows.length, gopen, 2));
+          if (gopen) for (const r of g.rows) out.push(rowEl(r, 3));
+        }
+      } else if (open) for (const r of s.rows) out.push(rowEl(r, s.label ? 2 : 1));
     }
     return out;
   }
@@ -210,14 +219,15 @@ function draw() {
   const list = items(m);
   // A flat list has no nesting for a screen reader to count, so say "n of m" per parent.
   const number = (els) => els.forEach((el, i) => { el.setAttribute("aria-posinset", i + 1); el.setAttribute("aria-setsize", els.length); });
-  const tops = [];
-  let kids = [];
+  // One run of siblings per level; a shallower item ends every deeper run.
+  const runs = [], open = {};
   for (const el of list) {
-    if (el.getAttribute("aria-level") === "1") { number(kids); kids = []; tops.push(el); }
-    else kids.push(el);
+    const lv = Number(el.getAttribute("aria-level"));
+    for (const k of Object.keys(open)) if (Number(k) > lv) delete open[k];
+    if (!open[lv]) runs.push((open[lv] = []));
+    open[lv].push(el);
   }
-  number(kids);
-  number(tops);
+  runs.forEach(number);
   tree.replaceChildren(...list);
   if (list.length === 0) { tree.append(empty(m)); return; }
   const keep = list.find((el) => el.dataset.key === st.focus) || list[0];

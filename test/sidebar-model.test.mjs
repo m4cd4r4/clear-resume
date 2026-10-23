@@ -86,14 +86,24 @@ describe("rowOf", () => {
 describe("handoverSections", () => {
   const opts = { repoPath: "I:/Scratch/clear-resume", roots: [], now: NOW, showArchived: false };
 
-  it("puts waiting groups above Loaded, then Stale", () => {
+  it("puts waiting groups above a Loaded handover from another repo, then Stale", () => {
     const records = [
-      rec({ id: "l", status: "archived", archivedAt: ago(60_000), archivedBy: { via: "hook" } }),
+      rec({ id: "l", status: "archived", archivedAt: ago(60_000), archivedBy: { via: "hook" }, repoPath: "I:/Scratch/elsewhere", repo: "elsewhere" }),
       rec({ id: "c" }),
       rec({ id: "o", repoPath: "I:/Scratch/other", repo: "other" }),
       rec({ id: "s", createdAt: ago(40 * D) }),
     ];
     expect(handoverSections(records, opts).map((s) => s.label)).toEqual(["Current repo", "Other repos", "Loaded", "Stale"]);
+  });
+
+  it("puts Loaded first when the loaded handover is from this repo or its worktrees", () => {
+    const loaded = (id, repoPath) => rec({ id, status: "archived", archivedAt: ago(60_000), archivedBy: { via: "hook" }, repoPath });
+    const waiting = [rec({ id: "c" }), rec({ id: "o", repoPath: "I:/Scratch/other", repo: "other" })];
+    const order = (records, o = opts) => handoverSections(records, o).map((s) => s.id);
+    expect(order([...waiting, loaded("l", "I:/Scratch/clear-resume")])).toEqual(["loaded", "current", "other"]);
+    // A sibling worktree counts when the caller passes it in roots.
+    const sibling = "I:/Scratch/clear-resume-sidebar";
+    expect(order([...waiting, loaded("l", sibling)], { ...opts, roots: [sibling] })).toEqual(["loaded", "current", "other"]);
   });
 
   it("drops the heading when one group stands alone, but never Loaded's", () => {
@@ -109,6 +119,25 @@ describe("handoverSections", () => {
     expect(Object.fromEntries(all.map((s) => [s.id, s.collapsed]))).toEqual({ current: false, stale: true, archived: true });
     const lone = handoverSections([archived], { ...opts, showArchived: true });
     expect(lone.map((s) => [s.label, s.collapsed])).toEqual([["Archived", true]]);
+  });
+
+  it("groups Stale and Archived by the repo's main folder, newest repo first, with a count", () => {
+    const stale = (id, repoPath, mainPath, age) => rec({ id, repoPath, mainPath, createdAt: ago(age * D) });
+    const records = [
+      stale("a", "I:/Scratch/examworthy-seal-flip", "I:/Scratch/examworthy", 50),
+      stale("b", "I:/Scratch/solaisoft", "I:/Scratch/solaisoft", 41),
+      stale("c", "I:/Scratch/examworthy-seal-app", "I:/Scratch/examworthy", 45),
+      stale("d", "I:/Scratch/old-worktree", undefined, 60),
+    ];
+    const [section] = handoverSections(records, opts);
+    expect(section.groups?.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["solaisoft", ["b"]],
+      ["examworthy", ["c", "a"]],
+      // A record written before mainPath existed falls back to its own folder.
+      ["old-worktree", ["d"]],
+    ]);
+    // The flat rows stay, so the section count and the search still see every record.
+    expect(section.rows).toHaveLength(4);
   });
 
   it("shows Archived only when asked", () => {
@@ -164,6 +193,14 @@ describe("search", () => {
     expect(filterSections(sections, "feat/nudge")).toHaveLength(1);
     expect(filterSections(sections, "feat/nudge")[0].rows.map((r) => r.id)).toEqual(["a"]);
     expect(filterSections(sections, "")).toBe(sections);
+  });
+  it("narrows a section's repo groups to the matching rows and drops the ones left empty", () => {
+    const stale = (id, title, mainPath) => rec({ id, title, repoPath: mainPath, mainPath, createdAt: ago(40 * D) });
+    const opts = { repoPath: "I:/Scratch/clear-resume", roots: [], now: NOW, showArchived: false };
+    const [section] = handoverSections([stale("a", "Ship nudge", "I:/Scratch/alpha"), stale("b", "Fix footer", "I:/Scratch/beta")], opts);
+    const [hit] = filterSections([section], "footer");
+    expect(hit.rows.map((r) => r.id)).toEqual(["b"]);
+    expect(hit.groups?.map((g) => g.label)).toEqual(["beta"]);
   });
   it("still finds a row by a branch its second line no longer shows", () => {
     const row = rowOf(rec({ repo: "clear-resume-restyle-webview", branch: "feat/restyle-webview" }), NOW);
