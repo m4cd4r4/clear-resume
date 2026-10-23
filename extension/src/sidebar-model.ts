@@ -16,6 +16,8 @@ export interface RowModel {
   title: string;
   /** Repo and branch. */
   meta: string;
+  /** One line: the group heading already names the repo, so `meta` stays off the row (tooltip and peek only). */
+  compact: boolean;
   /** "3h", or "loaded 25m ago" on a Loaded row. */
   age: string;
   /** 1 for a fresh handover down to FADE_FLOOR for an old one. */
@@ -35,8 +37,8 @@ export interface SectionModel {
   /** Closed until the person opens it; their own choice overrides this. */
   collapsed?: boolean;
   rows: RowModel[];
-  /** The same rows split by repo, closed until opened. Only Stale and Archived have them. */
-  groups?: { id: string; label: string; rows: RowModel[] }[];
+  /** The same rows split by repo. Other repos, Stale and Archived have them; Stale and Archived start closed. */
+  groups?: { id: string; label: string; collapsed?: boolean; rows: RowModel[] }[];
 }
 
 export interface LaneModel {
@@ -118,13 +120,14 @@ function where(r: Pick<StoredHandover, "repo" | "branch">): string {
   return [repo, branch].filter(Boolean).join(" · ");
 }
 
-export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; prefix?: string } = {}): RowModel {
+export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; prefix?: string; compact?: boolean } = {}): RowModel {
   const loaded = opts.loaded === true;
   return {
     key: `${opts.prefix ?? (loaded ? "loaded" : "h")}:${r.id}`,
     id: r.id,
     title: r.title,
     meta: where(r),
+    compact: opts.compact === true,
     age: loaded ? loadedAge(r, now) : shortAge(r, now),
     fade: loaded ? 1 : fadeOf(r.createdAt, now),
     kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
@@ -147,16 +150,16 @@ const COLLAPSED = new Set(["stale", "archived"]);
  * A record written before `mainPath` existed falls back to its own folder. Newest
  * repo first, newest row first inside it.
  */
-const BY_REPO = new Set(["stale", "archived"]);
+const BY_REPO = new Set(["other", "stale", "archived"]);
 
-function byRepo(records: StoredHandover[], now: Date): SectionModel["groups"] {
+function byRepo(records: StoredHandover[], now: Date, collapsed: boolean): SectionModel["groups"] {
   const newest = [...records].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-  const groups = new Map<string, { id: string; label: string; rows: RowModel[] }>();
+  const groups = new Map<string, { id: string; label: string; collapsed: boolean; rows: RowModel[] }>();
   for (const r of newest) {
     const path = normalisePath(String(r.mainPath || r.repoPath || ""));
     let g = groups.get(path);
-    if (!g) groups.set(path, (g = { id: path, label: path.split("/").filter(Boolean).pop() || "unknown", rows: [] }));
-    g.rows.push(rowOf(r, now));
+    if (!g) groups.set(path, (g = { id: path, label: path.split("/").filter(Boolean).pop() || "unknown", collapsed, rows: [] }));
+    g.rows.push(rowOf(r, now, { compact: true }));
   }
   return [...groups.values()];
 }
@@ -174,12 +177,14 @@ export function handoverSections(
     id: g.id,
     label: g.label,
     collapsed: COLLAPSED.has(g.id),
-    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded" })),
-    ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now) } : {}),
+    // Loaded mixes repos under one heading, so its rows keep the repo on a second line.
+    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded", compact: g.id !== "loaded" })),
+    ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now, COLLAPSED.has(g.id)) } : {}),
   }));
   // One group alone needs no heading, except Loaded, whose heading says these rows
   // were loaded and are not waiting, and a collapsed one, which needs its heading to open.
-  if (sections.length === 1 && sections[0].id !== "loaded" && !sections[0].collapsed) sections[0].label = "";
+  // A section with repo groups under it keeps its heading, or those groups hang from nothing.
+  if (sections.length === 1 && sections[0].id !== "loaded" && !sections[0].collapsed && !sections[0].groups) sections[0].label = "";
   return sections;
 }
 

@@ -140,6 +140,39 @@ describe("handoverSections", () => {
     expect(section.rows).toHaveLength(4);
   });
 
+  it("splits Other repos by repo too, open, while Stale's repo groups start closed", () => {
+    const other = (id, repoPath, mainPath) => rec({ id, repoPath, mainPath });
+    const records = [
+      other("a", "I:/Scratch/solaisoft", "I:/Scratch/solaisoft"),
+      other("b", "I:/Scratch/examworthy-seal-flip", "I:/Scratch/examworthy"),
+      rec({ id: "s", repoPath: "I:/Scratch/old", mainPath: "I:/Scratch/old", createdAt: ago(40 * D) }),
+    ];
+    const sections = handoverSections(records, opts);
+    const by = Object.fromEntries(sections.map((s) => [s.id, s.groups?.map((g) => [g.label, g.collapsed])]));
+    expect(by.other).toEqual([["solaisoft", false], ["examworthy", false]]);
+    expect(by.stale).toEqual([["old", true]]);
+    // The repo you are in is its own heading, so it needs no split.
+    expect(by.current).toBeUndefined();
+  });
+
+  it("makes rows one line wherever a heading already names the repo, and not in Loaded", () => {
+    const records = [
+      rec({ id: "l", status: "archived", archivedAt: ago(60_000), archivedBy: { via: "hook" } }),
+      rec({ id: "c" }),
+      rec({ id: "o", repoPath: "I:/Scratch/other", repo: "other", mainPath: "I:/Scratch/other" }),
+      rec({ id: "s", createdAt: ago(40 * D) }),
+    ];
+    const compact = Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.compact)]));
+    expect(compact).toEqual({ loaded: [false], current: [true], other: [true], stale: [true] });
+    // The row still carries the repo and branch, for its tooltip and its peek.
+    expect(handoverSections(records, opts).find((s) => s.id === "other")?.rows[0].meta).toBe("other \u00b7 feat/nudge");
+  });
+
+  it("keeps the heading of a lone section that has repo groups under it", () => {
+    const only = [rec({ id: "o", repoPath: "I:/Scratch/other", repo: "other", mainPath: "I:/Scratch/other" })];
+    expect(handoverSections(only, opts)[0].label).toBe("Other repos");
+  });
+
   it("shows Archived only when asked", () => {
     const archived = rec({ id: "x", status: "archived", archivedAt: ago(5 * D), archivedBy: { via: "extension" } });
     expect(handoverSections([archived, rec()], opts).map((s) => s.id)).not.toContain("archived");
