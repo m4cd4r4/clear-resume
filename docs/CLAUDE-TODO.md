@@ -142,7 +142,7 @@ need Macdara's go-ahead, and any new display copy goes to him as options first.
 repo name, and the repo when the branch already contains it. It is tested on six hand-picked pairs, not
 against the real store. Run it over every record in `~/.clear-resume` and read the rows it collapses.
 
-## 14. Group Stale and Archived by repo
+## 14. Group Stale and Archived by repo (done)
 
 Macdara asked (2026-10-23) whether handovers should be organised by repo. Decided: not for Loaded or the
 waiting groups, where newest first matters and a third tree level would bury it. Stale (98) and Archived
@@ -152,7 +152,7 @@ repo's path (`schema.mjs` fills it, falling back to `repoPath`), so a group can 
 itself with that folder's name. Check old records written before `mainPath` existed: they fall back to
 `repoPath`, so their worktrees would still form their own group.
 
-## 15. Loaded above the waiting groups only when it is from this repo
+## 15. Loaded above the waiting groups only when it is from this repo (done)
 
 Today the order is Current repo, Other repos, Loaded, Stale, Archived. Right after `/clear` a person wants to
 see what they just resumed, which sits under Other repos when other projects have waiting handovers. Idea:
