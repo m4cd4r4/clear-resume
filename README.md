@@ -99,7 +99,7 @@ To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay
 
 | Setting | Default | What it does |
 |---|---|---|
-| `idle_handover` | `off` | `off`, `toast`, `smart` or `auto`. `smart` is `auto` where Claude may decline: if the work is finished and no step remains it replies "Nothing to hand over.", and nothing is saved or cleared. A wrong "finished" costs the cold rewrite you would have paid anyway; no work is lost. Whether the model declines correctly was not measured. |
+| `idle_handover` | `off` | `off`, `toast`, `smart` or `auto`. `smart` is `auto` where Claude may decline: if the work is finished and no step remains it replies "Nothing to hand over.", and nothing is saved or cleared. A wrong "finished" costs the cold rewrite you would have paid anyway; no work is lost. Whether the model declines correctly was not measured. In the VS Code extension no plugin toast is drawn, nor a transcript line (measured 2026-10-24, one run in an isolated window): `toast` mode shows nothing there, and `smart` and `auto` act without a message. |
 | `cache_ttl_minutes` | `60` | Your prompt cache lifetime: 60 on a subscription. On an API key the default is 5 minutes (measured, n=1), or 60 with `ENABLE_PROMPT_CACHING_1H=1`. Set this to match. The mod acts 5 minutes before it (half of it, if shorter). `auto` needs 10 or more, else it acts as `toast`. |
 | `idle_min_tokens` | `100000` | Below this context size a cold rewrite is cheap, so nothing happens. |
 
