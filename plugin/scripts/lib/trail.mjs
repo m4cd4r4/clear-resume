@@ -123,6 +123,23 @@ export function buildTrail(file, { paths = "name" } = {}) {
   return trail;
 }
 
+/** The text of the user's last typed prompt (not a tool result, not a meta row), or "". Never throws. */
+export function lastUserPrompt(file) {
+  try {
+    for (const line of linesBackwards(file)) {
+      let row;
+      try { row = JSON.parse(line); } catch { continue; }
+      if (row?.type !== "user" || row.isMeta) continue;
+      const c = row.message?.content;
+      const text = typeof c === "string" ? c : Array.isArray(c) && !c.some((b) => b?.type === "tool_result") ? textOf(c) : "";
+      if (text.trim() && !text.trimStart().startsWith("<")) return redact(text.trim());
+    }
+  } catch {
+    // unreadable: no prompt
+  }
+  return "";
+}
+
 const nums = (arr, f = (x) => x) => (arr.length ? arr.map((x, i) => `${i + 1}. ${f(x)}`).join("; ") : "none");
 const code = (s) => "`" + s.replace(/`/g, "'") + "`";
 

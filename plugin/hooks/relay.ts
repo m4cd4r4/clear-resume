@@ -225,6 +225,12 @@ type Relay = {
   idleAsked: boolean
   // The idle status entry is showing, until the next turn starts.
   idleShown: boolean
+  // A question the user has not answered yet (AskUserQuestion, main thread): when it
+  // was asked and what it says. The turn stays open while it waits, so idleCheck
+  // would never look; this is what lets it save a handover without a model turn.
+  question: { at: number; text: string } | undefined
+  // The note for the user once they answer a question whose wait saved a handover.
+  openSaved: string | undefined
 }
 
 // Told after a nudged turn ends with no save through save.mjs. Seen 2026-10-07: a
@@ -410,6 +416,47 @@ function resetIdle(r: Relay): void {
   r.turns.clear()
   r.saved = false
   r.idleAsked = false
+  r.question = undefined
+  r.openSaved = undefined
+}
+
+// "25 Oct, 6:04 am" style, in the machine's own time zone.
+function stamp(ms: number): string {
+  return new Date(ms).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+}
+
+// The session is waiting on a question and the cache is about to expire. Save a
+// handover by script: no prompt (it would queue behind the open dialog and run the
+// moment the user answers) and no /clear (they are still mid-conversation). The
+// user is told once, when they answer.
+async function openQuestionSave($: Engine, r: Relay, now: number, woke: boolean): Promise<void> {
+  const q = r.question
+  if (!q || r.saved || r.pending || r.idleAsked || r.openSaved) return
+  if ((r.idle !== 'smart' && r.idle !== 'auto') || woke) return
+  if (!idleDue(now - q.at, r.ttlMin) || (await headlessRun($))) return
+  const tokens = await contextTokens($)
+  if (tokens === undefined || tokens < r.minTokens) return
+  const id = await $.session.id()
+  const cwd = await $.session.cwd()
+  if (!id || !cwd || !(await claimIdle($, id))) return
+  const run = await $.process
+    .run(
+      [
+        'node',
+        `${$.plugin.root}/scripts/save-open-question.mjs`,
+        '--session', id,
+        '--cwd', cwd,
+        '--asked-at', stamp(q.at),
+        '--question', q.text,
+      ],
+      { timeoutMs: 60000 },
+    )
+    .catch(() => undefined)
+  const saved = /\(id ([^)]+)\)/.exec(run?.stdout ?? '')
+  if (run?.exitCode !== 0 || !saved) return
+  r.openSaved = `Cache was about to expire: handover ${saved[1]} saved at ${stamp(now)}. Nothing was cleared; /clear picks it up.`
+  $.ui.status(r.openSaved)
+  $.ui.toast(r.openSaved, { timeoutMs: 15000 })
 }
 
 // The mode this window runs on: the one picked in the status bar (<key>.idle.json)
@@ -435,6 +482,7 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
   const woke = idleWoke(r.lastTickAt, now)
   r.lastTickAt = now
   if (r.idle === 'off' || r.lastReplyAt === undefined || !r.interactive) return
+  if (r.question) return openQuestionSave($, r, now, woke)
   if (r.turns.size > 0 || r.saved || r.pending || r.idleAsked) return
   const idle = now - r.lastReplyAt
   if (!idleDue(idle, r.ttlMin) || (await headlessRun($))) return
@@ -587,6 +635,8 @@ export const register: Register = (on, options) => {
     saved: false,
     idleAsked: false,
     idleShown: false,
+    question: undefined,
+    openSaved: undefined,
   }
 
   on('session.start', async ($, e, next) => {
@@ -633,6 +683,28 @@ export const register: Register = (on, options) => {
       return await next(e)
     } finally {
       r.tools = Math.max(0, r.tools - 1)
+    }
+  })
+
+  // A question waiting for the user: remember it while it is open, and say what the
+  // wait saved once it is answered. The note rides on the answer's text so it
+  // reaches the user even where the status line and toast draw nothing (VS Code).
+  on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
+    const asked = (e as unknown as { questions?: { question?: string; options?: { label?: string }[] }[] }).questions ?? []
+    r.question = {
+      at: await $.clock.now(),
+      text: asked
+        .map(x => `${x.question ?? ''} [${(x.options ?? []).map(o => o.label ?? '').join(' | ')}]`)
+        .join(' / ')
+        .slice(0, 1500),
+    }
+    try {
+      const ran = await next(e)
+      return r.openSaved && ran.deny === undefined ? { ...ran, text: `${ran.text ?? ''}\n\n${r.openSaved}` } : ran
+    } finally {
+      r.question = undefined
+      r.openSaved = undefined
     }
   })
 
