@@ -5,10 +5,10 @@ before acting on it.
 
 ## Shipped
 
-- [x] Plugin 0.4.0: handover skill, SessionStart load, auto-mode nudge, git-synced store,
+- [x] Plugin 0.4.1: handover skill, SessionStart load, auto-mode nudge, git-synced store,
   hands-off relay (#58), its stall guard (#60), per-window `/relay` (#66) and the panel toast
   (#67). `package.json`, `plugin/.claude-plugin/plugin.json` and
-  `.claude-plugin/marketplace.json` all agree on 0.4.0.
+  `.claude-plugin/marketplace.json` all agree on 0.4.1.
 - [x] VS Code extension 0.4.0 (in the repo; marketplace publish pending): context pie and relay
   picker (#68, #69, #70), Worktrees view (#64).
 - [x] Relay stall guard (#60): stops after two continued sessions in a row make no new commit;
