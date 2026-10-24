@@ -481,8 +481,10 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
   // while this one did not, so nothing is submitted on that look.
   const woke = idleWoke(r.lastTickAt, now)
   r.lastTickAt = now
-  if (r.idle === 'off' || r.lastReplyAt === undefined || !r.interactive) return
+  if (r.idle === 'off' || !r.interactive) return
+  // A question in the session's first turn has no earlier reply, so this comes first.
   if (r.question) return openQuestionSave($, r, now, woke)
+  if (r.lastReplyAt === undefined) return
   if (r.turns.size > 0 || r.saved || r.pending || r.idleAsked) return
   const idle = now - r.lastReplyAt
   if (!idleDue(idle, r.ttlMin) || (await headlessRun($))) return
@@ -686,9 +688,9 @@ export const register: Register = (on, options) => {
     }
   })
 
-  // A question waiting for the user: remember it while it is open, and say what the
-  // wait saved once it is answered. The note rides on the answer's text so it
-  // reaches the user even where the status line and toast draw nothing (VS Code).
+  // A question waiting for the user: remember it while it is open. Extending the
+  // answer's text with a note does not work: VS Code builds that result itself
+  // (rig, 2026-10-25), so the note is the toast and status line only.
   on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
     if (e.agentId !== undefined) return next(e)
     const asked = (e as unknown as { questions?: { question?: string; options?: { label?: string }[] }[] }).questions ?? []
@@ -699,9 +701,10 @@ export const register: Register = (on, options) => {
         .join(' / ')
         .slice(0, 1500),
     }
+    // The timer starts at the end of a turn; this turn has not ended and may be the first.
+    await idleTick($, r)
     try {
-      const ran = await next(e)
-      return r.openSaved && ran.deny === undefined ? { ...ran, text: `${ran.text ?? ''}\n\n${r.openSaved}` } : ran
+      return await next(e)
     } finally {
       r.question = undefined
       r.openSaved = undefined

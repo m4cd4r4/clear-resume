@@ -910,10 +910,22 @@ describe('idle handover', () => {
     const call = $.tool.call({ tool: 'AskUserQuestion', questions: [{ question: 'Ship it?', options: [{ label: 'Yes' }] }] } as never)
     await clock.advance(310 * S)
     expect(w.toasts.some(t => t.startsWith('Cache was about to expire: handover ab12cd34 saved at'))).toBe(true)
+    expect(w.status.at(-1)).toContain('Nothing was cleared')
     release()
     const answered = (await call) as { text?: string }
-    expect(answered.text).toContain('Cache was about to expire: handover ab12cd34 saved at')
-    expect(answered.text).toContain('Nothing was cleared')
+    expect(answered.text).toBe('')
+  })
+
+  test('smart: a question asked in the very first turn still gets the save', smart(), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.start({ text: 'ask', turnId: 't1' })
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [] } as never)
+    await clock.advance(310 * S)
+    expect(w.runs.filter(a => /save-open-question\.mjs$/.test(a[1])).length).toBe(1)
+    release()
+    await call
   })
 
   test('toast mode: an open question gets no scripted save', opts('toast'), async ($, on) => {
