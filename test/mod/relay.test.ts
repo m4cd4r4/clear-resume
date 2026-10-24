@@ -918,12 +918,15 @@ describe('idle handover', () => {
 
   test('toast mode: an open question gets no scripted save', opts('toast'), async ($, on) => {
     const { w, clock, hold } = world(on)
-    hold(new Promise<void>(() => {}))
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
     await $.turn.complete(turn)
     await $.turn.start({ text: 'ask', turnId: 't2' })
-    void $.tool.call({ tool: 'AskUserQuestion', questions: [] } as never)
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [] } as never)
     await clock.advance(310 * S)
     expect(w.runs.filter(a => /save-open-question\.mjs$/.test(a[1]))).toEqual([])
+    release()
+    await call
   })
 
   test('auto: a tool call in flight turns it into a message', auto(), async ($, on) => {
