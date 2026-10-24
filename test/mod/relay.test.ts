@@ -993,6 +993,34 @@ describe('idle handover', () => {
     expect(w.prompts).toEqual([])
   })
 
+  // The VS Code extension reports isInteractive:false (measured 2026-10-24, surface null)
+  // but a person is at the keyboard; its entrypoint variable says so.
+  test('the VS Code extension counts as interactive although it reports isInteractive false', auto(), async ($, on) => {
+    const { w, clock } = world(on, { CLAUDE_CODE_ENTRYPOINT: 'claude-vscode' })
+    await $.session.start({ ...start, isInteractive: false })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.prompts.length).toBe(1)
+  })
+
+  test('claude -p and the SDK entrypoints stay excluded when isInteractive is false', auto(), async ($, on) => {
+    const { w, clock } = world(on, { CLAUDE_CODE_ENTRYPOINT: 'sdk-cli' })
+    await $.session.start({ ...start, isInteractive: false })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.toasts).toEqual([])
+    expect(w.prompts).toEqual([])
+  })
+
+  test('the VS Code entrypoint under the headless runner still never fires', auto(), async ($, on) => {
+    const { w, clock } = world(on, { CLAUDE_CODE_ENTRYPOINT: 'claude-vscode', CLEAR_RESUME_HEADLESS: '1' })
+    await $.session.start({ ...start, isInteractive: false })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.toasts).toEqual([])
+    expect(w.prompts).toEqual([])
+  })
+
   test('under the headless runner it never fires', auto(), async ($, on) => {
     const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
     await $.turn.complete(turn)

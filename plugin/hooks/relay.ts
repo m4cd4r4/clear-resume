@@ -217,7 +217,7 @@ type Relay = {
   ticking: boolean
   // The clock reading at the last tick, to tell a machine that just woke.
   lastTickAt: number | undefined
-  // False when session.start said this is not an interactive session.
+  // False when session.start said this is not an interactive session (the VS Code extension counts as one).
   interactive: boolean
   // A save went through save.mjs this session, so idle has nothing to ask for.
   saved: boolean
@@ -593,8 +593,11 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     r.headless = await headlessRun($)
     resetIdle(r)
-    // A session that is not interactive (-p, the SDK) has nobody to message.
-    r.interactive = (e as { isInteractive?: boolean }).isInteractive !== false
+    // A session that is not interactive (-p, the SDK) has nobody to message. The VS Code
+    // extension also reports isInteractive:false (surface null), but a person is there;
+    // its entrypoint variable tells it apart from -p and the SDK.
+    r.interactive =
+      (e as { isInteractive?: boolean }).isInteractive !== false || (await $.env.get('CLAUDE_CODE_ENTRYPOINT')) === 'claude-vscode'
     await $.command.register({
       name: 'relay',
       description: 'Clear and continue by itself in this window: off, on, unlimited or a number',
