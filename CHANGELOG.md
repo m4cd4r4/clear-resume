@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
+
+- **Idle handover now works in the VS Code extension.** VS Code reports its sessions as non-interactive,
+  so `idle_handover` never acted there. The relay now treats `CLAUDE_CODE_ENTRYPOINT=claude-vscode` as
+  interactive. Checked in an isolated VS Code window: a finished session was answered "Nothing to hand
+  over.", and an unfinished one saved a handover and was cleared.
 
 - **The default nudge size is now 250k tokens (was 180k).** It is the setting the author chose from
   daily use, not a measured result: no run compares it with 180k, only a cost model supports it ([why](docs/RESEARCH.md#why-the-nudge-defaults-to-250k-tokens)).
