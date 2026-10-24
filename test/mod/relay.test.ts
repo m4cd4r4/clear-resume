@@ -36,6 +36,7 @@ type World = {
   status: (string | undefined)[]
   registered: string[]
   files: Map<string, string>
+  runs: string[][]
 }
 
 // The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json
@@ -44,7 +45,7 @@ type World = {
 const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set|\.handover|\.idle)\.json$/
 
 function world(on: On, env: Record<string, string> = {}) {
-  const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [], files: new Map() }
+  const w: World = { commands: [], prompts: [], toasts: [], status: [], registered: [], files: new Map(), runs: [] }
   const clock = mock.clock(on)
   mock.env(on, { HOME: '/home/me', ...env })
   // The state file and the status bar's override, in memory.
@@ -82,6 +83,9 @@ function world(on: On, env: Record<string, string> = {}) {
             : { exitCode: 0, stdout: `${transcriptTokens}\n`, stderr: '' },
       }
     }
+    w.runs.push(e.argv.map(String))
+    if (/save-open-question\.mjs$/.test(String(e.argv[1])))
+      return { value: { exitCode: 0, stdout: 'Saved handover "Open question: Ship it?" (id ab12cd34).\n', stderr: '' } }
     return {
       value:
         head === null
@@ -92,6 +96,10 @@ function world(on: On, env: Record<string, string> = {}) {
   // A tool call held open, as one waiting on a permission prompt is.
   let hold: Promise<void> | null = null
   on('tool.call', { tool: 'Read' }, async () => {
+    await hold
+    return { result: {}, text: '' }
+  })
+  on('tool.call', { tool: 'AskUserQuestion' }, async () => {
     await hold
     return { result: {}, text: '' }
   })
@@ -875,6 +883,62 @@ describe('idle handover', () => {
     await clock.advance(310 * S)
     await $.turn.complete(turn)
     expect(w.toasts.some(t => t.startsWith('Idle check'))).toBe(false)
+  })
+
+  test('smart: an open question gets a handover saved by script, with no prompt and no clear', smart(), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'ask', turnId: 't2' })
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [{ question: 'Ship it?', options: [{ label: 'Yes' }, { label: 'No' }] }] } as never)
+    await clock.advance(310 * S)
+    const save = w.runs.filter(a => /save-open-question\.mjs$/.test(a[1]))
+    expect(save.length).toBe(1)
+    expect(w.prompts).toEqual([])
+    expect(w.commands).toEqual([])
+    release()
+    await call
+  })
+
+  test('smart: the user is told which handover was saved when they answer the question', smart(), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'ask', turnId: 't2' })
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [{ question: 'Ship it?', options: [{ label: 'Yes' }] }] } as never)
+    await clock.advance(310 * S)
+    expect(w.toasts.some(t => t.startsWith('Cache was about to expire: handover ab12cd34 saved at'))).toBe(true)
+    expect(w.status.at(-1)).toContain('Nothing was cleared')
+    release()
+    const answered = (await call) as { text?: string }
+    expect(answered.text).toBe('')
+  })
+
+  test('smart: a question asked in the very first turn still gets the save', smart(), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.start({ text: 'ask', turnId: 't1' })
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [] } as never)
+    await clock.advance(310 * S)
+    expect(w.runs.filter(a => /save-open-question\.mjs$/.test(a[1])).length).toBe(1)
+    release()
+    await call
+  })
+
+  test('toast mode: an open question gets no scripted save', opts('toast'), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'ask', turnId: 't2' })
+    const call = $.tool.call({ tool: 'AskUserQuestion', questions: [] } as never)
+    await clock.advance(310 * S)
+    expect(w.runs.filter(a => /save-open-question\.mjs$/.test(a[1]))).toEqual([])
+    release()
+    await call
   })
 
   test('auto: a tool call in flight turns it into a message', auto(), async ($, on) => {
