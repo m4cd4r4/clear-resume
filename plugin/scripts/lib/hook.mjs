@@ -5,6 +5,7 @@ import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { writeLoadedCopy } from "../../packages/store/loaded.mjs";
+import { captureDir, pruneCaptures, readCapture, summary } from "../../packages/store/artifacts.mjs";
 import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
 import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath, tildePath } from "./display.mjs";
@@ -129,8 +130,34 @@ function pullFirst(root, env) {
 function pruneQuietly(root, now) {
   try {
     prune({ root, now });
+    // What a waiting handover's session left on screen stays as long as the handover does.
+    pruneCaptures({ root, now, keep: new Set(listWaiting(root, "").map((h) => h.meta.sessionId).filter(Boolean)) });
   } catch {
     // A session must start whatever state the store is in.
+  }
+}
+
+/**
+ * The note about what the loaded handover's session left on screen, as { context, shown }, or null.
+ * Counts and a few titles only: the text stays on disk and is read when the user asks for it, so a
+ * resumed session stays light. Best effort, like the copy.
+ */
+function artifactsNote(root, load) {
+  try {
+    const cap = readCapture(root, load.meta.sessionId);
+    const what = cap && summary(cap.counts);
+    if (!what) return null;
+    const file = tildePath(join(captureDir(root, cap.sessionId), "artifacts.md"));
+    const titles = cap.items.filter((i) => i.kind === "table" || i.kind === "list").slice(0, 4).map((i) => `"${clean(i.title, 60)}"`);
+    return {
+      context:
+        `clear-resume: the session that wrote this handover left ${what} on screen, kept verbatim in ${file}` +
+        (titles.length ? ` (${titles.join(", ")})` : "") +
+        `. Read that file only if the user asks about a list, table or link from before the clear.`,
+      shown: `Earlier session left ${what}: ${file}`,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -268,6 +295,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
   let copy = "";
+  let assets = "";
 
   if (load) {
     // The owner is already known whenever any waiting handover has one. For an
@@ -293,6 +321,11 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
         `${OPENER(load.meta.title)}\n\n${load.body.trim()}`,
     );
     shown = `clear-resume: loaded handover "${load.meta.title}" (saved ${age(load.meta.created, now)}${from}).`;
+    const note = artifactsNote(root, load);
+    if (note) {
+      parts.push(note.context);
+      assets = note.shown;
+    }
   }
 
   if (list.length) {
@@ -331,6 +364,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   }
 
   // Its own line, and the last one, so it can be copied or clicked on its own.
+  if (assets) shown = `${shown}\n${assets}`;
   if (copy) shown = `${shown}\n${copy}`;
 
   const out = {

@@ -65,6 +65,12 @@ svg { display: block; flex: none; }
 .ib.go { color: var(--accent-ink); }
 .peek { margin: 0 8px 6px 28px; padding: 2px 0 2px 10px; border-left: 1px solid var(--line); color: var(--mute); font-size: 12px; line-height: 1.45; cursor: default; user-select: text; }
 .peek p { margin: 0 0 3px; overflow-wrap: anywhere; }
+.assets { margin-top: 4px; }
+.assets .ah { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.asset { display: flex; align-items: center; gap: 6px; width: 100%; padding: 2px 4px; margin: 0; border: 0; border-radius: 4px; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.asset:hover { background: var(--vscode-toolbar-hoverBackground, var(--hover)); }
+.asset .ak { flex: none; width: 3.2em; font-size: 10px; letter-spacing: .02em; color: var(--mute); }
+.asset .al { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty { padding: 14px 16px; color: var(--mute); }
 .empty p { margin: 0 0 8px; }
 .link { color: var(--vscode-textLink-foreground); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
@@ -145,7 +151,16 @@ function rowEl(r, level) {
       h("span", { class: "age" }, r.age),
       h("span", { class: "acts" }, acts),
       r.compact ? null : h("span", { class: "meta", title: r.meta + " · " + r.age }, r.meta, h("span", { class: "agei" }, " · " + r.age))),
-    open ? h("div", { class: "peek" }, r.compact && r.meta ? h("p", { class: "where" }, r.meta) : null, r.peek.map((l) => h("p", {}, l))) : null);
+    open ? h("div", { class: "peek" }, r.compact && r.meta ? h("p", { class: "where" }, r.meta) : null, r.peek.map((l) => h("p", {}, l)), r.assets ? assetsEl(r) : null) : null);
+}
+// What the handover's session left on screen: collapsed with the row, one button per item. The page
+// sends the item's index; the host looks up what it names, so nothing here can ask for a path or a URL.
+const KIND = { table: "table", list: "list", link: "link", path: "path", screen: "last", all: "more" };
+function assetsEl(r) {
+  return h("div", { class: "assets" },
+    h("p", { class: "ah" }, "Assets · " + r.assets.summary),
+    r.assets.items.map((a) => h("button", { class: "asset", tabindex: "-1", title: a.label, on: { click: (e) => { e.stopPropagation(); post({ type: "asset", id: r.id, n: a.n }); } } },
+      h("span", { class: "ak" }, KIND[a.kind] || a.kind), h("span", { class: "al" }, a.label))));
 }
 function headEl(key, label, count, open, level) {
   return h("div", { role: "treeitem", "data-key": key, "data-kind": "group", "aria-level": level || 1, "aria-expanded": String(open), "aria-label": label + ", " + count, tabindex: "-1", on: { click: () => setOpen(key, !open) } },

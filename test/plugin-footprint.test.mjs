@@ -1,4 +1,4 @@
-// What a stranger's install gets. Claude Code copies the marketplace entry's source
+﻿// What a stranger's install gets. Claude Code copies the marketplace entry's source
 // folder into its plugin cache, and runs `npm ci` there when that folder holds a
 // package.json with a lockfile (measured on 2.1.283). The entry points at plugin/,
 // so these checks keep plugin/ self-contained and free of anything npm would act on.
@@ -76,7 +76,7 @@ describe("plugin footprint", () => {
     const names = Object.values(hooks).flatMap((entries) =>
       entries.flatMap((e) => e.hooks.map((h) => h.command.match(/hook-entry\.cjs"\s+([\w-]+)/)?.[1])),
     );
-    expect(names).toHaveLength(3);
+    expect(names).toHaveLength(4);
     for (const name of names) expect(existsSync(join(PLUGIN, "scripts", `${name}.mjs`)), name).toBe(true);
   });
 });

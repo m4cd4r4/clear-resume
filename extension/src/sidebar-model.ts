@@ -5,8 +5,29 @@ import type { StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { loadedAge, loadedHere, shortAge, treeGroups } from "../../plugin/packages/store/view.mjs";
 import { normalisePath } from "../../plugin/packages/store/schema.mjs";
 import { stamp, type Lane, type NextUp } from "../../plugin/packages/store/lanes.mjs";
+import { summary, type ArtifactKind, type Capture } from "../../plugin/packages/store/artifacts.mjs";
 
 export type RowKind = "waiting" | "loaded" | "archived";
+
+/** One line under a handover's Assets: what the page shows, and the index the host looks the real thing up by. */
+export interface AssetModel {
+  /** Index into the capture's items, or LAST_SCREEN / ALL_ASSETS. The page never sends a path or a URL. */
+  n: number;
+  kind: ArtifactKind | "screen" | "all";
+  label: string;
+}
+
+/** What a handover's session left on screen, for the expanded row. */
+export interface AssetsModel {
+  /** "2 tables, 12 links". */
+  summary: string;
+  items: AssetModel[];
+}
+
+export const LAST_SCREEN = -1;
+export const ALL_ASSETS = -2;
+/** Per kind, so a long list of links does not push the handover's own text off the sidebar. */
+const SHOWN_PER_KIND = 6;
 
 export interface RowModel {
   /** Unique within the page; a record can sit in Loaded and Archived at once. */
@@ -28,6 +49,8 @@ export interface RowModel {
   pinned: boolean;
   /** The first lines of the handover's Next action, or of its body. */
   peek: string[];
+  /** What the handover's session left on screen; absent when it left nothing. */
+  assets?: AssetsModel;
   /** What the search box matches: title, repo and branch, even where the row shows one. */
   search: string;
 }
@@ -122,7 +145,25 @@ function where(r: Pick<StoredHandover, "repo" | "branch">): string {
   return [repo, branch].filter(Boolean).join(" · ");
 }
 
-export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; prefix?: string; compact?: boolean } = {}): RowModel {
+/** The expanded row's asset lines, grouped by kind, each kind capped, then the last screen and the full file. */
+export function assetsOf(capture: Capture | undefined): AssetsModel | undefined {
+  const what = capture && summary(capture.counts);
+  if (!capture || !what) return undefined;
+  const items: AssetModel[] = [];
+  for (const kind of ["table", "list", "link", "path"] as ArtifactKind[]) {
+    const mine = capture.items.map((it, n) => ({ it, n })).filter((x) => x.it.kind === kind);
+    for (const { it, n } of mine.slice(0, SHOWN_PER_KIND)) items.push({ n, kind, label: clip(it.title || it.text, 80) });
+    if (mine.length > SHOWN_PER_KIND) items.push({ n: ALL_ASSETS, kind: "all", label: `${mine.length - SHOWN_PER_KIND} more ${kind}s in artifacts.md` });
+  }
+  if (capture.hasLastScreen) items.push({ n: LAST_SCREEN, kind: "screen", label: "Last screen before the clear" });
+  return { summary: what, items };
+}
+
+export function rowOf(
+  r: StoredHandover,
+  now: Date,
+  opts: { loaded?: boolean; prefix?: string; compact?: boolean; captures?: Map<string, Capture> } = {},
+): RowModel {
   const loaded = opts.loaded === true;
   return {
     key: `${opts.prefix ?? (loaded ? "loaded" : "h")}:${r.id}`,
@@ -136,6 +177,7 @@ export function rowOf(r: StoredHandover, now: Date, opts: { loaded?: boolean; pr
     kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
     pinned: r.pinned === true,
     peek: peekOf(r.body),
+    assets: assetsOf(typeof r.sessionId === "string" ? opts.captures?.get(r.sessionId) : undefined),
     search: [r.title, r.repo, r.branch].filter(Boolean).join(" "),
   };
 }
@@ -155,14 +197,14 @@ const COLLAPSED = new Set(["stale", "archived"]);
  */
 const BY_REPO = new Set(["other", "stale", "archived"]);
 
-function byRepo(records: StoredHandover[], now: Date, collapsed: boolean): SectionModel["groups"] {
+function byRepo(records: StoredHandover[], now: Date, collapsed: boolean, captures?: Map<string, Capture>): SectionModel["groups"] {
   const newest = [...records].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   const groups = new Map<string, { id: string; label: string; collapsed: boolean; rows: RowModel[] }>();
   for (const r of newest) {
     const path = normalisePath(String(r.mainPath || r.repoPath || ""));
     let g = groups.get(path);
     if (!g) groups.set(path, (g = { id: path, label: path.split("/").filter(Boolean).pop() || "unknown", collapsed, rows: [] }));
-    g.rows.push(rowOf(r, now, { compact: true }));
+    g.rows.push(rowOf(r, now, { compact: true, captures }));
   }
   return [...groups.values()];
 }
@@ -170,7 +212,7 @@ function byRepo(records: StoredHandover[], now: Date, collapsed: boolean): Secti
 /** The Handovers section: the tree's groups, waiting ones first, as rows. */
 export function handoverSections(
   records: StoredHandover[],
-  opts: { repoPath: string; roots: string[]; now: Date; showArchived: boolean },
+  opts: { repoPath: string; roots: string[]; now: Date; showArchived: boolean; captures?: Map<string, Capture> },
 ): SectionModel[] {
   // Loaded leads only when one is from the open repo or its worktrees; another
   // project's load stays below what is waiting here.
@@ -181,8 +223,8 @@ export function handoverSections(
     label: g.label,
     collapsed: COLLAPSED.has(g.id),
     // Loaded mixes repos under one heading, so its rows carry the repo as a small tag before the title.
-    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded", compact: true })),
-    ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now, COLLAPSED.has(g.id)) } : {}),
+    rows: g.records.map((r) => rowOf(r, opts.now, { loaded: g.id === "loaded", compact: true, captures: opts.captures })),
+    ...(BY_REPO.has(g.id) ? { groups: byRepo(g.records, opts.now, COLLAPSED.has(g.id), opts.captures) } : {}),
   }));
   // One group alone needs no heading, except Loaded, whose heading says these rows
   // were loaded and are not waiting, and a collapsed one, which needs its heading to open.

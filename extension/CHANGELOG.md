@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Assets under each handover.** Open a row's chevron and its session's tables, lists, links and paths
+  are listed under **Assets**, collapsed by default. A click opens a link in the browser, a path in the
+  editor, a table or list in a markdown tab, or the last screen. Needs the plugin's new SessionEnd hook.
+
 Needs a clear-resume plugin with the hand-over poll in its relay mod.
 
 - The nudge size and **Hand over** moved from the status bar into the context pie's hover card,

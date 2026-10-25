@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **A list read just before `/clear` is no longer lost.** A new `SessionEnd` hook keeps the session's
+  tables, lists, links, paths and last two replies from its transcript in `~/.clear-resume/artifacts/<session id>/`,
+  and loading a handover names them in one line (counts and titles, never the text). Handovers now record
+  their session id. `CLEAR_RESUME_ARTIFACTS=0` turns it off ([how it works](docs/HOW-IT-WORKS.md#what-the-session-left-on-screen)).
+
 ## 0.4.1
 
 - **Idle handover now works in the VS Code extension.** VS Code reports its sessions as non-interactive,

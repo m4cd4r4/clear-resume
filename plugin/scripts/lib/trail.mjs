@@ -52,7 +52,7 @@ const textOf = (c) => (typeof c === "string" ? c : Array.isArray(c) ? c.map((x) 
 const plumbing = (cmd) => /clear-resume[^\n]*[\\/](?:save|load)\.mjs/.test(String(cmd));
 
 // Newest-first lines of a file, read from the end in CHUNK-sized pieces.
-function* linesBackwards(file) {
+export function* linesBackwards(file) {
   const fd = openSync(file, "r");
   try {
     const size = fstatSync(fd).size;

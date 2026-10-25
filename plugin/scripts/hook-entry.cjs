@@ -1,4 +1,4 @@
-// Entry point for the three hooks: node hook-entry.cjs <session-start|post-tool|stop>.
+// Entry point for the four hooks: node hook-entry.cjs <session-start|session-end|post-tool|stop>.
 //
 // The scripts it runs are ES modules that use syntax an old Node cannot parse, and a
 // parse error is a stack trace under "hook error" on every tool call and every turn.
@@ -15,7 +15,7 @@
 
 var NEEDS_NODE = "clear-resume needs Node.js 18 or later on your PATH. Install it and restart Claude Code.";
 var MIN_MAJOR = 18;
-var HOOKS = { "session-start": true, "post-tool": true, stop: true };
+var HOOKS = { "session-start": true, "session-end": true, "post-tool": true, stop: true };
 
 var name = process.argv[2];
 var major = parseInt(String(process.versions && process.versions.node), 10);

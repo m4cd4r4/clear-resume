@@ -7,6 +7,8 @@ import { archiveMerged } from "../../plugin/packages/store/merged.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
+import { captureDir, pruneCaptures, readCapture } from "../../plugin/packages/store/artifacts.mjs";
+import { LAST_SCREEN, ALL_ASSETS } from "./sidebar-model";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { SidebarProvider } from "./sidebar";
@@ -52,10 +54,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const registry = () => config().get<string>("registryPath")?.trim() ?? "";
   // The page asks; each ask runs the command the tree row's button used to run.
-  const act = (m: { type: string; id?: string; target?: string }) => {
+  const act = (m: { type: string; id?: string; target?: string; n?: number }) => {
     if (m.type === "migrate") void vscode.commands.executeCommand("clearResume.migrate");
     else if (m.type === "openLane") void vscode.commands.executeCommand("clearResume.openLane", m.target);
-    else if (m.id) void vscode.commands.executeCommand(`clearResume.${m.type}`, { id: m.id });
+    else if (m.id) void vscode.commands.executeCommand(`clearResume.${m.type}`, { id: m.id, n: m.n });
   };
   const provider = new SidebarProvider("handovers", root, showArchived, registry, hasLegacyNotes, act);
   const lanesProvider = new SidebarProvider("lanes", root, showArchived, registry, hasLegacyNotes, act);
@@ -68,6 +70,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // keeps the tree from growing without anyone having to remember to tidy it.
   try {
     prune({ root: root() });
+    pruneCaptures({ root: root(), keep: new Set(listAll(root()).filter((r) => r.status === "waiting").map((r) => String(r.sessionId ?? "")).filter(Boolean)) });
   } catch {
     // A prune failure must never stop the view from opening.
   }
@@ -112,6 +115,8 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand("clearResume.openLoaded", (arg?: Target) => openLoaded(recordOf(arg, root()), root())),
+
+    vscode.commands.registerCommand("clearResume.asset", (arg?: Target & { n?: number }) => openAsset(recordOf(arg, root()), arg?.n, root())),
 
     vscode.commands.registerCommand("clearResume.toggleArchived", async () => {
       await config().update("showArchived", !showArchived(), vscode.ConfigurationTarget.Global);
@@ -182,6 +187,36 @@ function recordOf(arg: Target | undefined, root: string): StoredHandover | undef
 async function openBody(record: StoredHandover): Promise<void> {
   const doc = await vscode.workspace.openTextDocument({ content: record.body, language: "markdown" });
   await vscode.window.showTextDocument(doc, { preview: true });
+}
+
+/**
+ * Open one asset a handover's session left on screen. The page sends only the handover's id and an
+ * index; what that index names is read from the capture here, so a page cannot ask for a path or a URL
+ * of its own. A link opens in the browser, a path in the editor (copied when it is not on this machine),
+ * a table or list in an untitled markdown editor, the last screen and the full list as their files.
+ */
+async function openAsset(record: StoredHandover | undefined, n: number | undefined, root: string): Promise<void> {
+  const capture = typeof record?.sessionId === "string" ? readCapture(root, record.sessionId) : null;
+  if (!record || !capture || n === undefined) return;
+  const dir = captureDir(root, capture.sessionId);
+  const file = (name: string) => vscode.window.showTextDocument(vscode.Uri.file(join(dir, name)), { preview: true });
+  if (n === LAST_SCREEN) return void (await file("last-screen.md"));
+  if (n === ALL_ASSETS) return void (await file("artifacts.md"));
+  const item = capture.items[n];
+  if (!item) return;
+  if (item.kind === "link") {
+    if (/^https?:\/\//i.test(item.text)) await vscode.env.openExternal(vscode.Uri.parse(item.text));
+  } else if (item.kind === "path") {
+    const path = item.text.startsWith("~/") ? join(homedir(), item.text.slice(2)) : item.text;
+    if (existsSync(path)) await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(path));
+    else {
+      await vscode.env.clipboard.writeText(item.text);
+      void vscode.window.showInformationMessage(`clear-resume: ${item.text} is not on this machine; the path is copied.`);
+    }
+  } else {
+    const doc = await vscode.workspace.openTextDocument({ content: `# ${item.title}\n\n${item.text}\n`, language: "markdown" });
+    await vscode.window.showTextDocument(doc, { preview: true });
+  }
 }
 
 /**

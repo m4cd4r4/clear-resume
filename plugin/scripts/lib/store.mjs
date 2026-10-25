@@ -124,6 +124,7 @@ function asHandover(record) {
       branch: record.branch,
       owner: record.owner || "",
       machine: record.machine || "",
+      ...(record.sessionId ? { sessionId: record.sessionId } : {}),
       // When load.mjs --take made it its owner's (reopen). The owner checks read
       // this, not `created`: the taking window started after the save.
       ...(record.takenAt ? { takenAt: record.takenAt } : {}),
@@ -266,7 +267,7 @@ function autoFields(auto) {
 // folder shares its branch, so the branch alone archived a different window's
 // handover (2026-09-25). With no owner known, the old same-branch rule applies,
 // but only to handovers that have no owner either.
-export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId(), auto }) {
+export function saveHandover({ cwd, title, body, now = new Date(), root = storeRoot(), owner = ownerId(), auto, sessionId }) {
   if (!title || !String(title).trim()) throw new Error("title is required");
   if (!body || !String(body).trim()) throw new Error("handover body is empty");
   const { top, branch } = repoInfo(cwd);
@@ -293,6 +294,8 @@ export function saveHandover({ cwd, title, body, now = new Date(), root = storeR
       createdAt: new Date(now).toISOString(),
       status: "waiting",
       source: "plugin",
+      // Which session wrote it, so the sidebar finds what that session left on screen (artifacts.mjs).
+      ...(sessionId ? { sessionId: String(sessionId) } : {}),
       ...autoFields(auto),
     },
     { root },

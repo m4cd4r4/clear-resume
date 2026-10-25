@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { listAll } from "../../plugin/packages/store/store.mjs";
+import { listCaptures } from "../../plugin/packages/store/artifacts.mjs";
 import { lanes, parseWorktreeList } from "../../plugin/packages/store/lanes.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { currentRepoPath } from "./tree";
@@ -17,15 +18,17 @@ type Message =
   | { type: "ready" | "migrate" }
   | { type: "search"; q: string }
   | { type: "open" | "openLoaded" | "resume" | "pin" | "unpin" | "delete"; id: string }
+  | { type: "asset"; id: string; n: number }
   | { type: "openLane"; target: string };
 
 const WITH_ID = new Set(["open", "openLoaded", "resume", "pin", "unpin", "delete"]);
 
 export function parseMessage(v: unknown): Message | undefined {
-  const m = v as { type?: unknown; id?: unknown; q?: unknown; target?: unknown } | null;
+  const m = v as { type?: unknown; id?: unknown; q?: unknown; target?: unknown; n?: unknown } | null;
   if (!m || typeof m.type !== "string") return undefined;
   if (m.type === "ready" || m.type === "migrate") return { type: m.type };
   if (m.type === "search") return { type: "search", q: typeof m.q === "string" ? m.q.slice(0, 200) : "" };
+  if (m.type === "asset") return typeof m.id === "string" && m.id && Number.isInteger(m.n) ? { type: "asset", id: m.id, n: m.n as number } : undefined;
   if (m.type === "openLane") return typeof m.target === "string" && m.target ? { type: "openLane", target: m.target } : undefined;
   if (WITH_ID.has(m.type) && typeof m.id === "string" && m.id) return { type: m.type as "open", id: m.id };
   return undefined;
@@ -83,7 +86,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (this.section === "handovers") {
       // Worktrees of the open repo are the same repo; without them a project driven
       // through worktrees files most of its own handovers under "Other repos".
-      const sections = handoverSections(records, { repoPath: here, roots: worktreePaths(here), now, showArchived: this.showArchived() });
+      const captures = new Map(listCaptures(this.storeRootPath()).map((c) => [c.sessionId, c]));
+      const sections = handoverSections(records, { repoPath: here, roots: worktreePaths(here), now, showArchived: this.showArchived(), captures });
       return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: filterSections(sections, this.query) };
     }
     if (!here) return { section: "lanes", query: this.query, lanes: { lanes: [], next: [] } };

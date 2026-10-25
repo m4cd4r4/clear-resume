@@ -115,6 +115,34 @@ since closed can still be read. `--take` on a loaded handover puts it back to wa
 window's, and it loads at this window's next `/clear`. A load by this script writes the readable
 copy too.
 
+## What the session left on screen
+
+A handover is a summary Claude writes, so it drops whatever Claude did not think to keep: a list of
+jobs read a moment before `/clear` is gone. So a `SessionEnd` hook reads the session's own transcript
+and keeps these, mechanically, in `~/.clear-resume/artifacts/<session id>/`:
+
+| File | Holds |
+|---|---|
+| `artifacts.md` | Markdown tables, lists of 4 or more items, links, absolute paths and files written, each with how many replies back it was said |
+| `last-screen.md` | The last two assistant replies, verbatim |
+| `meta.json` | The same items and their counts, for the sidebar |
+
+Caps: 10 tables, 10 lists, 40 links and 40 paths per session, 8,000 characters per item. Secrets are
+redacted by the same net the Recent trail uses. A session that left nothing of these kinds writes
+nothing. Nothing is sent anywhere, and the folder ignores itself so sync never pushes it.
+
+A handover records the id of the session that saved it. Load a handover and the notice adds one line,
+for example `Earlier session left 2 tables, 12 links: ~/.clear-resume/artifacts/<id>/artifacts.md`.
+Only the counts and a few titles reach Claude's context, never the text, so a resumed session stays
+light; Claude reads the file when you ask about something from before the clear. In the sidebar, open
+a handover row with its chevron: **Assets** lists the items, and a click opens a link in the browser,
+a path in the editor, a table or list in a markdown tab, or the last screen. Captures are deleted 30
+days after they were taken, except while a waiting handover names them. `CLEAR_RESUME_ARTIFACTS=0`
+turns the capture off.
+
+A session cleared with no handover still leaves its folder, which you can open or @-mention, but there
+is no sidebar row to hang it on.
+
 ## Settings
 
 All optional. Set them as environment variables, for example in the `env` block of
@@ -127,6 +155,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 | `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
+| `CLEAR_RESUME_ARTIFACTS` | on | `0` stops the SessionEnd hook keeping what the session left on screen. |
 | `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
 | `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
 
