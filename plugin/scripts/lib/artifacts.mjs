@@ -39,7 +39,7 @@ function titleAbove(lines, i) {
 
 /** Tables and lists in one message's text: [{ kind, title, text }]. */
 export function blocksOf(text) {
-  const lines = withoutFences(String(text)).split("\n");
+  const lines = withoutFences(String(text).replace(/\r\n?/g, "\n")).split("\n");
   const out = [];
   for (let i = 0; i < lines.length; ) {
     if (TABLE_ROW.test(lines[i]) && TABLE_RULE.test(lines[i + 1] ?? "")) {

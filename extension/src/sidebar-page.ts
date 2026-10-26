@@ -158,7 +158,7 @@ function rowEl(r, level) {
 const KIND = { table: "table", list: "list", link: "link", path: "path", screen: "last", all: "more" };
 function assetsEl(r) {
   return h("div", { class: "assets" },
-    h("p", { class: "ah" }, "Assets · " + r.assets.summary),
+    h("p", { class: "ah" }, "Left on screen · " + r.assets.summary),
     r.assets.items.map((a) => h("button", { class: "asset", tabindex: "-1", title: a.label, on: { click: (e) => { e.stopPropagation(); post({ type: "asset", id: r.id, n: a.n }); } } },
       h("span", { class: "ak" }, KIND[a.kind] || a.kind), h("span", { class: "al" }, a.label))));
 }

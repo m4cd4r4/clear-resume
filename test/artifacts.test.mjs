@@ -46,6 +46,11 @@ describe("blocksOf and referencesOf", () => {
     expect(blocksOf(LIST).map((b) => [b.kind, b.title])).toEqual([["list", "Shortlist"]]);
     expect(blocksOf("- a\n- b\n- c\n")).toEqual([]);
   });
+  it("reads Windows line endings without a stray carriage return", () => {
+    const [t] = blocksOf("Jobs\r\n| a | b |\r\n|---|---|\r\n| 1 | 2 |\r\n");
+    expect(t.text).toBe("| a | b |\n|---|---|\n| 1 | 2 |");
+    expect(blocksOf("Shortlist\r\n- a\r\n- b\r\n- c\r\n- d\r\n")[0].text).not.toContain("\r");
+  });
   it("ignores tables and lists inside a code fence", () => {
     expect(blocksOf("```\n" + TABLE + "```\n")).toEqual([]);
   });
