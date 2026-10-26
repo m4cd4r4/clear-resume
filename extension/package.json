@@ -101,6 +101,10 @@
         "title": "Open loaded handover"
       },
       {
+        "command": "clearResume.asset",
+        "title": "Open what the session left on screen"
+      },
+      {
         "command": "clearResume.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -169,6 +173,10 @@
         },
         {
           "command": "clearResume.openLoaded",
+          "when": "false"
+        },
+        {
+          "command": "clearResume.asset",
           "when": "false"
         },
         {

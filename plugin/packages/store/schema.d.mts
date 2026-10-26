@@ -24,6 +24,8 @@ export interface Handover {
   status: "waiting" | "archived" | "deleted";
   pinned: boolean;
   source: string;
+  /** The session that wrote it; what that session left on screen is in artifacts/<sessionId>/. */
+  sessionId?: string;
   /** Present on records that came from the store; absent on an input literal. */
   path?: string;
   [key: string]: unknown;

@@ -274,7 +274,7 @@ https://github.com/user-attachments/assets/03a746bb-a202-4f61-b21e-2856cfedb128
 ## What's inside
 
 - **One skill**, `/clear-resume:handover`, that saves the handover.
-- **Three hooks**: one loads a waiting handover at startup, `/clear` and compaction; two nudge when the chat gets long.
+- **Four hooks**: one loads a waiting handover at startup, `/clear` and compaction; two nudge when the chat gets long; one keeps what the session left on screen.
 - **One Claude Code mod**, the relay, that runs `/clear` after a save and continues from the handover.
 - **One store**, plain files in `~/.clear-resume`, that the hooks and the VS Code extension read and write through the same code. [What's inside](docs/HOW-IT-WORKS.md#whats-inside)
 

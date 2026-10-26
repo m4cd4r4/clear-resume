@@ -243,3 +243,28 @@ describe("search", () => {
     expect(filterSections([{ id: "current", label: "", rows: [row] }], "feat/restyle")).toHaveLength(1);
   });
 });
+
+describe("assets under a handover row", () => {
+  const capture = (items) => ({ sessionId: "s1", counts: { table: 0, list: 0, link: 0, path: 0, ...Object.fromEntries(["table", "list", "link", "path"].map((k) => [k, items.filter((i) => i.kind === k).length])) }, items, hasLastScreen: true });
+  const link = (n) => ({ kind: "link", title: `site ${n}`, text: `https://a.dev/${n}`, back: 1 });
+
+  it("a row whose session left nothing has no assets", () => {
+    expect(rowOf(rec(), NOW, { captures: new Map() }).assets).toBeUndefined();
+  });
+  it("lists the items by kind with their capture index, then the last screen", () => {
+    const items = [{ kind: "table", title: "Jobs", text: "| a |", back: 1 }, link(1)];
+    const row = rowOf(rec({ sessionId: "s1" }), NOW, { captures: new Map([["s1", capture(items)]]) });
+    expect(row.assets.summary).toBe("1 table, 1 link");
+    expect(row.assets.items).toEqual([
+      { n: 0, kind: "table", label: "Jobs" },
+      { n: 1, kind: "link", label: "site 1" },
+      { n: -1, kind: "screen", label: "Last screen before the clear" },
+    ]);
+  });
+  it("caps each kind at six and points at the full file for the rest", () => {
+    const items = Array.from({ length: 9 }, (_, i) => link(i));
+    const { items: shown } = rowOf(rec({ sessionId: "s1" }), NOW, { captures: new Map([["s1", capture(items)]]) }).assets;
+    expect(shown.filter((a) => a.kind === "link")).toHaveLength(6);
+    expect(shown).toContainEqual({ n: -2, kind: "all", label: "3 more links in artifacts.md" });
+  });
+});
