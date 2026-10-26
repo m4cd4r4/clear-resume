@@ -506,7 +506,7 @@ had loaded. Press ctrl+o to see it.
 
 ## What's inside
 
-The plugin is the `plugin/` folder: one skill, three hooks, one Claude Code mod and a shared
+The plugin is the `plugin/` folder: one skill, four hooks, one Claude Code mod and a shared
 store. The VS Code extension and the headless runner sit on top of the same store.
 
 | Part | Where | What it does |
