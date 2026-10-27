@@ -681,10 +681,27 @@ export const register: Register = (on, options) => {
   // picked in the status bar can turn it on in a session that began without it.
   on('tool.call', async ($, e, next) => {
     r.tools++
+    // Any other main-thread tool call still open is treated like an open question: the
+    // host gives no event for a permission prompt, so a call held past the cache TTL is
+    // either one or a slow run, and a scripted save is harmless in both. An open
+    // question keeps its own entry.
+    let held: Relay['question']
+    if (e.agentId === undefined && e.tool !== 'AskUserQuestion' && !r.question) {
+      held = {
+        at: await $.clock.now(),
+        text: `Tool call ${e.tool} was waiting, probably on a permission prompt (or a long-running call). Check what it was about to do before continuing.`,
+      }
+      r.question = held
+      await idleTick($, r)
+    }
     try {
       return await next(e)
     } finally {
       r.tools = Math.max(0, r.tools - 1)
+      if (held && r.question === held) {
+        r.question = undefined
+        r.openSaved = undefined
+      }
     }
   })
 
