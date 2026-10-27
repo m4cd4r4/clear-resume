@@ -352,6 +352,7 @@
           </div>
           <div class="ss-body">
             <p data-fact="F261">SessionStart loads the waiting handover at startup, <code>/clear</code> and compaction, then archives it so it loads once. PostToolUse and Stop check the context size for the nudge and the relay.</p>
+            <p data-fact="F412">SessionEnd keeps the tables, lists, links and paths the session left on screen, so a list read just before <code>/clear</code> is not lost.</p>
             <p data-fact="F262">Any failure exits 0 with no output: a broken plugin must never block a session.</p>
           </div>
         </div>
