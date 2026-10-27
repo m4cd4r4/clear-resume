@@ -928,6 +928,20 @@ describe('idle handover', () => {
     await call
   })
 
+  test('smart: a tool call held past the cache TTL (a permission prompt) gets the scripted save', smart(), async ($, on) => {
+    const { w, clock, hold } = world(on)
+    let release!: () => void
+    hold(new Promise<void>(r => (release = r)))
+    await $.turn.complete(turn)
+    await $.turn.start({ text: 'write it', turnId: 't2' })
+    const call = $.tool.call({ tool: 'Read', path: '/x' } as never)
+    await clock.advance(310 * S)
+    expect(w.runs.filter(a => /save-open-question\.mjs$/.test(a[1])).length).toBe(1)
+    expect(w.prompts).toEqual([])
+    release()
+    await call
+  })
+
   test('toast mode: an open question gets no scripted save', opts('toast'), async ($, on) => {
     const { w, clock, hold } = world(on)
     let release!: () => void
