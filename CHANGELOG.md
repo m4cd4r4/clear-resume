@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- **A permission prompt left unanswered now gets a handover too.** In `smart` and `auto`, a main-thread tool
-  call held open past the cache TTL is saved by script like an open question (no prompt, no clear). The host
-  has no permission event, so a long-running call is treated the same way; the handover says which.
-
 - **A list read just before `/clear` is no longer lost.** A new `SessionEnd` hook keeps the session's
   tables, lists, links, paths and last two replies from its transcript in `~/.clear-resume/artifacts/<session id>/`,
   and loading a handover names them in one line (counts and titles, never the text). Handovers now record
