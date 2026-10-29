@@ -104,6 +104,13 @@ export function idleEffective(mode: IdleMode, ttlMin: number): IdleMode {
   return (mode === 'auto' || mode === 'smart') && ttlMin < AUTO_MIN_TTL_MIN ? 'toast' : mode
 }
 
+// Told after an idle handover cleared the session while the user was away. Nothing
+// else says so: the load notice often does not render after /clear, and the fresh
+// session waits for a message, so without this the chat shows a bare /clear.
+export const IDLE_CLEARED_TEXT =
+  'clear-resume: saved a handover and cleared this chat so the prompt cache would not expire on a large context. ' +
+  'The handover loads when you send your next message; it is in the sidebar under Loaded.'
+
 export const idleToast = (leftMin: number): string =>
   `The prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
   'Measured once: a handover now was about 5x cheaper than resuming cold. Run /clear-resume:handover, then /clear.'
@@ -553,10 +560,16 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     if (reason !== 'answer' || (await headlessRun($))) return
     if (r.showStatus) $.ui.status('Clearing...')
     $.clock.after(300, () => {
-      $.command.run({ command: 'clear' }).catch(err => {
-        $.ui.status(shown(r))
-        $.ui.toast(`clear-resume idle handover: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
-      })
+      $.command
+        .run({ command: 'clear' })
+        .then(() => {
+          $.ui.status(IDLE_CLEARED_TEXT)
+          $.ui.toast(IDLE_CLEARED_TEXT, { timeoutMs: 20000 })
+        })
+        .catch(err => {
+          $.ui.status(shown(r))
+          $.ui.toast(`clear-resume idle handover: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
+        })
     })
     return
   }

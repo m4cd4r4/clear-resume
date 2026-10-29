@@ -12,6 +12,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 import {
+  IDLE_CLEARED_TEXT,
   IDLE_HANDOVER_TEXT,
   IDLE_SMART_TEXT,
   IDLE_MARGIN_MS,
@@ -813,6 +814,7 @@ describe('idle handover', () => {
     await relayOnce($, clock)
     expect(w.commands).toEqual(['clear'])
     expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
+    expect(w.toasts).toContain(IDLE_CLEARED_TEXT)
   })
 
   test('auto: with the relay on it still clears without resuming, and the budget is not spent', auto({ relay: '3' }), async ($, on) => {
