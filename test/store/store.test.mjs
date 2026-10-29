@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -27,6 +27,22 @@ describe("save + listAll", () => {
     expect(saved.path).toBe(join(handoversDir(root), "desk-1-2026-09-19T23-28-51-277Z.json"));
     expect(JSON.parse(readFileSync(saved.path, "utf8")).title).toBe("phase 1");
     expect(listAll(root).map((r) => r.id)).toEqual(["desk-1-2026-09-19T23-28-51-277Z"]);
+  });
+});
+
+// listAll re-read and parsed every record on each call: 1,862 records took 257 ms,
+// on the extension host, several times per store change and in every window. The
+// host froze for seconds at a time and Claude Code's chat tab reported "stopped
+// responding" (2026-10-29). Unchanged files now come from a cache keyed on mtime + size.
+describe("listAll cache", () => {
+  it("does not re-read a file whose mtime and size are unchanged", () => {
+    const saved = save(BASE, { root });
+    const t = new Date("2026-10-01T00:00:00Z"); // whole seconds: utimes keeps them exactly
+    utimesSync(saved.path, t, t);
+    expect(listAll(root)[0].title).toBe("phase 1");
+    writeFileSync(saved.path, readFileSync(saved.path, "utf8").replace("phase 1", "phase 9"));
+    utimesSync(saved.path, t, t);
+    expect(listAll(root)[0].title).toBe("phase 1");
   });
 });
 

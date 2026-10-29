@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **No more extension-host freezes from a large handover store.** The tree, lanes and status
+  re-read every handover file on each store change, in every window. With about 1,900 handovers
+  that blocked VS Code's extension host long enough for Claude Code's chat tab to report
+  "stopped responding". Unchanged files are now read once.
+
 - **Assets under each handover.** Open a row's chevron and its session's tables, lists, links and paths
   are listed under **Assets**, collapsed by default. A click opens a link in the browser, a path in the
   editor, a table or list in a markdown tab, or the last screen. Needs the plugin's new SessionEnd hook.

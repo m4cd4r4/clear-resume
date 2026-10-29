@@ -11,7 +11,7 @@
 // Nothing here ever unlinks a record a user can still see. A delete writes a
 // tombstone and only the prune, ninety days later, removes the file - otherwise a
 // synced copy on another machine puts the record straight back.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileName, isExpired, isPurgeable, normalise, recordId } from "./schema.mjs";
@@ -147,14 +147,28 @@ export function listAll(root = storeRoot(), { includeDeleted = false } = {}) {
     if (!file.endsWith(".json")) continue;
     const path = join(dir, file);
     try {
-      const record = { ...normalise(JSON.parse(readFileSync(path, "utf8"))), path };
+      const record = cachedRecord(path);
       if (record.status === "deleted" && !includeDeleted) continue;
-      out.push(record);
+      out.push({ ...record });
     } catch {
       // Unreadable or pre-schema file - leave it on disk, keep it out of the list.
     }
   }
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// Parsed records by path, kept while the file's mtime and size are unchanged. The
+// extension calls listAll several times per store change in every window, and
+// re-parsing ~1,900 files each time (257 ms) froze the extension host (2026-10-29).
+const parsed = new Map();
+
+function cachedRecord(path) {
+  const { mtimeMs, size } = statSync(path);
+  const hit = parsed.get(path);
+  if (hit && hit.mtimeMs === mtimeMs && hit.size === size) return hit.record;
+  const record = { ...normalise(JSON.parse(readFileSync(path, "utf8"))), path };
+  parsed.set(path, { mtimeMs, size, record });
+  return record;
 }
 
 /**
