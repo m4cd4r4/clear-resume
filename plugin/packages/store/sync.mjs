@@ -15,6 +15,9 @@ import { fileURLToPath } from "node:url";
 import { handoversDir, storeRoot } from "./store.mjs";
 
 const TIMEOUT_MS = 30000;
+// A merge killed part way can leave the index locked, so one that could not finish
+// in what is left of the budget waits for the next pull.
+const MIN_MERGE_MS = 1000;
 
 // LF everywhere. Without this the store churns whole-file diffs the first time a
 // Windows machine and a Unix one both write to it.
@@ -141,14 +144,20 @@ export function commitLocal(root = storeRoot(), { now = new Date() } = {}) {
  * `--allow-unrelated-histories` because two machines that each started their own
  * store have no common root, and joining them is the normal second-machine path,
  * not an accident.
+ *
+ * `timeout` is the budget for the whole pull, not for each git call: 8s each could
+ * run a SessionStart hook past Claude Code's 10s limit, and then the handover never
+ * loaded (2026-10-30).
  */
 export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
   if (!isSynced(root)) return { ok: false, resolved: [], reason: "not synced" };
+  const deadline = Date.now() + timeout;
+  const left = () => deadline - Date.now();
   ensureIdentity(root);
 
   // No refspec: a brand new remote has no `main` to ask for, and naming it there
   // turns "this machine is the first one" into a fetch error.
-  const fetched = tryGit(root, ["fetch", "origin"], { timeout });
+  const fetched = tryGit(root, ["fetch", "origin"], { timeout: Math.max(1, left()) });
   if (!fetched.ok) return { ok: false, resolved: [], reason: fetched.reason };
 
   // Nothing on the remote yet: this machine is the first one.
@@ -156,7 +165,8 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
     return { ok: true, resolved: [] };
   }
 
-  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout });
+  if (left() < MIN_MERGE_MS) return { ok: false, resolved: [], reason: "out of time before the merge" };
+  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout: left() });
   if (merged.ok) return { ok: true, resolved: [] };
 
   const resolved = resolveConflicts(root);
