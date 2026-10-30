@@ -416,6 +416,19 @@ async function claimIdle($: Engine, id: string): Promise<boolean> {
   }
 }
 
+// Mark that the relay is about to ask this session for a handover, at
+// <store>/.asked/<slug> holding { at }. The PreToolUse hook (scripts/pre-tool.mjs)
+// allows the handover skill call once with it: nobody is at the keyboard to answer
+// "Use skill /clear-resume:handover?" in a profile that has not allowed it (rig run,
+// 2026-10-30). Wall-clock time, as the hook reads it. A failed write only means the
+// prompt may ask.
+async function markAsked($: Engine, id: string): Promise<void> {
+  const dir = await relayDir($)
+  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
+  if (!dir || !slug) return
+  await $.fs.write(`${dir.replace(/[/\\]relay$/, '')}/.asked/${slug}`, JSON.stringify({ at: Date.now() })).catch(() => {})
+}
+
 // Forget the idle state: a new conversation, or one just compacted, starts over.
 function resetIdle(r: Relay): void {
   r.lastReplyAt = undefined
@@ -510,6 +523,7 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
       `Idle, the cache expires in about ${left} min. ${smart ? 'Checking whether a handover is needed.' : 'Writing a handover now.'}`,
       { timeoutMs: 10000 },
     )
+    await markAsked($, id)
     await $.prompt.submit({ text: smart ? IDLE_SMART_TEXT : IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
       r.idleAsked = false
       $.ui.toast(`Idle handover refused: ${String(err)}`, { timeoutMs: 15000 })

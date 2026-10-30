@@ -807,6 +807,26 @@ describe('idle handover', () => {
     expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
   })
 
+  // The PreToolUse hook (plugin/scripts/pre-tool.mjs) allows the skill call only
+  // with this mark, so nobody has to answer "Use skill /clear-resume:handover?".
+  test('auto: leaves the ask mark the pre-tool hook allows the skill call with', auto(), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    expect(marks(w, '.asked')).toEqual([])
+    await clock.advance(310 * S)
+    const asked = marks(w, '.asked')
+    expect(asked.length).toBe(1)
+    expect(typeof JSON.parse(w.files.get(asked[0])!).at).toBe('number')
+  })
+
+  test('toast: leaves no ask mark, so a handover the user runs later still asks', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(70 * S)
+    expect(w.toasts.length).toBe(1)
+    expect(marks(w, '.asked')).toEqual([])
+  })
+
   test('auto: saves and clears, and does not submit the resume text (relay off)', auto(), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
