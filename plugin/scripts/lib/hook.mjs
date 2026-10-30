@@ -104,8 +104,10 @@ const COMPACT_NOTE =
 
 // A session start blocks on the pull, so it gives up quickly. Being a second late
 // with the other machine's handover is a nuisance; a session that hangs on a dead
-// VPN is a broken tool. Set CLEAR_RESUME_SYNC=off to skip it entirely.
-const SYNC_TIMEOUT_MS = 8000;
+// VPN is a broken tool, and a pull that eats the hook's time loses this window's own
+// handover. Fetch and merge share this; about 2s is normal. Set CLEAR_RESUME_SYNC=off
+// to skip it entirely.
+const SYNC_TIMEOUT_MS = 4000;
 
 function pullFirst(root, env) {
   if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return;

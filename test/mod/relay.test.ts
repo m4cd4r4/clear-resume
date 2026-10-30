@@ -12,7 +12,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 import {
-  IDLE_CLEARED_TEXT,
+  idleClearedText,
   IDLE_HANDOVER_TEXT,
   IDLE_SMART_TEXT,
   IDLE_MARGIN_MS,
@@ -74,6 +74,8 @@ function world(on: On, env: Record<string, string> = {}) {
   // the files it was given, and what the file holds (null: no assistant call in it).
   const transcripts: string[] = []
   let transcriptTokens: number | null = null
+  // What scripts/idle-cleared.mjs answers, one per call; none left means it failed.
+  const idleRecords: unknown[] = []
   on('process.run', async (_$, e) => {
     if (/context-tokens\.mjs$/.test(String(e.argv[1]))) {
       transcripts.push(String(e.argv[2]))
@@ -85,6 +87,10 @@ function world(on: On, env: Record<string, string> = {}) {
       }
     }
     w.runs.push(e.argv.map(String))
+    if (/idle-cleared\.mjs$/.test(String(e.argv[1]))) {
+      const next = idleRecords.shift()
+      return { value: next ? { exitCode: 0, stdout: JSON.stringify(next), stderr: '' } : { exitCode: 1, stdout: '', stderr: '' } }
+    }
     if (/save-open-question\.mjs$/.test(String(e.argv[1])))
       return { value: { exitCode: 0, stdout: 'Saved handover "Open question: Ship it?" (id ab12cd34).\n', stderr: '' } }
     return {
@@ -162,6 +168,9 @@ function world(on: On, env: Record<string, string> = {}) {
       transcriptTokens = fromTranscript
     },
     transcripts,
+    idleRecord: (...records: unknown[]) => {
+      idleRecords.push(...records)
+    },
     hold: (gate: Promise<void> | null) => {
       hold = gate
     },
@@ -807,6 +816,26 @@ describe('idle handover', () => {
     expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
   })
 
+  // The PreToolUse hook (plugin/scripts/pre-tool.mjs) allows the skill call only
+  // with this mark, so nobody has to answer "Use skill /clear-resume:handover?".
+  test('auto: leaves the ask mark the pre-tool hook allows the skill call with', auto(), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    expect(marks(w, '.asked')).toEqual([])
+    await clock.advance(310 * S)
+    const asked = marks(w, '.asked')
+    expect(asked.length).toBe(1)
+    expect(typeof JSON.parse(w.files.get(asked[0])!).at).toBe('number')
+  })
+
+  test('toast: leaves no ask mark, so a handover the user runs later still asks', opts('toast'), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(70 * S)
+    expect(w.toasts.length).toBe(1)
+    expect(marks(w, '.asked')).toEqual([])
+  })
+
   test('auto: saves and clears, and does not submit the resume text (relay off)', auto(), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
@@ -814,7 +843,41 @@ describe('idle handover', () => {
     await relayOnce($, clock)
     expect(w.commands).toEqual(['clear'])
     expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT])
-    expect(w.toasts).toContain(IDLE_CLEARED_TEXT)
+    expect(w.toasts).toContain(idleClearedText(undefined))
+  })
+
+  const saved = { title: 'Ship it', repo: 'acme', next: 'Run the tests.' }
+
+  test('auto: the notice names the loaded handover and says to type go', auto(), async ($, on) => {
+    const { w, clock, idleRecord } = world(on)
+    idleRecord({ ...saved, status: 'archived' })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    const text = w.toasts.at(-1)
+    expect(text).toBe('Loaded "Ship it" (acme) after an idle clear. Type go to continue. Next: Run the tests.')
+    expect(w.status.at(-1)).toBe(text)
+  })
+
+  test('auto: a handover still waiting after the clear gets one more clear', auto(), async ($, on) => {
+    const { w, clock, idleRecord } = world(on)
+    idleRecord({ ...saved, status: 'waiting' }, { ...saved, status: 'archived' })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear', 'clear'])
+    expect(w.toasts.at(-1)).toContain('Loaded "Ship it"')
+  })
+
+  test('auto: still waiting after the second clear, the notice says so and stops', auto(), async ($, on) => {
+    const { w, clock, idleRecord } = world(on)
+    idleRecord({ ...saved, status: 'waiting' }, { ...saved, status: 'waiting' })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear', 'clear'])
+    expect(w.toasts.at(-1)).toBe('Cleared while idle, but "Ship it" (acme) did not load. Type /clear to try again.')
   })
 
   test('auto: with the relay on it still clears without resuming, and the budget is not spent', auto({ relay: '3' }), async ($, on) => {

@@ -76,7 +76,7 @@ describe("plugin footprint", () => {
     const names = Object.values(hooks).flatMap((entries) =>
       entries.flatMap((e) => e.hooks.map((h) => h.command.match(/hook-entry\.cjs"\s+([\w-]+)/)?.[1])),
     );
-    expect(names).toHaveLength(4);
+    expect(names).toHaveLength(5);
     for (const name of names) expect(existsSync(join(PLUGIN, "scripts", `${name}.mjs`)), name).toBe(true);
   });
 });

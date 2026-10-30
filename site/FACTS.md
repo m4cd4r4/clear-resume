@@ -279,7 +279,7 @@ F255 | page: "VS Code extension 0.4.0: a context pie in the status bar, a relay 
 F257 | page: "What's inside" | source: "## What's inside" | docs/HOW-IT-WORKS.md:504
 F258 | page: "One skill" | source: "one skill, four hooks, one Claude Code mod and a shared" | docs/HOW-IT-WORKS.md:506
 F259 | page: "Claude writes the handover and saves it with save.mjs, which reads it on stdin." | source: "Save a handover for the current repo. The body is read from stdin." | plugin/scripts/save.mjs:2
-F260 | page: "Four hooks" | source: "Entry point for the four hooks" | plugin/scripts/hook-entry.cjs:1
+F260 | page: "Five hooks" | source: "Entry point for the five hooks" | plugin/scripts/hook-entry.cjs:1
 F261 | page: "SessionStart loads the waiting handover at startup, /clear and compaction, then archives it so it loads once. PostToolUse and Stop check the context size for the nudge and the relay." | source: "`SessionStart` (startup, clear and compact) loads a waiting handover." | plugin/README.md:23 | source: "then archives it so it loads exactly once." | plugin/scripts/session-start.mjs:3 | source: "`PostToolUse` and `Stop` check the context size for the nudge and the relay." | plugin/README.md:23
 F262 | page: "Any failure exits 0 with no output: a broken plugin must never block a session." | source: "Any failure exits 0 with no output: a broken plugin must never block a session." | plugin/scripts/session-start.mjs:4
 F412 | page: "SessionEnd keeps the tables, lists, links and paths the session left on screen, so a list read just before /clear is not lost." | source: "SessionEnd hook: keeps what the session left on screen" | plugin/scripts/session-end.mjs:2
