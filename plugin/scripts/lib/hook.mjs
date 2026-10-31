@@ -298,13 +298,7 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
   let assets = "";
 
   if (load) {
-    // The owner is already known whenever any waiting handover has one. For an
-    // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
-    if (!echo && load.path) archive(root, key, load.path, { via: "hook", owner: cheapMe() });
     copy = copyLine(root, load, top, echo ? load.archivedAt || now : now);
-    // An untracked working-tree copy is marked consumed only once the output is
-    // out (afterOutput below): marked here, an undelivered load lost it for good.
-    if (!echo && load.source !== "worktree") markConsumed(root, key, load.meta);
     // A branch mismatch is the one thing about a loaded handover the user should
     // notice, so it goes in both strings rather than only in Claude's copy.
     const from = load.meta.branch && load.meta.branch !== branch ? `, written on branch ${load.meta.branch}` : "";
@@ -371,17 +365,31 @@ export function run(input, { env = process.env, now = new Date() } = {}) {
     systemMessage: shown,
     hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: parts.join("\n\n---\n\n") },
   };
-  // An untracked working-tree copy is consumed and deleted only once this output
-  // has been written successfully (session-start.mjs calls it), so a hook that dies
-  // first, or whose reader has gone, leaves it in place to load next time.
+  // The handover is archived, marked consumed and (for an untracked copy) deleted
+  // only once this output has been written successfully (session-start.mjs calls
+  // it), so a hook that dies first, or whose reader has gone, leaves it waiting to
+  // load next time. Archived before the write, a hook killed at the 10s limit lost
+  // the handover with nothing loaded (2026-10-31, issue #162).
   // Non-enumerable, so it never reaches the JSON Claude Code reads.
-  if (load?.source === "worktree" && !echo) {
-    const id = handoverId(load.meta);
+  if (load && !echo) {
     const meta = load.meta;
+    // The owner is already known whenever any waiting handover has one. For an
+    // all-legacy list, settle for CLAUDE_PID rather than add a process walk.
+    const owner = cheapMe();
     Object.defineProperty(out, "afterOutput", {
       value: () => {
-        markConsumed(root, key, meta);
-        removeUntrackedCopy(top, id);
+        // A twin that loaded the same handover first leaves nothing to archive.
+        if (load.path) {
+          try {
+            archive(root, key, load.path, { via: "hook", owner });
+          } catch {}
+        }
+        if (load.source === "worktree") {
+          markConsumed(root, key, meta);
+          removeUntrackedCopy(top, handoverId(meta));
+        } else {
+          markConsumed(root, key, meta);
+        }
       },
     });
   }
