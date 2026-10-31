@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listWaiting, repoKey, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { listWaiting, repoInfo, repoKey, saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { run } from "../plugin/scripts/lib/hook.mjs";
 
 let dir, home, repo;
@@ -24,7 +24,7 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const env = () => ({ ...process.env, CORNERMAN_HOME: home, CORNERMAN_SYNC: "off", CLAUDE_PID: "" });
-const waiting = () => listWaiting(home, repoKey(repo)).map((h) => h.meta.title);
+const waiting = () => listWaiting(home, repoKey(repoInfo(repo).top)).map((h) => h.meta.title);
 
 describe("archive waits for the output", () => {
   it("leaves the handover waiting until afterOutput runs", () => {

@@ -13,12 +13,20 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { run } from "../plugin/scripts/lib/hook.mjs";
+import { run as hookRun } from "../plugin/scripts/lib/hook.mjs";
 import { archive, saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { startFromEpochMs, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 import { shortId as displayShortId } from "../plugin/scripts/lib/display.mjs";
 import { archiveRecord, listAll, prune, remove, update } from "../plugin/packages/store/store.mjs";
 import { loadedCopyName, loadedCopyPath, loadedCopyText, loadedDir, shortId, writeLoadedCopy } from "../plugin/packages/store/loaded.mjs";
+
+// The real script writes the output and then runs afterOutput; a test that calls
+// run() directly stands in for a delivered output, so it settles the load too.
+const run = (input, opts) => {
+  const out = hookRun(input, opts);
+  out?.afterOutput?.();
+  return out;
+};
 
 const LOAD = join(import.meta.dirname, "../plugin/scripts/load.mjs");
 const ME = "111";
