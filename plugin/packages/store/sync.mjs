@@ -146,9 +146,15 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
   if (!isSynced(root)) return { ok: false, resolved: [], reason: "not synced" };
   ensureIdentity(root);
 
+  // `timeout` is the budget for the whole pull, not for each git call: the SessionStart
+  // hook is killed at 10s, and a fetch and a merge each given the full 8s could spend 16s
+  // (2026-10-31: killed at 10.4s after the handover was already archived).
+  const deadline = Date.now() + timeout;
+  const left = () => Math.max(1, deadline - Date.now());
+
   // No refspec: a brand new remote has no `main` to ask for, and naming it there
   // turns "this machine is the first one" into a fetch error.
-  const fetched = tryGit(root, ["fetch", "origin"], { timeout });
+  const fetched = tryGit(root, ["fetch", "origin"], { timeout: left() });
   if (!fetched.ok) return { ok: false, resolved: [], reason: fetched.reason };
 
   // Nothing on the remote yet: this machine is the first one.
@@ -156,7 +162,7 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
     return { ok: true, resolved: [] };
   }
 
-  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout });
+  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout: left() });
   if (merged.ok) return { ok: true, resolved: [] };
 
   const resolved = resolveConflicts(root);
