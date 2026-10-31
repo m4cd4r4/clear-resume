@@ -5,10 +5,18 @@ import { homedir, hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { age, chooseHandover } from "../plugin/scripts/lib/select.mjs";
-import { OPENER, run } from "../plugin/scripts/lib/hook.mjs";
+import { OPENER, run as hookRun } from "../plugin/scripts/lib/hook.mjs";
 import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 import { listWaiting, saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { listAll, read, save } from "../plugin/packages/store/store.mjs";
+
+// The real script writes the output and then runs afterOutput; a test that calls
+// run() directly stands in for a delivered output, so it settles the load too.
+const run = (input, opts) => {
+  const out = hookRun(input, opts);
+  out?.afterOutput?.();
+  return out;
+};
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 const h = (title, branch, created = "2026-09-19T11:00:00Z") => ({ file: `${title}.md`, meta: { title, branch, created } });
