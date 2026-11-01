@@ -34,8 +34,8 @@ import { hostname } from "node:os";
 // another window, and then carries on not knowing: that only answers "open"...
 const HOOK_TIMEOUT_MS = 2500;
 // ...and never past this point in its own run. Claude Code kills a SessionStart
-// hook at 10s, the pull before the lookup may take 8s of that, and the archive
-// and git reads after it need the rest. So a hook's read gets what is left of 9s
+// hook at its timeout in hooks.json, the pull before the lookup may take 4s, and
+// the archive and git reads after it need the rest. So a hook's read gets what is left of 9s
 // since the hook started, up to 2.5s. With under 200ms left it does not read at
 // all and answers as a failed lookup does: the bare CLAUDE_PID for this window,
 // "open" for any other. A fixed 2.5s ran a slow-pull start to 10.7s (review of

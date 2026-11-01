@@ -107,9 +107,19 @@ export function idleEffective(mode: IdleMode, ttlMin: number): IdleMode {
 // Told after an idle handover cleared the session while the user was away. Nothing
 // else says so: the load notice often does not render after /clear, and the fresh
 // session waits for a message, so without this the chat shows a bare /clear.
-export const IDLE_CLEARED_TEXT =
-  'clear-resume: saved a handover and cleared this chat so the prompt cache would not expire on a large context. ' +
-  'The handover loads when you send your next message; it is in the sidebar under Loaded.'
+// The handover the cleared session saved, as scripts/idle-cleared.mjs reads it.
+export type IdleSaved = { status: string; loaded: boolean; title: string; repo: string; next: string }
+
+// The host prefixes this with the plugin's name, and a terminal status line cuts it at
+// the window's width, so what the user must see comes first (rig, 2026-10-31).
+export function idleClearedText(saved: IdleSaved | undefined): string {
+  if (!saved) return 'Cleared while idle. Could not confirm a handover loaded. If one is still waiting, type /clear to load it.'
+  const named = `"${saved.title}"${saved.repo ? ` (${saved.repo})` : ''}`
+  if (saved.status === 'waiting') return `Cleared while idle, but ${named} did not load. Type /clear to try again.`
+  // Archived some other way (by hand, from the sidebar): another /clear would not load it.
+  if (!saved.loaded) return `Cleared while idle, but ${named} did not load.`
+  return `Loaded ${named} after an idle clear. Type go to continue.${saved.next ? ` Next: ${saved.next}` : ''}`
+}
 
 export const idleToast = (leftMin: number): string =>
   `The prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
@@ -393,6 +403,45 @@ async function contextTokens($: Engine): Promise<number | undefined> {
   }
 }
 
+// What became of the handover session `id` saved. Undefined when it cannot be read.
+async function idleSaved($: Engine, id: string | undefined): Promise<IdleSaved | undefined> {
+  if (!id) return undefined
+  try {
+    const r = await $.process.run(['node', `${$.plugin.root}/scripts/idle-cleared.mjs`, id], { timeoutMs: 15000 })
+    return r.exitCode === 0 ? (JSON.parse(r.stdout) as IdleSaved) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+// $.command.run resolves when the command is queued, before SessionStart has run
+// (rig, 2026-10-31: asking at once read "waiting" and cleared a second time). So wait
+// out the hooks' limits in hooks.json before calling a handover not loaded: SessionEnd
+// 10s and SessionStart 20s, in case the host runs them one after the other.
+export const IDLE_LOAD_POLL_MS = 2000
+export const IDLE_LOAD_WAIT_MS = 35_000
+
+// Also reports the first session id seen that is not `id`: the conversation the clear made.
+async function idleSettled($: Engine, id: string | undefined): Promise<{ saved: IdleSaved | undefined; fresh: string | undefined }> {
+  const deadline = (await $.clock.now()) + IDLE_LOAD_WAIT_MS
+  let fresh: string | undefined
+  for (;;) {
+    const current = await $.session.id()
+    if (current !== id) fresh ??= current
+    const saved = await idleSaved($, id)
+    if (saved?.status !== 'waiting' || (await $.clock.now()) >= deadline) return { saved, fresh }
+    await new Promise<void>(resolve => $.clock.after(IDLE_LOAD_POLL_MS, resolve))
+  }
+}
+
+// One more /clear is safe only in the empty conversation the first clear made. Anything
+// else means the user came back during the wait, and it would wipe what they did. So does
+// a session.end that never came: lastReplyAt still holds the handover turn's reply.
+async function idleUntouched($: Engine, r: Relay, fresh: string | undefined): Promise<boolean> {
+  if (r.turns.size > 0 || r.tools > 0 || r.lastReplyAt !== undefined) return false
+  return fresh !== undefined && (await $.session.id()) === fresh
+}
+
 // Claim the idle handover's own once-per-session mark, <store>/.idle/<slug>. It is
 // not the .nudged mark: the 180k Stop nudge and this can each fire once. True when
 // this call made the mark; false when it was there already or cannot be written
@@ -414,6 +463,20 @@ async function claimIdle($: Engine, id: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+// Mark that the relay is about to ask this session for a handover, at
+// <store>/.asked/<slug> holding { at }. The PreToolUse hook (scripts/pre-tool.mjs)
+// allows the handover skill call once with it: nobody is at the keyboard to answer
+// "Use skill /clear-resume:handover?" in a profile that has not allowed it (rig run,
+// 2026-10-30). Wall-clock time, as the hook reads it. A failed write only means the
+// prompt may ask. An ask that ended unused writes at 0, which the hook refuses: the
+// mods' fs has no delete.
+async function markAsked($: Engine, id: string, at = Date.now()): Promise<void> {
+  const dir = await relayDir($)
+  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
+  if (!dir || !slug) return
+  await $.fs.write(`${dir.replace(/[/\\]relay$/, '')}/.asked/${slug}`, JSON.stringify({ at })).catch(() => {})
 }
 
 // Forget the idle state: a new conversation, or one just compacted, starts over.
@@ -510,8 +573,10 @@ async function idleCheck($: Engine, r: Relay): Promise<void> {
       `Idle, the cache expires in about ${left} min. ${smart ? 'Checking whether a handover is needed.' : 'Writing a handover now.'}`,
       { timeoutMs: 10000 },
     )
-    await $.prompt.submit({ text: smart ? IDLE_SMART_TEXT : IDLE_HANDOVER_TEXT, asUser: true }).catch(err => {
+    await markAsked($, id)
+    await $.prompt.submit({ text: smart ? IDLE_SMART_TEXT : IDLE_HANDOVER_TEXT, asUser: true }).catch(async err => {
       r.idleAsked = false
+      await markAsked($, id, 0)
       $.ui.toast(`Idle handover refused: ${String(err)}`, { timeoutMs: 15000 })
     })
     return
@@ -547,6 +612,10 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     // The turn the idle prompt started ended with nothing saved: drop the ask.
     // In smart mode that is the model's answer, so say the session was left alone.
     const declined = r.idleAsked && r.idle === 'smart' && reason === 'answer'
+    if (r.idleAsked) {
+      const asker = await $.session.id()
+      if (asker) await markAsked($, asker, 0)
+    }
     r.idleAsked = false
     if (declined) $.ui.toast('Idle check: no handover saved, the session is left as it is.', { timeoutMs: 10000 })
     return warnUnarmed($, r, reason)
@@ -559,12 +628,22 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     r.pending = false
     if (reason !== 'answer' || (await headlessRun($))) return
     if (r.showStatus) $.ui.status('Clearing...')
+    const id = await $.session.id()
     $.clock.after(300, () => {
       $.command
         .run({ command: 'clear' })
-        .then(() => {
-          $.ui.status(IDLE_CLEARED_TEXT)
-          $.ui.toast(IDLE_CLEARED_TEXT, { timeoutMs: 20000 })
+        .then(async () => {
+          // A handover still waiting by then means the hook was killed or failed. It is
+          // this window's, so one more /clear can load it. Asked of the record, because
+          // the host reports the clear as done either way.
+          let { saved, fresh } = await idleSettled($, id)
+          if (saved?.status === 'waiting' && (await idleUntouched($, r, fresh))) {
+            await $.command.run({ command: 'clear' })
+            ;({ saved } = await idleSettled($, id))
+          }
+          const text = idleClearedText(saved)
+          $.ui.status(text)
+          $.ui.toast(text, { timeoutMs: 20000 })
         })
         .catch(err => {
           $.ui.status(shown(r))

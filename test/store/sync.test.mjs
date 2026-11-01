@@ -1,12 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAll, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
 import { run } from "../../plugin/scripts/lib/hook.mjs";
 import { reopen, saveHandover } from "../../plugin/scripts/lib/store.mjs";
-import { initSync, isSynced, pushIfSynced, pushInBackground, sync } from "../../plugin/packages/store/sync.mjs";
+import { initSync, isSynced, pull, pushIfSynced, pushInBackground, sync } from "../../plugin/packages/store/sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
 // timeout is about the process spawns, not about anything under test.
@@ -99,6 +99,48 @@ describe("sync", () => {
     sync(b);
     sync(a);
     expect(listAll(a)).toEqual([]);
+  });
+
+  it("holds a pull's fetch and merge to one budget: no merge once it has run out", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    save(base(), { root: a });
+    sync(a);
+
+    // Runs out at the fetch: nothing merged, and the next pull still works.
+    const late = pull(b, { timeout: 1 });
+    expect(late.ok).toBe(false);
+    expect(listAll(b)).toHaveLength(0);
+    expect(existsSync(join(b, ".git", "MERGE_HEAD"))).toBe(false);
+
+    expect(pull(b).ok).toBe(true);
+    expect(listAll(b)).toHaveLength(1);
+  });
+
+  it("leaves a merge over 200 files to the next pull instead of killing it", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    // Plain files: 201 save() calls take this test past its timeout on Windows.
+    for (let i = 0; i < 201; i++) writeFileSync(join(a, "handovers", `inbound-${i}.txt`), "x");
+    sync(a);
+
+    pull(b, { timeout: 4000 });
+    expect(existsSync(join(b, "handovers", "inbound-0.txt"))).toBe(false);
+    expect(existsSync(join(b, ".git", "index.lock"))).toBe(false);
+    expect(existsSync(join(b, ".git", "MERGE_HEAD"))).toBe(false);
+
+    expect(pull(b).ok).toBe(true);
+    expect(existsSync(join(b, "handovers", "inbound-200.txt"))).toBe(true);
+  });
+
+  it("merges a small inbound change inside a budget", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    save(base(), { root: a });
+    sync(a);
+
+    expect(pull(b, { timeout: 4000 }).ok).toBe(true);
+    expect(listAll(b)).toHaveLength(1);
   });
 
   it("reports offline rather than throwing, and keeps the work for next time", () => {
