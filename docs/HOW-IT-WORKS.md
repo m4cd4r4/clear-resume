@@ -46,11 +46,9 @@ checkout, and one written in the main checkout is not offered in a worktree.
 | Waiting | Listed, not loaded (the sidebar's Stale group) | After 7 days |
 | Waiting | Never deleted, however old | |
 | Loaded (archived) | Kept with its body and what its session left on screen | Until you delete it |
-| Deleted by you | Body dropped, record kept as a tombstone | Straight away |
-| Tombstone | File deleted | 90 days after that |
-| Screen capture no handover names | Deleted | 30 days after capture |
+| Deleted by you | Body dropped at once, record kept as a tombstone | File deleted 90 days later |
 
-Pinning a handover in the sidebar keeps it out of the Stale group.
+A screen capture no handover names is deleted 30 days after capture. Pinning a handover in the sidebar keeps it out of the Stale group.
 The hook still lists, and does not load, a pinned handover older than 7 days. The store is tidied
 at every session start and when the sidebar starts.
 
