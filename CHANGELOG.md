@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.2
+
+- **Idle handovers no longer stall on the skill prompt.** Nobody was at the keyboard to answer
+  "Use skill /clear-resume:handover?", so nothing was saved. A new PreToolUse hook allows that one
+  call, once, when the relay asked for it. A deny rule of your own still wins.
+
+- **A session start can no longer lose its handover to a slow pull.** The fetch has 4s and the hook's
+  limit is 20s. A merge is no longer killed part way, which could lock the store's git index for good:
+  one over 200 files waits for the next sync, and the rest get 5s of their own.
+
+- **The notice after an idle clear says what happened.** It names the handover and says to type go,
+  or says the handover did not load. A second `/clear` runs only if you have not come back.
+
 ## Unreleased
 
 - **A list read just before `/clear` is no longer lost.** A new `SessionEnd` hook keeps the session's
