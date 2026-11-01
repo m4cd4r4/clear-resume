@@ -851,7 +851,7 @@ describe('idle handover', () => {
 
   test('auto: the notice names the loaded handover and says to type go', auto(), async ($, on) => {
     const { w, clock, idleRecord } = world(on)
-    idleRecord(() => ({ ...saved, status: 'archived' }))
+    idleRecord(() => ({ ...saved, status: 'archived', loaded: true }))
     await $.turn.complete(turn)
     await clock.advance(310 * S)
     await relayOnce($, clock)
@@ -864,7 +864,7 @@ describe('idle handover', () => {
   test('auto: a handover still waiting just after the clear is left to load, with no second clear', auto(), async ($, on) => {
     const { w, clock, idleRecord } = world(on)
     let asked = 0
-    idleRecord(() => ({ ...saved, status: ++asked < 3 ? 'waiting' : 'archived' }))
+    idleRecord(() => ({ ...saved, status: ++asked < 3 ? 'waiting' : 'archived', loaded: asked >= 3 }))
     await $.turn.complete(turn)
     await clock.advance(310 * S)
     await relayOnce($, clock)
@@ -874,25 +874,102 @@ describe('idle handover', () => {
   })
 
   test('auto: a handover still waiting past the hook limit gets one more clear', auto(), async ($, on) => {
-    const { w, clock, idleRecord } = world(on)
-    idleRecord(clears => ({ ...saved, status: clears < 2 ? 'waiting' : 'archived' }))
+    const { w, clock, idleRecord, nextSession } = world(on)
+    idleRecord(clears => ({ ...saved, status: clears < 2 ? 'waiting' : 'archived', loaded: clears >= 2 }))
     await $.turn.complete(turn)
     await clock.advance(310 * S)
     await relayOnce($, clock)
+    nextSession('s2')
     await clock.advance(40 * S)
     expect(w.commands).toEqual(['clear', 'clear'])
     expect(w.toasts.at(-1)).toContain('Loaded "Ship it"')
   })
 
   test('auto: still waiting after the second clear, the notice says so and stops', auto(), async ($, on) => {
-    const { w, clock, idleRecord } = world(on)
-    idleRecord(() => ({ ...saved, status: 'waiting' }))
+    const { w, clock, idleRecord, nextSession } = world(on)
+    idleRecord(() => ({ ...saved, status: 'waiting', loaded: false }))
     await $.turn.complete(turn)
     await clock.advance(310 * S)
     await relayOnce($, clock)
-    await clock.advance(70 * S)
+    nextSession('s2')
+    await clock.advance(80 * S)
     expect(w.commands).toEqual(['clear', 'clear'])
     expect(w.toasts.at(-1)).toBe('Cleared while idle, but "Ship it" (acme) did not load. Type /clear to try again.')
+  })
+
+  // A second /clear would wipe whatever the user started during the wait.
+  const stillWaiting = 'Cleared while idle, but "Ship it" (acme) did not load. Type /clear to try again.'
+
+  test('auto: no second clear when a turn is running after the wait', auto(), async ($, on) => {
+    const { w, clock, idleRecord, nextSession } = world(on)
+    idleRecord(() => ({ ...saved, status: 'waiting', loaded: false }))
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    nextSession('s2')
+    await $.turn.start({ text: 'back', turnId: 't2' })
+    await clock.advance(40 * S)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.at(-1)).toBe(stillWaiting)
+  })
+
+  test('auto: no second clear when a turn finished during the wait', auto(), async ($, on) => {
+    const { w, clock, idleRecord, nextSession } = world(on)
+    idleRecord(() => ({ ...saved, status: 'waiting', loaded: false }))
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    nextSession('s2')
+    await $.turn.start({ text: 'back', turnId: 't2' })
+    await $.turn.complete({ ...turn, turnId: 't2' })
+    await clock.advance(40 * S)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.at(-1)).toBe(stillWaiting)
+  })
+
+  test('auto: no second clear when the session changes again during the wait', auto(), async ($, on) => {
+    const { w, clock, idleRecord, nextSession } = world(on)
+    idleRecord(() => ({ ...saved, status: 'waiting', loaded: false }))
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    nextSession('s2')
+    await clock.advance(5 * S)
+    nextSession('s3')
+    await clock.advance(40 * S)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.at(-1)).toBe(stillWaiting)
+  })
+
+  test('auto: no second clear when the session id never changed', auto(), async ($, on) => {
+    const { w, clock, idleRecord } = world(on)
+    idleRecord(() => ({ ...saved, status: 'waiting', loaded: false }))
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    await clock.advance(40 * S)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.at(-1)).toBe(stillWaiting)
+  })
+
+  test('auto: a handover archived some other way is not called loaded, and gets no /clear advice', auto(), async ($, on) => {
+    const { w, clock, idleRecord } = world(on)
+    idleRecord(() => ({ ...saved, status: 'archived', loaded: false }))
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    await relayOnce($, clock)
+    expect(w.commands).toEqual(['clear'])
+    expect(w.toasts.at(-1)).toBe('Cleared while idle, but "Ship it" (acme) did not load.')
+  })
+
+  test('auto: an ask that ended without a save spends its mark', auto(), async ($, on) => {
+    const { w, clock } = world(on)
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    const [mark] = marks(w, '.asked')
+    expect(JSON.parse(w.files.get(mark)!).at).toBeGreaterThan(0)
+    await $.turn.complete({ ...turn, reason: 'abort' } as never)
+    expect(JSON.parse(w.files.get(mark)!).at).toBe(0)
   })
 
   test('auto: with the relay on it still clears without resuming, and the budget is not spent', auto({ relay: '3' }), async ($, on) => {

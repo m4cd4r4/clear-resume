@@ -117,6 +117,32 @@ describe("sync", () => {
     expect(listAll(b)).toHaveLength(1);
   });
 
+  it("leaves a merge over 200 files to the next pull instead of killing it", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    // Plain files: 201 save() calls take this test past its timeout on Windows.
+    for (let i = 0; i < 201; i++) writeFileSync(join(a, "handovers", `inbound-${i}.txt`), "x");
+    sync(a);
+
+    pull(b, { timeout: 4000 });
+    expect(existsSync(join(b, "handovers", "inbound-0.txt"))).toBe(false);
+    expect(existsSync(join(b, ".git", "index.lock"))).toBe(false);
+    expect(existsSync(join(b, ".git", "MERGE_HEAD"))).toBe(false);
+
+    expect(pull(b).ok).toBe(true);
+    expect(existsSync(join(b, "handovers", "inbound-200.txt"))).toBe(true);
+  });
+
+  it("merges a small inbound change inside a budget", () => {
+    initSync(a, remote);
+    initSync(b, remote);
+    save(base(), { root: a });
+    sync(a);
+
+    expect(pull(b, { timeout: 4000 }).ok).toBe(true);
+    expect(listAll(b)).toHaveLength(1);
+  });
+
   it("reports offline rather than throwing, and keeps the work for next time", () => {
     initSync(a, remote);
     save(base(), { root: a });

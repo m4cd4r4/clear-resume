@@ -62,6 +62,11 @@ describe("pre-tool hook", () => {
     expect(run(skillCall())).toBeNull();
   });
 
+  it("says nothing for an ask the relay has spent (at 0)", () => {
+    ask(0);
+    expect(run(skillCall())).toBeNull();
+  });
+
   it("says nothing for a stale ask", () => {
     ask(Date.now() - 16 * 60_000);
     expect(run(skillCall())).toBeNull();

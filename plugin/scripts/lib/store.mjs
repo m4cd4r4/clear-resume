@@ -154,7 +154,7 @@ export function listWaiting(root = storeRoot(), repoOrKey = "") {
 // What counts as loaded: archived by the SessionStart hook or by load.mjs. Not a
 // save that superseded it, nor a resume from the extension, and never a delete
 // (listAll leaves tombstones out).
-const LOADED_VIA = new Set(["hook", "load"]);
+export const LOADED_VIA = new Set(["hook", "load"]);
 
 /**
  * Handovers a session has already loaded for one repo, oldest first. load.mjs

@@ -157,7 +157,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 | `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
 | `CLEAR_RESUME_ARTIFACTS` | on | `0` stops the SessionEnd hook keeping what the session left on screen. |
 | `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
-| `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `8000` | How long a session start waits on the pull before giving up. |
+| `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `4000` | How long a session start waits on the fetch before giving up. A merge then gets up to 5s of its own, and one over 200 files is left to the next sync. `1000` or lower never merges. |
 
 The nudge's two settings are also plugin options, `auto_nudge` and `nudge_at`, so you can set them
 without editing `settings.json`: with `/plugin configure clear-resume@clear-resume`, in `/config`

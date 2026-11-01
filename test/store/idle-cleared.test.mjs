@@ -33,7 +33,7 @@ describe("idle-cleared.mjs", () => {
 
   it("reports a waiting handover with its next action's first line", () => {
     write();
-    expect(ask("s1")).toEqual({ status: "waiting", title: "Ship it", repo: "acme", next: "Run the tests." });
+    expect(ask("s1")).toEqual({ status: "waiting", loaded: false, title: "Ship it", repo: "acme", next: "Run the tests." });
   });
 
   it("picks the session's latest save, loaded or not, and never another session's", () => {
@@ -41,5 +41,13 @@ describe("idle-cleared.mjs", () => {
     archiveRecord(write({ title: "New" }, new Date("2026-10-30T10:00:00Z")).id, { root });
     write({ title: "Other", sessionId: "s2" }, new Date("2026-10-30T11:00:00Z"));
     expect(ask("s1")).toMatchObject({ status: "archived", title: "New" });
+  });
+
+  it("counts only a hook or /load archive as loaded, not one from the sidebar", () => {
+    const { id } = write();
+    archiveRecord(id, { root, by: { via: "hook", owner: "o", pid: "1" } });
+    expect(ask("s1")).toMatchObject({ status: "archived", loaded: true });
+    archiveRecord(id, { root, by: { via: "sidebar", owner: "o", pid: "1" } });
+    expect(ask("s1")).toMatchObject({ status: "archived", loaded: false });
   });
 });

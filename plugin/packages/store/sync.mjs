@@ -15,9 +15,14 @@ import { fileURLToPath } from "node:url";
 import { handoversDir, storeRoot } from "./store.mjs";
 
 const TIMEOUT_MS = 30000;
-// A merge killed part way can leave the index locked, so one that could not finish
-// in what is left of the budget waits for the next pull.
+// A merge killed part way leaves .git/index.lock and half-written files, and every later
+// pull then fails. So a budgeted pull (a session start) only merges what it can finish:
+// no merge with under MIN_MERGE_MS left, none over BUDGET_MERGE_FILES, and the rest get
+// MERGE_MS of their own, past the budget. Reproduced with 8000 inbound records at budgets
+// of 1500-3000ms. A skipped merge is safe: the next pull or sync() takes all of it.
 const MIN_MERGE_MS = 1000;
+const MERGE_MS = 5000;
+const BUDGET_MERGE_FILES = 200;
 
 // LF everywhere. Without this the store churns whole-file diffs the first time a
 // Windows machine and a Unix one both write to it.
@@ -145,9 +150,10 @@ export function commitLocal(root = storeRoot(), { now = new Date() } = {}) {
  * store have no common root, and joining them is the normal second-machine path,
  * not an accident.
  *
- * `timeout` is the budget for the whole pull, not for each git call: 8s each could
- * run a SessionStart hook past Claude Code's 10s limit, and then the handover never
- * loaded (2026-10-30).
+ * `timeout` is the budget for the fetch and the checks before the merge, not for each
+ * git call: 8s each could run a SessionStart hook past Claude Code's 10s limit, and
+ * then the handover never loaded (2026-10-30). A budgeted merge never gets killed
+ * for running out of it: see MIN_MERGE_MS above.
  */
 export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
   if (!isSynced(root)) return { ok: false, resolved: [], reason: "not synced" };
@@ -166,7 +172,17 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
   }
 
   if (left() < MIN_MERGE_MS) return { ok: false, resolved: [], reason: "out of time before the merge" };
-  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], { timeout: left() });
+  const budgeted = timeout < TIMEOUT_MS;
+  if (budgeted) {
+    // No merge base (unrelated histories) fails here too: that join is not a quick one.
+    const inbound = tryGit(root, ["diff", "--name-only", "HEAD...origin/main"], { timeout: Math.max(1, left()) });
+    if (!inbound.ok || inbound.out.split("\n").length > BUDGET_MERGE_FILES) {
+      return { ok: false, resolved: [], reason: "merge too large for this budget, left to the next sync" };
+    }
+  }
+  const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], {
+    timeout: budgeted ? MERGE_MS : left(),
+  });
   if (merged.ok) return { ok: true, resolved: [] };
 
   const resolved = resolveConflicts(root);
