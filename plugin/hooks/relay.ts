@@ -412,6 +412,21 @@ async function idleSaved($: Engine, id: string | undefined): Promise<IdleSaved |
   }
 }
 
+// $.command.run resolves when the command is queued, before SessionStart has run
+// (rig, 2026-10-31: asking at once read "waiting" and cleared a second time). So wait
+// out the hook's limit in hooks.json before calling a handover not loaded.
+export const IDLE_LOAD_POLL_MS = 2000
+export const IDLE_LOAD_WAIT_MS = 25_000
+
+async function idleSettled($: Engine, id: string | undefined): Promise<IdleSaved | undefined> {
+  const deadline = (await $.clock.now()) + IDLE_LOAD_WAIT_MS
+  for (;;) {
+    const saved = await idleSaved($, id)
+    if (saved?.status !== 'waiting' || (await $.clock.now()) >= deadline) return saved
+    await new Promise<void>(resolve => $.clock.after(IDLE_LOAD_POLL_MS, resolve))
+  }
+}
+
 // Claim the idle handover's own once-per-session mark, <store>/.idle/<slug>. It is
 // not the .nudged mark: the 180k Stop nudge and this can each fire once. True when
 // this call made the mark; false when it was there already or cannot be written
@@ -597,13 +612,13 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
       $.command
         .run({ command: 'clear' })
         .then(async () => {
-          // SessionStart has run by now. A handover still waiting means it was killed
-          // or failed; it is this window's, so one more /clear can load it. Asked of
-          // the record, because the host reports the clear as done either way.
-          let saved = await idleSaved($, id)
+          // A handover still waiting by then means the hook was killed or failed. It is
+          // this window's, so one more /clear can load it. Asked of the record, because
+          // the host reports the clear as done either way.
+          let saved = await idleSettled($, id)
           if (saved?.status === 'waiting') {
             await $.command.run({ command: 'clear' })
-            saved = await idleSaved($, id)
+            saved = await idleSettled($, id)
           }
           const text = idleClearedText(saved)
           $.ui.status(text)
