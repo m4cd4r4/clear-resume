@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { DELETE_ARCHIVED_AFTER_DAYS, normalisePath } from "./schema.mjs";
+import { DELETE_COPIES_AFTER_DAYS, normalisePath } from "./schema.mjs";
 
 /** Seven hex characters that stand for a record id; load.mjs accepts them. */
 export function shortId(id) {
@@ -167,7 +167,7 @@ export function pruneLoaded({ root, now = new Date() } = {}) {
     if (!file.endsWith(".md")) continue;
     const path = join(dir, file);
     try {
-      if ((new Date(now).getTime() - statSync(path).mtimeMs) / 86_400_000 > DELETE_ARCHIVED_AFTER_DAYS) {
+      if ((new Date(now).getTime() - statSync(path).mtimeMs) / 86_400_000 > DELETE_COPIES_AFTER_DAYS) {
         rmSync(path, { force: true });
         gone.push(file);
       }

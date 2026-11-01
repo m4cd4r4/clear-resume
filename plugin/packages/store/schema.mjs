@@ -17,9 +17,12 @@ export const SCHEMA_VERSION = 1;
 // sync from a machine that still holds the original cannot resurrect it.
 export const STATUSES = /** @type {const} */ (["waiting", "archived", "deleted"]);
 
-// Clutter control is a requirement, not a nicety. Pinned records are exempt from all three.
+// A handover is a lasting record of the work: nothing removes one unless a person deletes it.
+// Pinned records are exempt from both timers below.
 export const STALE_AFTER_DAYS = 7;
-export const DELETE_ARCHIVED_AFTER_DAYS = 30;
+// Readable copies of loaded handovers, and captures no handover names. Both are extras:
+// the record itself keeps its body and its capture.
+export const DELETE_COPIES_AFTER_DAYS = 30;
 // How long a tombstone is kept before the file is really unlinked. Long, because
 // this is the window in which an offline machine can still be told about the
 // delete; a machine offline for longer than this resurrects the record.
@@ -128,12 +131,6 @@ export function isTombstone(record) {
 
 export function isStale(record, now = new Date()) {
   return !record.pinned && record.status === "waiting" && ageDays(record, now) > STALE_AFTER_DAYS;
-}
-
-/** An archived record past its window. It becomes a tombstone, not a missing file. */
-export function isExpired(record, now = new Date()) {
-  if (record.pinned || record.status !== "archived") return false;
-  return daysSince(record.archivedAt || record.createdAt, now) > DELETE_ARCHIVED_AFTER_DAYS;
 }
 
 /** A tombstone old enough that no machine still needs telling. Now it can go. */

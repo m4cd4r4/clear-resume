@@ -5,7 +5,7 @@ import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./
 import { isSynced, pull } from "../../packages/store/sync.mjs";
 import { prune } from "../../packages/store/store.mjs";
 import { writeLoadedCopy } from "../../packages/store/loaded.mjs";
-import { captureDir, pruneCaptures, readCapture, summary } from "../../packages/store/artifacts.mjs";
+import { captureDir, readCapture, summary } from "../../packages/store/artifacts.mjs";
 import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
 import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath, tildePath } from "./display.mjs";
@@ -132,8 +132,6 @@ function pullFirst(root, env) {
 function pruneQuietly(root, now) {
   try {
     prune({ root, now });
-    // What a waiting handover's session left on screen stays as long as the handover does.
-    pruneCaptures({ root, now, keep: new Set(listWaiting(root, "").map((h) => h.meta.sessionId).filter(Boolean)) });
   } catch {
     // A session must start whatever state the store is in.
   }

@@ -3,6 +3,7 @@ import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { archiveRecord, handoversDir, listAll, prune, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
+import { listCaptures, writeCapture } from "../../plugin/packages/store/artifacts.mjs";
 
 let root;
 beforeEach(() => {
@@ -108,19 +109,26 @@ describe("mutations", () => {
 });
 
 describe("prune", () => {
-  it("deletes archived records past 30 days and spares pinned and waiting ones", () => {
+  it("keeps an archived record and its body however old it gets", () => {
     const long = "2026-01-01T00:00:00.000Z";
-    save({ ...BASE, machine: "old-archived", createdAt: long, status: "archived", archivedAt: long }, { root });
-    save({ ...BASE, machine: "old-pinned", createdAt: long, status: "archived", archivedAt: long, pinned: true }, { root });
-    save({ ...BASE, machine: "old-waiting", createdAt: long }, { root });
-    const removed = prune({ root, now: new Date("2026-09-20T00:00:00.000Z") });
-    expect(removed).toEqual(["old-archived-1-2026-01-01T00-00-00-000Z"]);
-    expect(listAll(root).map((r) => r.machine).sort()).toEqual(["old-pinned", "old-waiting"]);
+    const { id } = save({ ...BASE, machine: "old-archived", createdAt: long, status: "archived", archivedAt: long }, { root });
+    expect(prune({ root, now: new Date("2036-01-01T00:00:00.000Z") })).toEqual([]);
+    const after = read(id, root);
+    expect(after.status).toBe("archived");
+    expect(after.body).toBe(BASE.body);
+  });
 
-    // Stage one only. The record left the tree but is still a fact on disk, so
-    // the other machine can be told it went.
-    const tombs = listAll(root, { includeDeleted: true }).filter((r) => r.status === "deleted");
-    expect(tombs.map((r) => r.machine)).toEqual(["old-archived"]);
+  it("keeps the capture of an archived handover, and drops those of a deleted one and of none", () => {
+    const long = "2026-01-01T00:00:00.000Z";
+    const capture = (sessionId) => ({ sessionId, capturedAt: long, items: [], lastScreen: "" });
+    save({ ...BASE, sessionId: "archived-one", createdAt: long, status: "archived", archivedAt: long }, { root });
+    const { id } = save({ ...BASE, machine: "other", sessionId: "deleted-one", createdAt: long }, { root });
+    remove(id, { root, now: new Date("2026-09-19T00:00:00.000Z") });
+    for (const s of ["archived-one", "deleted-one", "no-handover"]) writeCapture(root, capture(s));
+
+    prune({ root, now: new Date("2026-09-20T00:00:00.000Z") });
+
+    expect(listCaptures(root).map((c) => c.sessionId)).toEqual(["archived-one"]);
   });
 
   it("archives a waiting record on this machine whose repo folder is gone", () => {

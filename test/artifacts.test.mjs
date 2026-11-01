@@ -121,7 +121,7 @@ describe("the store", () => {
     expect(writeCapture(root, cap("../x"))).toBeNull();
     expect(readCapture(root, "..")).toBeNull();
   });
-  it("prunes old captures but keeps one a waiting handover names", () => {
+  it("prunes old captures but keeps one a handover names", () => {
     const old = new Date(Date.now() - 40 * 86_400_000).toISOString();
     writeCapture(root, cap("old-one", old));
     writeCapture(root, cap("kept-one", old));

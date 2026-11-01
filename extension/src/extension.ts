@@ -7,7 +7,7 @@ import { archiveMerged } from "../../plugin/packages/store/merged.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
-import { captureDir, pruneCaptures, readCapture } from "../../plugin/packages/store/artifacts.mjs";
+import { captureDir, readCapture } from "../../plugin/packages/store/artifacts.mjs";
 import { LAST_SCREEN, ALL_ASSETS } from "./sidebar-model";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
@@ -66,11 +66,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerWebviewViewProvider(LANES_VIEW, lanesProvider),
   );
 
-  // Delete archived records past their window once per activation. Cheap, and it
-  // keeps the tree from growing without anyone having to remember to tidy it.
+  // Tidy the store once per activation. Cheap, and handovers themselves are never removed by it.
   try {
     prune({ root: root() });
-    pruneCaptures({ root: root(), keep: new Set(listAll(root()).filter((r) => r.status === "waiting").map((r) => String(r.sessionId ?? "")).filter(Boolean)) });
   } catch {
     // A prune failure must never stop the view from opening.
   }

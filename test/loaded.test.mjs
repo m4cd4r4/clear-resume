@@ -400,7 +400,7 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
 });
 
 describe("pruning the copies", () => {
-  it("deletes a copy loaded more than 30 days ago, on the archived-record timer, and keeps a newer one", () => {
+  it("deletes a copy loaded more than 30 days ago and keeps a newer one", () => {
     const rec = (title) => ({ id: `desk-1-${title}`, title, repoPath: "/code/widget-shop", createdAt: "2026-08-01T00:00:00Z", body: "b" });
     const old = writeLoadedCopy(root, rec("old"), { loadedAt: new Date("2026-08-27T00:00:00Z") });
     const fresh = writeLoadedCopy(root, rec("fresh"), { loadedAt: new Date("2026-08-30T00:00:00Z") });

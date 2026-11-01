@@ -45,10 +45,10 @@ checkout, and one written in the main checkout is not offered in a worktree.
 |---|---|---|
 | Waiting | Listed, not loaded (the sidebar's Stale group) | After 7 days |
 | Waiting | Never deleted, however old | |
-| Loaded (archived) | Body dropped, record kept as a tombstone | 30 days after loading |
-| Tombstone | File deleted | 90 days after that |
+| Loaded (archived) | Kept with its body and what its session left on screen | Until you delete it |
+| Deleted by you | Body dropped at once, record kept as a tombstone | File deleted 90 days later |
 
-Pinning a handover in the sidebar keeps it out of the Stale group and the two deletion timers.
+A screen capture no handover names is deleted 30 days after capture. Pinning a handover in the sidebar keeps it out of the Stale group.
 The hook still lists, and does not load, a pinned handover older than 7 days. The store is tidied
 at every session start and when the sidebar starts.
 
@@ -61,7 +61,7 @@ Each time a handover loads, the plugin also writes it as plain markdown to
 `~/.clear-resume/loaded/<repo>-<title>-<id>.md` (title, repo, branch, when it was saved and
 loaded, then the body) and prints the path on the line under the load message. Open it to reread
 what the session started from, or @-mention it in another session. The name holds no user or
-machine name. A copy is deleted 30 days after its handover loaded, with the record's body. The
+machine name. A copy is deleted 30 days after its handover loaded; the record keeps the body. The
 folder has a `.gitignore`, so sync never pushes the copies. If the copy cannot be written, the
 handover still loads and no path is printed.
 

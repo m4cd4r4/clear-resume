@@ -8,7 +8,7 @@ import { age, chooseHandover } from "../plugin/scripts/lib/select.mjs";
 import { OPENER, run } from "../plugin/scripts/lib/hook.mjs";
 import { ownerId, startHookClock } from "../plugin/scripts/lib/owner.mjs";
 import { listWaiting, saveHandover } from "../plugin/scripts/lib/store.mjs";
-import { listAll, read, save } from "../plugin/packages/store/store.mjs";
+import { listAll, read, remove, save } from "../plugin/packages/store/store.mjs";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 const h = (title, branch, created = "2026-09-19T11:00:00Z") => ({ file: `${title}.md`, meta: { title, branch, created } });
@@ -239,12 +239,13 @@ describe("SessionStart hook", () => {
       { title: "long archived", body: "x", repoPath: repo, machine: "old", pid: 1, createdAt: long, status: "archived", archivedAt: long },
       { root },
     );
-    expect(listAll(root).map((r) => r.id)).toEqual([id]);
+    const gone = save({ title: "long deleted", body: "x", repoPath: repo, machine: "gone", pid: 1, createdAt: long }, { root });
+    remove(gone.id, { root, now: new Date(long) });
 
     run({ cwd: repo }, { env });
 
-    expect(listAll(root)).toEqual([]);
-    expect(read(id, root).status).toBe("deleted");
+    expect(listAll(root, { includeDeleted: true }).map((r) => r.id)).toEqual([id]);
+    expect(read(id, root).body).toBe("x");
   });
 
   it("the script emits valid JSON on stdout and exits 0", () => {

@@ -34,7 +34,7 @@ export interface Handover {
 export const SCHEMA_VERSION: number;
 export const STATUSES: readonly ("waiting" | "archived" | "deleted")[];
 export const STALE_AFTER_DAYS: number;
-export const DELETE_ARCHIVED_AFTER_DAYS: number;
+export const DELETE_COPIES_AFTER_DAYS: number;
 export const PURGE_TOMBSTONE_AFTER_DAYS: number;
 
 export function fileStamp(date: Date | string): string;
@@ -46,6 +46,5 @@ export function normalise(input: Partial<Handover>, now?: Date): Handover;
 export function normalisePath(p: string): string;
 export function ageDays(record: Handover, now?: Date): number;
 export function isStale(record: Handover, now?: Date): boolean;
-export function isExpired(record: Handover, now?: Date): boolean;
 export function isPurgeable(record: Handover, now?: Date): boolean;
 export function isTombstone(record: Partial<Handover> | undefined): boolean;
