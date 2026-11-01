@@ -14,7 +14,8 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileName, isExpired, isPurgeable, normalise, recordId } from "./schema.mjs";
+import { pruneCaptures } from "./artifacts.mjs";
+import { fileName, isPurgeable, normalise, recordId } from "./schema.mjs";
 import { pruneLoaded } from "./loaded.mjs";
 
 export function storeRoot(env = process.env) {
@@ -187,28 +188,24 @@ function isAbandoned(record) {
 }
 
 /**
- * Two-stage clutter control.
+ * Tidy what is no longer part of the record.
  *
- * An archived record past its 30-day window becomes a tombstone rather than
- * disappearing, so the other machine learns it went. A tombstone past its 90-day
- * window is finally unlinked - a machine that has been offline longer than that
- * will resurrect the record, which is the price of not keeping tombstones forever.
+ * Age alone never removes a handover, waiting or archived: the store is a lasting
+ * record of the work. Only a person deleting one makes a tombstone, and a tombstone
+ * past its 90-day window is finally unlinked - a machine that has been offline longer
+ * than that will resurrect the record, which is the price of not keeping tombstones
+ * forever.
  *
- * Pinned records are exempt from both, and a waiting record is never deleted
- * however old: it only falls to the Stale group.
- *
- * The readable copies of loaded handovers (loaded.mjs) go on the archived-record
- * timer too, so that folder never grows without limit either.
+ * The readable copies of loaded handovers (loaded.mjs) and captures no surviving
+ * handover names go after 30 days, so those folders never grow without limit.
  *
  * Returns the ids that left the visible tree, so a caller can log what it tidied.
  */
 export function prune({ root = storeRoot(), now = new Date() } = {}) {
   const affected = [];
-  for (const record of listAll(root, { includeDeleted: true })) {
-    if (isExpired(record, now)) {
-      remove(record.id, { root, now });
-      affected.push(record.id);
-    } else if (isPurgeable(record, now)) {
+  const records = listAll(root, { includeDeleted: true });
+  for (const record of records) {
+    if (isPurgeable(record, now)) {
       if (unlink(record.id, root)) affected.push(record.id);
     } else if (isAbandoned(record)) {
       archiveRecord(record.id, { root, now, by: { owner: "", pid: String(process.pid), via: "abandoned" } });
@@ -216,5 +213,6 @@ export function prune({ root = storeRoot(), now = new Date() } = {}) {
     }
   }
   pruneLoaded({ root, now });
+  pruneCaptures({ root, now, keep: new Set(records.filter((r) => r.status !== "deleted" && r.sessionId).map((r) => String(r.sessionId))) });
   return affected;
 }

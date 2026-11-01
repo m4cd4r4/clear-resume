@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import {
   ageDays,
   fileName,
-  isExpired,
   isPurgeable,
   isTombstone,
   isStale,
@@ -122,21 +121,8 @@ describe("timers", () => {
     expect(isStale(r, day(8))).toBe(true);
   });
 
-  it("expires archived after 30 days from archivedAt", () => {
-    const r = normalise({ ...BASE, status: "archived", archivedAt: BASE.createdAt });
-    expect(isExpired(r, day(29))).toBe(false);
-    expect(isExpired(r, day(31))).toBe(true);
-  });
-
-  it("never expires or stales a pinned record", () => {
-    const stale = normalise({ ...BASE, pinned: true });
-    const old = normalise({ ...BASE, pinned: true, status: "archived", archivedAt: BASE.createdAt });
-    expect(isStale(stale, day(400))).toBe(false);
-    expect(isExpired(old, day(400))).toBe(false);
-  });
-
-  it("does not expire a waiting record, however old", () => {
-    expect(isExpired(normalise(BASE), day(400))).toBe(false);
+  it("never stales a pinned record", () => {
+    expect(isStale(normalise({ ...BASE, pinned: true }), day(400))).toBe(false);
   });
 
   it("purges a tombstone after 90 days from deletedAt, never a pinned one", () => {

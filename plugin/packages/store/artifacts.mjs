@@ -13,7 +13,7 @@
 // by that id. The folder is machine-local and ignores itself, like the loaded copies.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DELETE_ARCHIVED_AFTER_DAYS } from "./schema.mjs";
+import { DELETE_COPIES_AFTER_DAYS } from "./schema.mjs";
 
 export const KINDS = ["table", "list", "link", "path"];
 const LABELS = { table: ["table", "tables"], list: ["list", "lists"], link: ["link", "links"], path: ["path", "paths"] };
@@ -125,15 +125,15 @@ export function listCaptures(root) {
 }
 
 /**
- * Delete captures older than the archived-record window. Measured from capturedAt, and
- * a capture still named by a waiting handover is kept (`keep` holds those session ids).
+ * Delete captures older than the copies window. Measured from capturedAt, and a capture
+ * still named by a handover is kept (`keep` holds those session ids).
  * Returns the session ids it removed. Never throws.
  */
 export function pruneCaptures({ root, now = new Date(), keep = new Set() } = {}) {
   const gone = [];
   for (const meta of listCaptures(root)) {
     const days = (new Date(now).getTime() - new Date(meta.capturedAt).getTime()) / 86_400_000;
-    if (days <= DELETE_ARCHIVED_AFTER_DAYS || keep.has(meta.sessionId)) continue;
+    if (days <= DELETE_COPIES_AFTER_DAYS || keep.has(meta.sessionId)) continue;
     try {
       rmSync(captureDir(root, meta.sessionId), { recursive: true, force: true });
       gone.push(meta.sessionId);
