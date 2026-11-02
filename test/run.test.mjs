@@ -29,7 +29,7 @@ beforeEach(() => {
   const who = { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
   env = { ...process.env, ...who, FAKE_PLAN: planFile, FAKE_LOG: logFile };
   // This session's own ids would file the fake's saves against this session's root.
-  for (const k of ["CLAUDE_CODE_SESSION_ID", "CLAUDE_PID", "CLEAR_RESUME_HOME", "CLEAR_RESUME_AUTO"]) delete env[k];
+  for (const k of ["CLAUDE_CODE_SESSION_ID", "CLAUDE_PID", "CORNERMAN_HOME", "CORNERMAN_AUTO"]) delete env[k];
   execFileSync("git", ["init", "-q", repo]);
   execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "init"], { cwd: repo, env });
   writeFileSync(join(dir, "prompt.txt"), "ORIGINAL PROMPT", "utf8");
@@ -62,8 +62,8 @@ describe("the chain", () => {
     expect(c[2].stdin).not.toMatch(/next: step 2/);
 
     for (const [i, call] of c.entries()) {
-      expect(call.env).toMatchObject({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HEADLESS: "1", CLEAR_RESUME_SYNC: "off", CLEAR_RESUME_CHAIN: String(i + 1), CLEAR_RESUME_BUDGET: String(3 - i) });
-      expect(call.env.CLEAR_RESUME_HOME.replace(/\\/g, "/")).toBe(store.replace(/\\/g, "/"));
+      expect(call.env).toMatchObject({ CORNERMAN_AUTO: "1", CORNERMAN_HEADLESS: "1", CORNERMAN_SYNC: "off", CORNERMAN_CHAIN: String(i + 1), CORNERMAN_BUDGET: String(3 - i) });
+      expect(call.env.CORNERMAN_HOME.replace(/\\/g, "/")).toBe(store.replace(/\\/g, "/"));
     }
 
     const saved = listAll(store);
@@ -82,7 +82,7 @@ describe("between segments", () => {
   it("leaves nothing for the next segment's SessionStart hook to load a second time", async () => {
     plan({ commit: true, save: true, cost: 1 }, { commit: true, cost: 1 });
     await go([...opts(), ...claude()]);
-    expect(sessionStart({ cwd: repo, source: "startup" }, { env: { ...env, CLEAR_RESUME_HOME: store, CLEAR_RESUME_SYNC: "off" } })).toBeNull();
+    expect(sessionStart({ cwd: repo, source: "startup" }, { env: { ...env, CORNERMAN_HOME: store, CORNERMAN_SYNC: "off" } })).toBeNull();
   });
 
   it("gives segment 1 the command's --session-id and later segments fresh ones, and logs each", async () => {
@@ -126,7 +126,8 @@ describe("caps", () => {
     ["the command's --max-budget-usd", () => [...opts(), "--", process.execPath, FAKE, "-p", "--max-turns", "5"]],
     ["-p", () => [...opts(), "--", process.execPath, FAKE, "--max-turns", "5", "--max-budget-usd", "10"]],
     ["a prompt", () => [...opts({ "--prompt-file": null }), ...claude()]],
-    ["a --settings free of CLEAR_RESUME_", () => [...opts(), ...claude(["--settings", '{"env":{"CLEAR_RESUME_AUTO":"0"}}'])]],
+    ["a --settings free of CORNERMAN_", () => [...opts(), ...claude(["--settings", '{"env":{"CORNERMAN_AUTO":"0"}}'])]],
+    ["a --settings free of the old variable names", () => [...opts(), ...claude(["--settings", '{"env":{"CLEAR_RESUME_AUTO":"0"}}'])]],
   ])("refuses to start without %s", async (_, argv) => {
     plan({ save: true });
     expect(await go(argv())).toBe(2);
@@ -153,6 +154,14 @@ describe("stops", () => {
     env.FAKE_ALERT_OUT = join(dir, "alert.txt");
     expect(await go([...opts({ "--max-segments": "10", "--alert-cmd": `"${process.execPath}" "${ALERT}"` }), ...claude()])).toBe(3);
     expect(calls()).toHaveLength(3);
+    expect(readFileSync(env.FAKE_ALERT_OUT, "utf8")).toMatch(/no new commits/);
+  });
+
+  it("an alert command written for the old variable name still gets the text", async () => {
+    plan({ commit: true, save: true, cost: 1 }, { save: true, cost: 1 }, { save: true, cost: 1 }, { save: true, cost: 1 });
+    env.FAKE_ALERT_OUT = join(dir, "alert.txt");
+    env.FAKE_ALERT_VAR = "CLEAR_RESUME_ALERT";
+    expect(await go([...opts({ "--max-segments": "10", "--alert-cmd": `"${process.execPath}" "${ALERT}"` }), ...claude()])).toBe(3);
     expect(readFileSync(env.FAKE_ALERT_OUT, "utf8")).toMatch(/no new commits/);
   });
 });

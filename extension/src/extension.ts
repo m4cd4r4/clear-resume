@@ -5,9 +5,11 @@ import * as vscode from "vscode";
 import { archiveRecord, listAll, prune, read, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { archiveMerged } from "../../plugin/packages/store/merged.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
+import { migrateOnStart } from "../../plugin/packages/store/rename.mjs";
 import { pushIfSynced } from "../../plugin/packages/store/sync.mjs";
 import { loadedCopyPath } from "../../plugin/packages/store/loaded.mjs";
 import { captureDir, readCapture } from "../../plugin/packages/store/artifacts.mjs";
+import { copyLegacySettings } from "./legacy-settings";
 import { LAST_SCREEN, ALL_ASSETS } from "./sidebar-model";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
@@ -16,8 +18,8 @@ import { spareStatus } from "./spare-status";
 import { statsStatus } from "./stats-status";
 import { ownedByThisWindow } from "./window-owner";
 
-const VIEW = "clearResume.history";
-const LANES_VIEW = "clearResume.lanes";
+const VIEW = "cornerman.history";
+const LANES_VIEW = "cornerman.lanes";
 const CLAUDE_OPEN = "claude-vscode.editor.open";
 
 /**
@@ -43,21 +45,41 @@ function pushed<T>(root: string, mutate: () => T): T {
 
 export function activate(context: vscode.ExtensionContext): void {
   syncCli = context.asAbsolutePath(join("dist", "sync.js"));
-  const config = () => vscode.workspace.getConfiguration("clearResume");
-  const root = () => config().get<string>("storePath")?.trim() || storeRoot();
+  const config = () => vscode.workspace.getConfiguration("cornerman");
+  // The old name is read too: the copy below is not there yet on the first activation.
+  const storePath = () => config().get<string>("storePath")?.trim() || vscode.workspace.getConfiguration("clearResume").get<string>("storePath")?.trim();
+  const root = () => storePath() || storeRoot();
   const showArchived = () => config().get<boolean>("showArchived") === true;
+
+  void copyLegacySettings(vscode.workspace.getConfiguration).catch(() => {
+    // The old names keep their values, and this runs again at the next activation.
+  });
+  if (vscode.extensions.getExtension("macdara.clear-resume")) {
+    void vscode.window.showWarningMessage("cornerman: the old clear-resume extension is still installed, and it deletes the text of handovers archived for over 30 days. Uninstall it.");
+  }
+
+  // Before root() is read and before the watcher below holds the folder open: on Windows
+  // that watcher blocks the rename, so this window's chance is now.
+  if (!storePath()) {
+    try {
+      const notice = migrateOnStart();
+      if (notice) void vscode.window.showInformationMessage(notice);
+    } catch {
+      // A move that cannot run must never stop the view from opening.
+    }
+  }
 
   // Only the owner's original setup has anything to import. Everyone else gets no
   // welcome link and no command-palette entry for a migration that would find
   // nothing - the context key drives both `when` clauses in package.json.
-  void vscode.commands.executeCommand("setContext", "clearResume.hasLegacy", hasLegacyNotes());
+  void vscode.commands.executeCommand("setContext", "cornerman.hasLegacy", hasLegacyNotes());
 
   const registry = () => config().get<string>("registryPath")?.trim() ?? "";
   // The page asks; each ask runs the command the tree row's button used to run.
   const act = (m: { type: string; id?: string; target?: string; n?: number }) => {
-    if (m.type === "migrate") void vscode.commands.executeCommand("clearResume.migrate");
-    else if (m.type === "openLane") void vscode.commands.executeCommand("clearResume.openLane", m.target);
-    else if (m.id) void vscode.commands.executeCommand(`clearResume.${m.type}`, { id: m.id, n: m.n });
+    if (m.type === "migrate") void vscode.commands.executeCommand("cornerman.migrate");
+    else if (m.type === "openLane") void vscode.commands.executeCommand("cornerman.openLane", m.target);
+    else if (m.id) void vscode.commands.executeCommand(`cornerman.${m.type}`, { id: m.id, n: m.n });
   };
   const provider = new SidebarProvider("handovers", root, showArchived, registry, hasLegacyNotes, act);
   const lanesProvider = new SidebarProvider("lanes", root, showArchived, registry, hasLegacyNotes, act);
@@ -86,7 +108,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   statsStatus(context, loadedLookup(root), (record) => {
     if (record) void openLoaded(record, root());
-    else void vscode.window.showInformationMessage("clear-resume: no handover loaded in this tab in the last day.");
+    else void vscode.window.showInformationMessage("cornerman: no handover loaded in this tab in the last day.");
   });
   spareStatus(context);
   watchStore(context, root, () => {
@@ -101,53 +123,53 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push({ dispose: () => clearInterval(minute) });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("clearResume.refresh", () => {
+    vscode.commands.registerCommand("cornerman.refresh", () => {
       provider.refresh();
       lanesProvider.refresh();
     }),
 
     // A worktree row opens its window: the minting script's .code-workspace when
     // there is one (it keeps the title and colour), else the folder.
-    vscode.commands.registerCommand("clearResume.openLane", (target?: string) => {
+    vscode.commands.registerCommand("cornerman.openLane", (target?: string) => {
       if (target) void vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(target), { forceNewWindow: true });
     }),
 
-    vscode.commands.registerCommand("clearResume.openLoaded", (arg?: Target) => openLoaded(recordOf(arg, root()), root())),
+    vscode.commands.registerCommand("cornerman.openLoaded", (arg?: Target) => openLoaded(recordOf(arg, root()), root())),
 
-    vscode.commands.registerCommand("clearResume.asset", (arg?: Target & { n?: number }) => openAsset(recordOf(arg, root()), arg?.n, root())),
+    vscode.commands.registerCommand("cornerman.asset", (arg?: Target & { n?: number }) => openAsset(recordOf(arg, root()), arg?.n, root())),
 
-    vscode.commands.registerCommand("clearResume.toggleArchived", async () => {
+    vscode.commands.registerCommand("cornerman.toggleArchived", async () => {
       await config().update("showArchived", !showArchived(), vscode.ConfigurationTarget.Global);
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.open", async (arg?: Target) => {
+    vscode.commands.registerCommand("cornerman.open", async (arg?: Target) => {
       const record = recordOf(arg, root());
       if (record) await openBody(record);
     }),
 
-    vscode.commands.registerCommand("clearResume.resume", async (arg?: Target) => {
+    vscode.commands.registerCommand("cornerman.resume", async (arg?: Target) => {
       const record = recordOf(arg, root());
       if (!record) return;
       await resume(record, root());
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.pin", (arg?: Target) => {
+    vscode.commands.registerCommand("cornerman.pin", (arg?: Target) => {
       const record = recordOf(arg, root());
       if (!record) return;
       pushed(root(), () => setPinned(record.id, true, { root: root() }));
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.unpin", (arg?: Target) => {
+    vscode.commands.registerCommand("cornerman.unpin", (arg?: Target) => {
       const record = recordOf(arg, root());
       if (!record) return;
       pushed(root(), () => setPinned(record.id, false, { root: root() }));
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.delete", async (arg?: Target) => {
+    vscode.commands.registerCommand("cornerman.delete", async (arg?: Target) => {
       const record = recordOf(arg, root());
       if (!record) return;
       const yes = await vscode.window.showWarningMessage(
@@ -160,7 +182,7 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("clearResume.migrate", () => runMigration(root(), () => provider.refresh())),
+    vscode.commands.registerCommand("cornerman.migrate", () => runMigration(root(), () => provider.refresh())),
   );
 }
 
@@ -209,7 +231,7 @@ async function openAsset(record: StoredHandover | undefined, n: number | undefin
     if (existsSync(path)) await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(path));
     else {
       await vscode.env.clipboard.writeText(item.text);
-      void vscode.window.showInformationMessage(`clear-resume: ${item.text} is not on this machine; the path is copied.`);
+      void vscode.window.showInformationMessage(`cornerman: ${item.text} is not on this machine; the path is copied.`);
     }
   } else {
     const doc = await vscode.workspace.openTextDocument({ content: `# ${item.title}\n\n${item.text}\n`, language: "markdown" });
@@ -311,7 +333,7 @@ function watchStore(context: vscode.ExtensionContext, root: () => string, onChan
   attach();
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration("clearResume.storePath")) return;
+      if (!e.affectsConfiguration("cornerman.storePath")) return;
       attach();
       onChange();
     }),

@@ -49,7 +49,7 @@ function shortCommand(cmd) {
 }
 const textOf = (c) => (typeof c === "string" ? c : Array.isArray(c) ? c.map((x) => x?.text || "").join("") : "");
 // The handover and load scripts are this plugin's own plumbing, not work the next session needs to know about.
-const plumbing = (cmd) => /clear-resume[^\n]*[\\/](?:save|load)\.mjs/.test(String(cmd));
+const plumbing = (cmd) => /(?:cornerman|clear-resume)[^\n]*[\\/](?:save|load)\.mjs/.test(String(cmd));
 
 // Newest-first lines of a file, read from the end in CHUNK-sized pieces.
 export function* linesBackwards(file) {

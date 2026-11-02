@@ -27,7 +27,7 @@ import {
   positive,
 } from './relay'
 
-const SAVE = 'node "C:/Users/me/.claude/plugins/cache/clear-resume/scripts/save.mjs" --title "x" <<\'EOF\''
+const SAVE = 'node "C:/Users/me/.claude/plugins/cache/cornerman/scripts/save.mjs" --title "x" <<\'EOF\''
 const SAVED = 'Saved handover "x" (id abc123).'
 
 type World = {
@@ -40,7 +40,7 @@ type World = {
   runs: string[][]
 }
 
-// The relay's state file: <home>/.clear-resume/relay/<key>.json, not the .set.json
+// The relay's state file: <home>/.cornerman/relay/<key>.json, not the .set.json
 // override or the .handover.json request. The engine resolves the path before a
 // hook sees it, so on Windows it is C:\home\me\...
 const STATE = /[\\/]relay[\\/][^\\/]+(?<!\.set|\.handover|\.idle)\.json$/
@@ -57,7 +57,7 @@ function world(on: On, env: Record<string, string> = {}) {
   // Sessions the nudge has marked (<store>/.nudged/<id>, scripts/lib/nudge.mjs).
   const nudgedIds = new Set<string>()
   on('fs.read', async ($, e) => {
-    const mark = /[\\/]\.clear-resume[\\/]\.nudged[\\/]([^\\/]+)$/.exec(e.path)
+    const mark = /[\\/]\.cornerman[\\/]\.nudged[\\/]([^\\/]+)$/.exec(e.path)
     if (mark && nudgedIds.has(mark[1])) return { value: '2026-10-07T10:00:00Z' }
     const text = w.files.get(e.path)
     if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
@@ -200,8 +200,8 @@ async function relayOnce($: Parameters<Parameters<typeof test>[1]>[0], clock: { 
 }
 
 const UNARMED =
-  'clear-resume relay: no handover was saved with /clear-resume:handover after the context nudge, so the relay will not clear. ' +
-  'If the work goes on, run /clear-resume:handover (another handover skill does not count), or type /clear.'
+  'cornerman relay: no handover was saved with /cornerman:handover after the context nudge, so the relay will not clear. ' +
+  'If the work goes on, run /cornerman:handover (another handover skill does not count), or type /clear.'
 
 const turn = { answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as const
 const cleared = { reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as const
@@ -227,7 +227,7 @@ describe('relay', () => {
     await $.session.end(cleared)
     expect(w.prompts).toEqual([])
     await clock.advance(1000)
-    expect(w.prompts).toEqual(['Continue from the clear-resume handover that was just loaded.'])
+    expect(w.prompts).toEqual(['Continue from the cornerman handover that was just loaded.'])
   })
 
   test('a turn with no save does not clear', { options: { relay: 'unlimited' } }, async ($, on) => {
@@ -303,7 +303,7 @@ describe('relay', () => {
   })
 
   test('under the headless runner the relay stands aside', { options: { relay: '3' } }, async ($, on) => {
-    const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    const { w, clock } = world(on, { CORNERMAN_HEADLESS: '1' })
     await $.tool.call({ tool: 'Bash', command: SAVE })
     await $.turn.complete(turn)
     await clock.advance(5000)
@@ -373,8 +373,20 @@ describe('relay', () => {
     await $.session.end(cleared)
     await clock.advance(1000)
     const { path, file } = state()
-    expect(path.replace(/\\/g, '/')).toMatch(/\/home\/me\/\.clear-resume\/relay\/[^/]+\.json$/)
+    expect(path.replace(/\\/g, '/')).toMatch(/\/home\/me\/\.cornerman\/relay\/[^/]+\.json$/)
     expect(file).toMatchObject({ v: 1, cwd: '/repo', limit: 3, configured: 3, used: 1, stalled: 0, sessions: ['s1', 's2'] })
+  })
+
+  test('writes under the old store folder until the store has moved, where the hooks read it', { options: { relay: '3' } }, async ($, on) => {
+    const { clock, state, nextSession } = world(on)
+    on('fs.exists', async ($, e) => ({ value: /[\\/]\.clear-resume$/.test(e.path) }))
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(300)
+    nextSession('s2')
+    await $.session.end(cleared)
+    await clock.advance(1000)
+    expect(state().path.replace(/\\/g, '/')).toMatch(/\/home\/me\/\.clear-resume\/relay\/[^/]+\.json$/)
   })
 
   test('off still publishes, so the status bar can turn it on', async ($, on) => {
@@ -409,7 +421,7 @@ describe('relay', () => {
   })
 
   test('under the headless runner no state is written', { options: { relay: '3' } }, async ($, on) => {
-    const { w } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    const { w } = world(on, { CORNERMAN_HEADLESS: '1' })
     await $.turn.complete(turn)
     expect(w.files.size).toBe(0)
   })
@@ -506,7 +518,7 @@ describe('/relay and the status line', () => {
   })
 
   test('under the headless runner there is no status entry', { options: { relay: '3' } }, async ($, on) => {
-    const { w } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    const { w } = world(on, { CORNERMAN_HEADLESS: '1' })
     await $.session.start(start)
     expect(w.status.every(t => t === undefined)).toBe(true)
   })
@@ -514,9 +526,9 @@ describe('/relay and the status line', () => {
   test('each continue toasts what is left, for the VS Code panel which draws no status line', { options: { relay: '2' } }, async ($, on) => {
     const { w, clock } = world(on)
     await relayOnce($, clock)
-    expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left'])
+    expect(w.toasts).toEqual(['cornerman relay: 1 of 2 left'])
     await relayOnce($, clock)
-    expect(w.toasts).toEqual(['clear-resume relay: 1 of 2 left', 'clear-resume relay: 0 of 2 left'])
+    expect(w.toasts).toEqual(['cornerman relay: 1 of 2 left', 'cornerman relay: 0 of 2 left'])
   })
 
   test('/relay typed after a status-bar choice not yet taken wins over it', { options: { relay: '3' } }, async ($, on) => {
@@ -550,13 +562,13 @@ describe('the status bar hand-over button', () => {
     click(w, state().path, 5)
     expect(w.commands).toEqual([])
     await clock.advance(1000)
-    expect(w.commands).toEqual(['clear-resume:handover'])
+    expect(w.commands).toEqual(['cornerman:handover'])
     await clock.advance(5000)
-    expect(w.commands).toEqual(['clear-resume:handover'])
+    expect(w.commands).toEqual(['cornerman:handover'])
     // A second click is a newer request.
     click(w, state().path, 6)
     await clock.advance(1000)
-    expect(w.commands).toEqual(['clear-resume:handover', 'clear-resume:handover'])
+    expect(w.commands).toEqual(['cornerman:handover', 'cornerman:handover'])
   })
 
   test('with the relay on, the save it makes clears and continues', { options: { relay: '3' } }, async ($, on) => {
@@ -565,8 +577,8 @@ describe('the status bar hand-over button', () => {
     click(w, state().path, 5)
     await clock.advance(1000)
     await relayOnce($, clock)
-    expect(w.commands).toEqual(['clear-resume:handover', 'clear'])
-    expect(w.prompts).toEqual(['Continue from the clear-resume handover that was just loaded.'])
+    expect(w.commands).toEqual(['cornerman:handover', 'clear'])
+    expect(w.prompts).toEqual(['Continue from the cornerman handover that was just loaded.'])
   })
 
   test('the poll survives /clear', { options: { relay: '3' } }, async ($, on) => {
@@ -575,7 +587,7 @@ describe('the status bar hand-over button', () => {
     await relayOnce($, clock)
     click(w, state().path, 5)
     await clock.advance(1000)
-    expect(w.commands).toEqual(['clear', 'clear-resume:handover'])
+    expect(w.commands).toEqual(['clear', 'cornerman:handover'])
   })
 
   test('starts from the first turn end when no session.start was seen', async ($, on) => {
@@ -583,7 +595,7 @@ describe('the status bar hand-over button', () => {
     await $.turn.complete(turn)
     click(w, state().path, 5)
     await clock.advance(1000)
-    expect(w.commands).toEqual(['clear-resume:handover'])
+    expect(w.commands).toEqual(['cornerman:handover'])
   })
 
   test('one poll, however many starts', async ($, on) => {
@@ -593,16 +605,16 @@ describe('the status bar hand-over button', () => {
     await $.turn.complete(turn)
     click(w, state().path, 5)
     await clock.advance(1000)
-    expect(w.commands).toEqual(['clear-resume:handover'])
+    expect(w.commands).toEqual(['cornerman:handover'])
   })
 
   test('a refused command falls back to a prompt', async ($, on) => {
     const { w, clock, state, refuse } = world(on)
-    refuse('clear-resume:handover')
+    refuse('cornerman:handover')
     await $.session.start(start)
     click(w, state().path, 5)
     await clock.advance(1000)
-    expect(w.prompts).toEqual(['Write a clear-resume handover now, with the /clear-resume:handover skill.'])
+    expect(w.prompts).toEqual(['Write a cornerman handover now, with the /cornerman:handover skill.'])
   })
 
   test('a bad request file asks for nothing', async ($, on) => {
@@ -614,9 +626,9 @@ describe('the status bar hand-over button', () => {
   })
 
   test('under the headless runner there is no poll', async ($, on) => {
-    const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
+    const { w, clock } = world(on, { CORNERMAN_HEADLESS: '1' })
     await $.session.start(start)
-    w.files.set('/home/me/.clear-resume/relay/any.handover.json', JSON.stringify({ at: 5 }))
+    w.files.set('/home/me/.cornerman/relay/any.handover.json', JSON.stringify({ at: 5 }))
     await clock.advance(3000)
     expect(w.commands).toEqual([])
   })
@@ -818,7 +830,7 @@ describe('idle handover', () => {
   })
 
   // The PreToolUse hook (plugin/scripts/pre-tool.mjs) allows the skill call only
-  // with this mark, so nobody has to answer "Use skill /clear-resume:handover?".
+  // with this mark, so nobody has to answer "Use skill /cornerman:handover?".
   test('auto: leaves the ask mark the pre-tool hook allows the skill call with', auto(), async ($, on) => {
     const { w, clock } = world(on)
     await $.turn.complete(turn)
@@ -989,7 +1001,7 @@ describe('idle handover', () => {
     await $.turn.complete(turn)
     await relayOnce($, clock)
     expect(w.commands).toEqual(['clear'])
-    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT, 'Continue from the clear-resume handover that was just loaded.'])
+    expect(w.prompts).toEqual([IDLE_HANDOVER_TEXT, 'Continue from the cornerman handover that was just loaded.'])
   })
 
   const smart = (more: Record<string, string | number> = {}) => ({
@@ -1248,7 +1260,7 @@ describe('idle handover', () => {
   })
 
   test('the VS Code entrypoint under the headless runner still never fires', auto(), async ($, on) => {
-    const { w, clock } = world(on, { CLAUDE_CODE_ENTRYPOINT: 'claude-vscode', CLEAR_RESUME_HEADLESS: '1' })
+    const { w, clock } = world(on, { CLAUDE_CODE_ENTRYPOINT: 'claude-vscode', CORNERMAN_HEADLESS: '1' })
     await $.session.start({ ...start, isInteractive: false })
     await $.turn.complete(turn)
     await clock.advance(310 * S)
@@ -1257,6 +1269,14 @@ describe('idle handover', () => {
   })
 
   test('under the headless runner it never fires', auto(), async ($, on) => {
+    const { w, clock } = world(on, { CORNERMAN_HEADLESS: '1' })
+    await $.turn.complete(turn)
+    await clock.advance(310 * S)
+    expect(w.toasts).toEqual([])
+    expect(w.prompts).toEqual([])
+  })
+
+  test('under the headless flag by its old name it never fires', auto(), async ($, on) => {
     const { w, clock } = world(on, { CLEAR_RESUME_HEADLESS: '1' })
     await $.turn.complete(turn)
     await clock.advance(310 * S)

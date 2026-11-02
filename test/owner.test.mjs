@@ -115,7 +115,7 @@ describe("ownerOpen with the start time", () => {
 describe("ownerId", () => {
   it("is CLAUDE_PID plus that process's start time", () => {
     const readTable = () => [[LIVE, "1", "claude.exe", 1790503200000]];
-    expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_NO_PROCESS_WALK: "" }, { readTable })).toBe(`${LIVE}@1790503200000`);
+    expect(ownerId({ CLAUDE_PID: LIVE, CORNERMAN_NO_PROCESS_WALK: "" }, { readTable })).toBe(`${LIVE}@1790503200000`);
   });
 });
 
@@ -220,16 +220,16 @@ describe("the hook's lookup deadline", () => {
   // remembered into the next, which then did not read at all and so did not know
   // its own window: the --take tests' flake had this second route to it.
   it.runIf(process.platform === "win32")("forgets an earlier run's failed read when the clock restarts", () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     try {
       // This read times out and is remembered.
       failReads.on = true;
-      expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "250" })).toBe(LIVE);
+      expect(ownerId({ CLAUDE_PID: LIVE, CORNERMAN_PROCESS_TIMEOUT_MS: "250" })).toBe(LIVE);
       failReads.on = false;
 
       startHookClock();
 
-      expect(ownerId({ CLAUDE_PID: LIVE, CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" })).toMatch(new RegExp(`^${LIVE}@\\d+$`));
+      expect(ownerId({ CLAUDE_PID: LIVE, CORNERMAN_PROCESS_TIMEOUT_MS: "15000" })).toMatch(new RegExp(`^${LIVE}@\\d+$`));
     } finally {
       failReads.on = false;
       vi.unstubAllEnvs();
@@ -258,7 +258,7 @@ describe("on this machine's real process table", () => {
   const timeout = 20_000;
 
   it("reads a start time that another process reads identically, and tells a later start apart", () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     const me = ownerId({ CLAUDE_PID: LIVE }, { timeout });
     expect(me).toMatch(new RegExp(`^${LIVE}@[0-9]+$`));
 
@@ -267,7 +267,7 @@ describe("on this machine's real process table", () => {
     const child = spawnSync(
       process.execPath,
       ["--input-type=module", "-e", `import { ownerId } from ${JSON.stringify(owner)}; process.stdout.write(ownerId({ CLAUDE_PID: "${LIVE}" }, { timeout: ${timeout} }))`],
-      { encoding: "utf8", env: { ...process.env, CLEAR_RESUME_NO_PROCESS_WALK: "" } },
+      { encoding: "utf8", env: { ...process.env, CORNERMAN_NO_PROCESS_WALK: "" } },
     );
     expect(child.stdout).toBe(me);
 

@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="docs/media/banner.png" width="100%" alt="clear-resume. Clear the chat. Keep the goal, the next step and the decisions. A free, open-source plugin for Claude Code. A terminal shows three steps: /clear-resume:handover, and Claude saves a short note. /clear, and the fresh session loads the note. go, and Claude carries on from it.">
+  <img src="docs/media/banner.png" width="100%" alt="cornerman. Clear the chat. Keep the goal, the next step and the decisions. A free, open-source plugin for Claude Code. A terminal shows three steps: /cornerman:handover, and Claude saves a short note. /clear, and the fresh session loads the note. go, and Claude carries on from it.">
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-262626?style=flat-square&labelColor=0a0a0a"></a>
-  <a href="https://github.com/m4cd4r4/clear-resume/actions/workflows/test.yml"><img alt="Tests on Windows, macOS and Linux" src="https://img.shields.io/github/actions/workflow/status/m4cd4r4/clear-resume/test.yml?branch=main&label=tests%3A%20Windows%2C%20macOS%2C%20Linux&style=flat-square&labelColor=0a0a0a&color=262626"></a>
+  <a href="https://github.com/m4cd4r4/cornerman/actions/workflows/test.yml"><img alt="Tests on Windows, macOS and Linux" src="https://img.shields.io/github/actions/workflow/status/m4cd4r4/cornerman/test.yml?branch=main&label=tests%3A%20Windows%2C%20macOS%2C%20Linux&style=flat-square&labelColor=0a0a0a&color=262626"></a>
   <img alt="Needs Node 18 or later" src="https://img.shields.io/badge/node-18%2B-262626?style=flat-square&labelColor=0a0a0a">
-  <a href="https://m4cd4r4.github.io/clear-resume"><img alt="Website: m4cd4r4.github.io/clear-resume" src="https://img.shields.io/badge/website-m4cd4r4.github.io%2Fclear--resume-262626?style=flat-square&labelColor=0a0a0a"></a>
+  <a href="https://m4cd4r4.github.io/cornerman"><img alt="Website: m4cd4r4.github.io/cornerman" src="https://img.shields.io/badge/website-m4cd4r4.github.io%2Fcornerman-262626?style=flat-square&labelColor=0a0a0a"></a>
 </p>
 
 <p align="center"><b>Clear a long Claude Code chat without losing your place.</b><br>Claude writes a short note, you type <code>/clear</code>, and the fresh session carries on from it.</p>
 
 <p align="center">
-  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /clear-resume:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
+  <img src="docs/media/loop.webp" width="100%" alt="Animation. A long chat in the widget-shop project, with the context bar almost full. You type /cornerman:handover. Claude writes a handover titled Cart totals rounding, with a goal, a next action and a decision already made, and the plugin prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). After /clear, the next session in ~/code/widget-shop loads it automatically. You type /clear, the terminal empties and the context bar drops almost to empty. The fresh session prints: cornerman: loaded handover &quot;Cart totals rounding&quot; (saved just now), and the path of a copy to read or share. You type go, and Claude runs the cart tests, edits src/cart.js and reports that the cart tests pass.">
 </p>
 
 <p align="center"><sub>Watch the context bar, top right: full before <code>/clear</code>, almost empty after.</sub></p>
@@ -21,14 +21,14 @@
 
 - **Keeps your place across `/clear`.** One command saves a short note: the goal, the next action, where things stand, the decisions made and what already failed. The fresh session loads it and carries on.
 - **Can run with nobody typing.** Turn on the relay and, after your first prompt, it saves, clears and continues for you, up to the number of clears you allow.
-- **A note you can read and edit.** It is a plain text file in `~/.clear-resume`: open it, change it, paste it into another chat, or load it on a second machine with [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
+- **A note you can read and edit.** It is a plain text file in `~/.cornerman`: open it, change it, paste it into another chat, or load it on a second machine with [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
 - **Optional extras.** A [VS Code sidebar](#optional-a-vs-code-sidebar-and-a-nudge-when-the-chat-gets-long) lists your handovers by repo, and a footer shows how full the chat is.
 
 ## Install: two commands in your terminal
 
 ```bash
-claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
-claude plugin install clear-resume@clear-resume
+claude plugin marketplace add https://github.com/m4cd4r4/cornerman
+claude plugin install cornerman@cornerman
 ```
 
 > [!IMPORTANT]
@@ -38,7 +38,7 @@ claude plugin install clear-resume@clear-resume
 
 Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default.
 
-Then, when a chat has grown long, type `/clear-resume:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
+Then, when a chat has grown long, type `/cornerman:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
 
 The author built it on Windows 11 and uses it there every day. On Linux, a clean install from GitHub was tested by hand on 5 Oct 2026: a session saved a handover and the next one loaded it and carried on. CI runs the tests on Windows, macOS and Linux; macOS has not been tested by hand yet.
 
@@ -49,9 +49,35 @@ The author built it on Windows 11 and uses it there every day. On Linux, a clean
 Plugins from a third-party marketplace do not update on their own by default. Run both lines, then restart Claude Code:
 
 ```bash
-claude plugin marketplace update clear-resume
-claude plugin update clear-resume@clear-resume
+claude plugin marketplace update cornerman
+claude plugin update cornerman@cornerman
 ```
+
+</details>
+
+<details>
+<summary><b>Upgrade from clear-resume</b></summary>
+<br>
+
+This plugin used to be called clear-resume. Install it under the new name, then run the upgrade script **before** removing the old plugin, because removing it deletes its options:
+
+```bash
+claude plugin marketplace add https://github.com/m4cd4r4/cornerman
+claude plugin install cornerman@cornerman
+node ~/.claude/plugins/cache/cornerman/cornerman/0.6.0/scripts/upgrade.mjs
+claude plugin uninstall clear-resume@clear-resume
+claude plugin marketplace remove clear-resume
+```
+
+Then restart Claude Code. What happens to what you already have:
+
+- **Handovers:** the next session start moves `~/.clear-resume` to `~/.cornerman` in one step and leaves a link at the old path. Nothing is removed. If a VS Code window has the folder open, your handovers stay where they are and keep working, and the move finishes once every VS Code window has been closed.
+- **The link at `~/.clear-resume`:** leave it, or remove the link alone. On Windows use `cmd /c rmdir %USERPROFILE%\.clear-resume`: `Remove-Item -Recurse` follows the link and deletes your handovers.
+- **Plugin options:** the upgrade script copies them to the new name.
+- **`CLEAR_RESUME_` variables:** they keep working. A `CORNERMAN_` variable of the same name wins. The script lists the ones it finds.
+- **Permission rules:** a rule like `Skill(clear-resume:handover)` does not carry over. The script lists them for you to change.
+- **VS Code extension:** install the new one and uninstall the old one. Its settings are copied to the new names the first time it starts.
+- **Two machines with sync:** upgrade both when you can. Nothing is lost while only one has, but until then the old machine marks old handovers as archived again and the two trade a commit at each sync.
 
 </details>
 
@@ -60,11 +86,11 @@ claude plugin update clear-resume@clear-resume
 <br>
 
 ```bash
-claude plugin uninstall clear-resume@clear-resume
-claude plugin marketplace remove clear-resume
+claude plugin uninstall cornerman@cornerman
+claude plugin marketplace remove cornerman
 ```
 
-Your handovers stay in `~/.clear-resume` until you delete that folder. If you added any `CLEAR_RESUME_` lines to `~/.claude/settings.json`, remove them too.
+Your handovers stay in `~/.cornerman` until you delete that folder. If you added any `CORNERMAN_` lines to `~/.claude/settings.json`, remove them too.
 
 </details>
 
@@ -74,7 +100,7 @@ Your handovers stay in `~/.clear-resume` until you delete that folder. If you ad
 > **Turn on the relay, and after your first prompt nobody types anything.**
 >
 > ```bash
-> claude plugin install clear-resume@clear-resume --config auto_nudge=true --config relay=10
+> claude plugin install cornerman@cornerman --config auto_nudge=true --config relay=10
 > ```
 >
 > The relay is a **Claude Code mod**: a small module, [plugin/hooks/relay.ts](plugin/hooks/relay.ts), that runs inside Claude Code and types `/clear` and the next prompt for you.
@@ -83,7 +109,7 @@ Your handovers stay in `~/.clear-resume` until you delete that folder. If you ad
 |:--|:--|:--|
 | **Relay (recommended)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
 | Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true` |
-| Manual | `/clear-resume:handover`, `/clear`, `go` | None. This is the default |
+| Manual | `/cornerman:handover`, `/clear`, `go` | None. This is the default |
 
 With the relay on, Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on.
 
@@ -109,9 +135,9 @@ Running `claude -p` with nobody at the keyboard? The [headless runner](docs/HOW-
 
 To change it, use any one of these (new sessions pick it up; the range is 50000 to 1000000):
 
-- `/plugin configure clear-resume@clear-resume`, or `/config`, then **Nudge at**
-- `claude plugin install clear-resume@clear-resume --config nudge_at=150000`
-- the `CLEAR_RESUME_NUDGE_AT` environment variable, which wins over the option
+- `/plugin configure cornerman@cornerman`, or `/config`, then **Nudge at**
+- `claude plugin install cornerman@cornerman --config nudge_at=150000`
+- the `CORNERMAN_NUDGE_AT` environment variable, which wins over the option
 
 </details>
 
@@ -120,7 +146,7 @@ To change it, use any one of these (new sessions pick it up; the range is 50000 
 
 | Step | Type | What happens |
 |:--|:--|:--|
-| 1. **Save a handover.** | `/clear-resume:handover` | Claude writes a short note. The plugin saves it. |
+| 1. **Save a handover.** | `/cornerman:handover` | Claude writes a short note. The plugin saves it. |
 | 2. **Clear.** | `/clear` | The fresh session starts with the handover already loaded. |
 | 3. **Carry on.** | `go`, or say what to do next | Claude carries on from the handover. |
 
@@ -140,8 +166,8 @@ After /clear, the next session in ~/code/widget-shop loads it automatically.
 After `/clear`, the plugin's load message reads:
 
 ```text
-clear-resume: loaded handover "Cart totals rounding" (saved just now).
-A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md
+cornerman: loaded handover "Cart totals rounding" (saved just now).
+A copy to read or share: ~/.cornerman/loaded/widget-shop-cart-totals-rounding-31c9af7.md
 ```
 
 Claude Code puts `SessionStart:clear says:` in front of the first line. If you do not see the message, press <kbd>ctrl</kbd>+<kbd>o</kbd> to show it. The handover loads either way.
@@ -151,12 +177,12 @@ Claude Code puts `SessionStart:clear says:` in front of the first line. If you d
 Use it when a chat has grown long and you want to `/clear`. The handover keeps the task. The chat history behind it can go. The plugin checks for a waiting handover when a session starts, after `/clear` and after compaction (when `/compact`, or Claude Code on its own, shrinks the chat). When nothing is waiting, it prints nothing.
 
 > [!NOTE]
-> Handovers are plain text files on your disk, in `~/.clear-resume`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
+> Handovers are plain text files on your disk, in `~/.cornerman`. Nothing is sent anywhere unless you turn on [sync](docs/HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](docs/HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web). Keep secrets out of them.
 
 ## Also built in, with no setup
 
 <p align="center">
-  <img src="docs/media/windows.png" width="560" alt="Window 1, on widget-shop, branch fix/cart-rounding, runs /clear-resume:handover and prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). Then it runs /clear and prints: clear-resume: loaded handover &quot;Cart totals rounding&quot; (saved just now). Window 2, open on the same project and branch, prints: clear-resume: 1 handover waiting for this repo: &quot;Cart totals rounding&quot;. Say which to resume.">
+  <img src="docs/media/windows.png" width="560" alt="Window 1, on widget-shop, branch fix/cart-rounding, runs /cornerman:handover and prints: Saved handover &quot;Cart totals rounding&quot; (id 31c9af7). Then it runs /clear and prints: cornerman: loaded handover &quot;Cart totals rounding&quot; (saved just now). Window 2, open on the same project and branch, prints: cornerman: 1 handover waiting for this repo: &quot;Cart totals rounding&quot;. Say which to resume.">
 </p>
 
 **Each handover belongs to the Claude Code window that wrote it.** While that window is open, it is the only one that loads the handover after `/clear`. Other windows on the same project list it when they start, and load it only if you ask. Once that window closes, a session on the same branch loads it. A handover older than 7 days is listed, not loaded.
@@ -183,31 +209,31 @@ These are the common cases. After compaction, only this window's own handover lo
 </details>
 
 <p align="center">
-  <img src="docs/media/copy.png" width="560" alt="An editor tab titled widget-shop-cart-totals-rounding-31c9af7.md, in ~/.clear-resume/loaded. The file reads: # Cart totals rounding. Repo: widget-shop. Branch: fix/cart-rounding. Saved and Loaded times. Then the handover: Goal: Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match. Next action: Run npm test -- cart and fix src/cart.js:2 so cartTotal rounds once at the end, half-up, to 2 decimal places. Decisions already made: Round once, at the total, never per line: the payment provider does the same.">
+  <img src="docs/media/copy.png" width="560" alt="An editor tab titled widget-shop-cart-totals-rounding-31c9af7.md, in ~/.cornerman/loaded. The file reads: # Cart totals rounding. Repo: widget-shop. Branch: fix/cart-rounding. Saved and Loaded times. Then the handover: Goal: Cart totals must round to the cent the way the payment provider does, so the checkout total and the receipt always match. Next action: Run npm test -- cart and fix src/cart.js:2 so cartTotal rounds once at the end, half-up, to 2 decimal places. Decisions already made: Round once, at the total, never per line: the payment provider does the same.">
 </p>
 
-**A copy you can read.** Each loaded handover is also saved as markdown in `~/.clear-resume/loaded/` for 30 days. Reread what a session started from, or @-mention it in another session.
+**A copy you can read.** Each loaded handover is also saved as markdown in `~/.cornerman/loaded/` for 30 days. Reread what a session started from, or @-mention it in another session.
 
 ## Optional: a VS Code sidebar and a nudge when the chat gets long
 
 <p align="center">
-  <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the clear-resume sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor.">
+  <img src="docs/media/extension-sidebar.png" alt="VS Code on widget-shop with the cornerman sidebar open. Loaded: Cart totals rounding, loaded 3h ago. Current repo: Receipt email. Other repos: Rate limit on /slots. Stale: Search index rebuild. The loaded handover's readable copy is open in the editor.">
 </p>
 
 **The VS Code sidebar** is a separate extension that needs the plugin. It lists your handovers by repo, with the ones loaded in the last 24 hours at the top. **Resume** opens a Claude Code tab with the handover already typed into the prompt box, where it waits for you to send it.
 
 It also adds a context pie to the status bar, filling towards the nudge size (hover it to see which handover the tab loaded), and a relay item that shows the window's clears left and changes them with a click. A **Worktrees** view lists the repo's git worktrees and opens each in its own window. [Extension README](extension/README.md)
 
-Search for clear-resume in the Extensions view, or run:
+Search for cornerman in the Extensions view, or run:
 
 ```bash
-code --install-extension macdara.clear-resume
+code --install-extension macdara.cornerman
 ```
 
-It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume), and on [Open VSX](https://open-vsx.org/extension/macdara/clear-resume) for VSCodium, Cursor and others.
+It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.cornerman), and on [Open VSX](https://open-vsx.org/extension/macdara/cornerman) for VSCodium, Cursor and others.
 
 <p align="center">
-  <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: clear-resume: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
+  <img src="docs/media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: cornerman: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
 **The nudge** (auto mode) is off by default. Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
@@ -219,16 +245,16 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**:
 
 ```
-/plugin configure clear-resume@clear-resume
+/plugin configure cornerman@cornerman
 ```
 
 The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If you use the Claude Code panel in VS Code, set them from a terminal instead:
 
 ```bash
-claude plugin install clear-resume@clear-resume --config auto_nudge=true
+claude plugin install cornerman@cornerman --config auto_nudge=true
 ```
 
-If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CLEAR_RESUME_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
+If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CORNERMAN_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](docs/HOW-IT-WORKS.md#auto-mode-opt-in)
 
 </details>
 
@@ -249,7 +275,7 @@ Claude rereads the whole context for every reply. In a long chat, the goal and t
 | `/compact` | Its own summary of the chat | What the summary leaves out | Smaller |
 | `--resume` | The whole chat | Nothing | Same as before |
 | `/clear` | Nothing | Everything, including where you were | Empty |
-| **clear-resume** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
+| **cornerman** | **A short handover it wrote on purpose** | **The rest of the chat** | **Just the handover** |
 
 </details>
 
@@ -265,18 +291,18 @@ Everything is in [docs/RESEARCH.md](docs/RESEARCH.md), with each number's n, mod
 
 ## Built with it: Spare Cycles
 
-[Spare Cycles](https://github.com/m4cd4r4/spare-cycles) is a small mod I made for Claude Code. It reminds you to do a short task you pick, like 10 push-ups, on a timer, so you take the break while Claude is working. The clip shows it being built in one long session, with clear-resume relaying the work across clears, then running in the status bar of the window it was built in.
+[Spare Cycles](https://github.com/m4cd4r4/spare-cycles) is a small mod I made for Claude Code. It reminds you to do a short task you pick, like 10 push-ups, on a timer, so you take the break while Claude is working. The clip shows it being built in one long session, with cornerman relaying the work across clears, then running in the status bar of the window it was built in.
 
 https://github.com/user-attachments/assets/03a746bb-a202-4f61-b21e-2856cfedb128
 
-<sub>The clip uses a 2-minute timer, sped up, so a reminder comes due on camera. The default is 45 minutes, and you can change it. The status bar is in the clear-resume extension's next release. The Marketplace version, 0.4.1, does not have it yet.</sub>
+<sub>The clip uses a 2-minute timer, sped up, so a reminder comes due on camera. The default is 45 minutes, and you can change it. The status bar is in the cornerman extension's next release. The Marketplace version, 0.4.1, does not have it yet.</sub>
 
 ## What's inside
 
-- **One skill**, `/clear-resume:handover`, that saves the handover.
+- **One skill**, `/cornerman:handover`, that saves the handover.
 - **Four hooks**: one loads a waiting handover at startup, `/clear` and compaction; two nudge when the chat gets long; one keeps what the session left on screen.
 - **One Claude Code mod**, the relay, that runs `/clear` after a save and continues from the handover.
-- **One store**, plain files in `~/.clear-resume`, that the hooks and the VS Code extension read and write through the same code. [What's inside](docs/HOW-IT-WORKS.md#whats-inside)
+- **One store**, plain files in `~/.cornerman`, that the hooks and the VS Code extension read and write through the same code. [What's inside](docs/HOW-IT-WORKS.md#whats-inside)
 
 > [!TIP]
 > **[How it works](docs/HOW-IT-WORKS.md)** has the rest.
@@ -296,5 +322,5 @@ https://github.com/user-attachments/assets/03a746bb-a202-4f61-b21e-2856cfedb128
 ---
 
 <p align="center">
-  <a href="LICENSE">MIT licence</a>. clear-resume is an independent project. It is not made or endorsed by Anthropic.
+  <a href="LICENSE">MIT licence</a>. cornerman is an independent project. It is not made or endorsed by Anthropic.
 </p>

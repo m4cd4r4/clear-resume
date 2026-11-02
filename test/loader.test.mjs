@@ -133,7 +133,7 @@ describe("SessionStart hook", () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "cr-store-"));
     repo = mkdtempSync(join(tmpdir(), "cr-repo-"));
-    env = { CLEAR_RESUME_HOME: root };
+    env = { CORNERMAN_HOME: root };
     git("init", "-q", "-b", "main");
     git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init");
   });
@@ -252,7 +252,7 @@ describe("SessionStart hook", () => {
     saveHandover({ cwd: repo, title: "cli", body: "body text", root });
     const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/session-start.mjs")], {
       input: JSON.stringify({ cwd: repo, source: "clear" }),
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
     expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toContain("body text");
@@ -261,7 +261,7 @@ describe("SessionStart hook", () => {
   it("the script exits 0 silently on garbage input", () => {
     const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/session-start.mjs")], {
       input: "not json",
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
     expect(stdout).toBe("");
@@ -318,10 +318,10 @@ describe("SessionStart hook", () => {
     describe("with the process walk on and CLAUDE_PID set", () => {
       let windowEnv, me;
       beforeEach(() => {
-        vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+        vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
         // run() here is the hook inside the long-lived test process; give it a fresh budget.
         startHookClock();
-        windowEnv = { ...env, CLAUDE_PID: String(process.pid), CLEAR_RESUME_PROCESS_TIMEOUT_MS: "15000" };
+        windowEnv = { ...env, CLAUDE_PID: String(process.pid), CORNERMAN_PROCESS_TIMEOUT_MS: "15000" };
         me = ownerId(windowEnv);
         // Without a start time this would not be the case under test.
         expect(me).toMatch(new RegExp(`^${process.pid}@\\d+$`));
@@ -371,7 +371,7 @@ describe("SessionStart hook", () => {
     const file = path.split(/[\\/]/).at(-1);
     const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/load.mjs"), file], {
       cwd: repo,
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
     expect(out).toContain("chosen body");

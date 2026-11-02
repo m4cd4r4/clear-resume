@@ -30,12 +30,12 @@ const git = (...a) => execFileSync("git", a, { cwd: repo, stdio: "ignore" });
 const record = (path) => JSON.parse(readFileSync(path, "utf8"));
 const lower = (s) => String(s).toLowerCase().replace(/\\/g, "/");
 const copies = () => (existsSync(loadedDir(root)) ? readdirSync(loadedDir(root)).filter((f) => f.endsWith(".md")) : []);
-const hook = (owner = ME) => run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
+const hook = (owner = ME) => run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: owner } });
 
 function load(args, { owner = ME, walk = false } = {}) {
   return spawnSync(process.execPath, [LOAD, ...args], {
     cwd: repo,
-    env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: owner, ...(walk ? { CLEAR_RESUME_NO_PROCESS_WALK: "" } : {}) },
+    env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: owner, ...(walk ? { CORNERMAN_NO_PROCESS_WALK: "" } : {}) },
     encoding: "utf8",
   });
 }
@@ -143,7 +143,7 @@ describe("the SessionStart hook writes a copy and names it", () => {
     const out = hook();
 
     const [first, second, ...more] = out.systemMessage.split("\n");
-    expect(first).toBe('clear-resume: loaded handover "Cart totals rounding" (saved just now).');
+    expect(first).toBe('cornerman: loaded handover "Cart totals rounding" (saved just now).');
     expect(more).toEqual([]);
     expect(second).toMatch(/^A copy to read or share: .*[\\/]loaded[\\/]widget-shop-[a-z0-9]+-cart-totals-rounding-[0-9a-f]{7}\.md$/);
     expect(second).toContain(saved.short);
@@ -174,12 +174,12 @@ describe("the SessionStart hook writes a copy and names it", () => {
     vi.stubEnv("USERPROFILE", home);
     try {
       rmSync(root, { recursive: true, force: true });
-      root = join(home, ".clear-resume");
+      root = join(home, ".cornerman");
       saveHandover({ cwd: repo, title: "Cart totals rounding", body: "b", root, owner: ME });
 
       const second = hook().systemMessage.split("\n")[1];
 
-      expect(second).toMatch(/^A copy to read or share: ~\/\.clear-resume\/loaded\/widget-shop-[a-z0-9]+-cart-totals-rounding-[0-9a-f]{7}\.md$/);
+      expect(second).toMatch(/^A copy to read or share: ~\/\.cornerman\/loaded\/widget-shop-[a-z0-9]+-cart-totals-rounding-[0-9a-f]{7}\.md$/);
       expect(second).not.toContain("pat-obrien");
     } finally {
       vi.unstubAllEnvs();
@@ -197,7 +197,7 @@ describe("the SessionStart hook writes a copy and names it", () => {
     const [file] = copies();
     const loadedAt = statSync(join(loadedDir(root), file)).mtimeMs;
     // The twin arrives seconds later and rewrites the copy dated by the first load.
-    const env = { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME };
+    const env = { CORNERMAN_HOME: root, CLAUDE_PID: ME };
     const twin = run({ cwd: repo, source: "clear" }, { env, now: new Date(Date.now() + 10_000) }).systemMessage.split("\n");
 
     expect(first).toHaveLength(2);
@@ -216,7 +216,7 @@ describe("the SessionStart hook writes a copy and names it", () => {
 
     const out = hook();
 
-    expect(out.systemMessage).toBe('clear-resume: loaded handover "Must load" (saved just now).');
+    expect(out.systemMessage).toBe('cornerman: loaded handover "Must load" (saved just now).');
     expect(out.hookSpecificOutput.additionalContext).toContain("the body");
     expect(record(saved.path).status).toBe("archived");
   });
@@ -257,7 +257,7 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
   // saved `agoMs` before this test process started, and the taker's owner id is
   // looked up for real (pid@start), as it is in a real window.
   function takenHere({ title = "Closed window's", agoMs = 2 * 3_600_000 } = {}) {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     const saved = saveHandover({ cwd: repo, title, body: "c body", root, owner: "999", now: new Date(Date.now() - agoMs) });
     archive(root, null, saved.path, { via: "hook", owner: "999" });
     // Written on another machine and synced here: owned here means this machine too.
@@ -269,7 +269,7 @@ describe("--peek and --take on a handover that was already loaded", { timeout: 3
   // Each call is a new SessionStart: a fresh budget, and nothing remembered from the last.
   const hookAs = (owner, source = "clear") => {
     startHookClock();
-    return run({ cwd: repo, source }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: owner } });
+    return run({ cwd: repo, source }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: owner } });
   };
 
   it("--take makes a closed window's loaded handover waiting again and this window's", () => {

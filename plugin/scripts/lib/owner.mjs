@@ -73,14 +73,14 @@ const START_SLACK_MS = 1000;
 // them all.
 const MEMO_MS = 5000;
 
-const walkOff = (env) => Boolean(env.CLEAR_RESUME_NO_PROCESS_WALK || process.env.CLEAR_RESUME_NO_PROCESS_WALK);
+const walkOff = (env) => Boolean(env.CORNERMAN_NO_PROCESS_WALK || process.env.CORNERMAN_NO_PROCESS_WALK);
 const timeoutFor = (env, fallback) =>
-  Number(env.CLEAR_RESUME_PROCESS_TIMEOUT_MS || process.env.CLEAR_RESUME_PROCESS_TIMEOUT_MS) || fallback;
+  Number(env.CORNERMAN_PROCESS_TIMEOUT_MS || process.env.CORNERMAN_PROCESS_TIMEOUT_MS) || fallback;
 
 // How long a read may take now: a function, so a later read in the same run gets
 // what is left by then. An explicit timeout (load.mjs, save.mjs) has no deadline.
 // A hook's own lookup (`self`) is capped only by the budget, or by an explicit
-// CLEAR_RESUME_PROCESS_TIMEOUT_MS.
+// CORNERMAN_PROCESS_TIMEOUT_MS.
 function budget(env, timeout, { self = false } = {}) {
   if (timeout != null) {
     const t = timeoutFor(env, timeout);
@@ -357,7 +357,7 @@ export function ownerId(env = process.env, { table, readTable, timeout } = {}) {
  * - With a start time, the pid's process must have started then (within a second).
  * - A bare pid must still name a Claude-shaped process.
  * - A lookup that fails or times out, a pid missing from the table, or the lookup
- *   turned off (CLEAR_RESUME_NO_PROCESS_WALK) answers open.
+ *   turned off (CORNERMAN_NO_PROCESS_WALK) answers open.
  */
 export function ownerOpen(owner, { table, readTable, env = process.env, timeout } = {}) {
   const { pid, start } = parseOwner(owner);

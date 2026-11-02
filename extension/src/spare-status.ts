@@ -5,13 +5,13 @@ import { actionJson, isDue, readState, spareDir, statusText, type SpareAction, t
 
 const TICK_MS = 1_000;
 
-const enabled = () => vscode.workspace.getConfiguration("clearResume").get<boolean>("spareCycles") === true;
+const enabled = () => vscode.workspace.getConfiguration("cornerman").get<boolean>("spareCycles") === true;
 
 /**
  * The Spare Cycles countdown: `$(watch) 1:42 Wash the dishes`, then
  * `$(bell) Wash the dishes: now` on the warning background once due. The mod owns
  * the timer and writes ~/.spare-cycles/state.json; this only draws it. Behind
- * `clearResume.spareCycles`: off means no item, no watcher and no interval, and
+ * `cornerman.spareCycles`: off means no item, no watcher and no interval, and
  * turning it on or off takes effect without a reload. Clicking it writes Done,
  * Skip or Snooze to action.json, which the mod polls. Each due task also raises
  * one notification with the same three buttons.
@@ -50,8 +50,8 @@ export function spareStatus(context: vscode.ExtensionContext): void {
 
   // One toast per due task: remembering dueAt keeps the 1s tick and reloads from re-raising it.
   const notify = (due: SpareState) => {
-    if (due.dueAt === context.globalState.get<number>("clearResume.spareNotifiedDueAt")) return;
-    void context.globalState.update("clearResume.spareNotifiedDueAt", due.dueAt);
+    if (due.dueAt === context.globalState.get<number>("cornerman.spareNotifiedDueAt")) return;
+    void context.globalState.update("cornerman.spareNotifiedDueAt", due.dueAt);
     void vscode.window.showInformationMessage(`Spare cycle: ${due.task}`, "Done", "Skip", "Snooze").then((chosen) => {
       if (chosen && enabled()) act(chosen.toLowerCase() as SpareAction);
     });
@@ -59,9 +59,9 @@ export function spareStatus(context: vscode.ExtensionContext): void {
 
   const start = (): vscode.Disposable => {
     const dir = spareDir();
-    const item = vscode.window.createStatusBarItem("clearResume.spare", vscode.StatusBarAlignment.Left, 0.3);
-    item.name = "clear-resume: Spare Cycles";
-    item.command = "clearResume.spareAct";
+    const item = vscode.window.createStatusBarItem("cornerman.spare", vscode.StatusBarAlignment.Left, 0.3);
+    item.name = "cornerman: Spare Cycles";
+    item.command = "cornerman.spareAct";
 
     const draw = () => {
       try {
@@ -117,9 +117,9 @@ export function spareStatus(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("clearResume.spareAct", pick),
+    vscode.commands.registerCommand("cornerman.spareAct", pick),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("clearResume.spareCycles")) apply();
+      if (e.affectsConfiguration("cornerman.spareCycles")) apply();
     }),
     { dispose: () => running?.dispose() },
   );

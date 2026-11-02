@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0
+
+- **clear-resume is now cornerman.** The plugin, the slash command (`/cornerman:handover`), the
+  extension, the store (`~/.cornerman`) and the variables (`CORNERMAN_`) all take the new name. Your
+  handovers move by themselves at the next session start, in one atomic rename, with nothing removed.
+  `CLEAR_RESUME_` variables keep working, and `scripts/upgrade.mjs` copies your plugin options. The
+  steps are in the [README](README.md).
+
+- **A machine still on the old version cannot delete handovers on an upgraded one.** Sync restores a
+  record an older version archived by age. A delete a person made on purpose is kept, unless the
+  record had already been archived for more than 30 days.
+
+- **Handovers are kept until you delete them.** An archived handover used to lose its body at 30
+  days, and its capture went with it. Age alone no longer removes either. A delete you make still
+  removes the handover for good after 90 days. Loaded copies, and captures no handover names, still
+  go at 30 days.
+
 ## 0.5.2
 
 - **Idle handovers no longer stall on the skill prompt.** Nobody was at the keyboard to answer

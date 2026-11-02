@@ -96,11 +96,11 @@ export function windowNudgeAt(env, sessionId) {
   return null;
 }
 
-// The window override wins, then CLEAR_RESUME_NUDGE_AT when it is a usable
+// The window override wins, then CORNERMAN_NUDGE_AT when it is a usable
 // number, then the plugin option, then the default. A bad value falls through
 // rather than turning the nudge off.
 export function threshold(env, sessionId) {
-  for (const raw of [windowNudgeAt(env, sessionId), env.CLEAR_RESUME_NUDGE_AT, env[NUDGE_AT_OPTION]]) {
+  for (const raw of [windowNudgeAt(env, sessionId), env.CORNERMAN_NUDGE_AT, env[NUDGE_AT_OPTION]]) {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) return n;
   }
@@ -141,7 +141,7 @@ function claimNudge(env, sessionId, tokens) {
 
 // Every ask carries this line, so the next Stop can find the last one in the
 // transcript and see what Claude did after it.
-const ASK_MARK = "clear-resume auto mode";
+const ASK_MARK = "cornerman auto mode";
 export const MAX_ASKS = 3;
 // After Claude answers without saving, ask again only once the context has grown by this much.
 const ANSWERED_GROWTH = 40_000;
@@ -210,7 +210,7 @@ export function runStop(input, { env = process.env } = {}) {
 
   if (headless(env)) {
     return {
-      systemMessage: `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover; the runner resumes it.`,
+      systemMessage: `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover; the runner resumes it.`,
       hookSpecificOutput: { hookEventName: "Stop", additionalContext: headlessAsk(tokens, limit, "") },
     };
   }
@@ -224,10 +224,10 @@ export function runStop(input, { env = process.env } = {}) {
     hookSpecificOutput: {
       hookEventName: "Stop",
       additionalContext:
-        `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
+        `cornerman auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
         (relayOn(env)
-          ? `${RELAY_FINISHED}Otherwise, at a clean stopping point, write a handover now with the /clear-resume:handover skill, `
-          : `If the current task is finished or at a clean stopping point, write a handover now with the /clear-resume:handover skill, `) +
+          ? `${RELAY_FINISHED}Otherwise, at a clean stopping point, write a handover now with the /cornerman:handover skill, `
+          : `If the current task is finished or at a clean stopping point, write a handover now with the /cornerman:handover skill, `) +
         `${afterSave(env)} ` +
         `If you are mid-task, finish the current step first, then save, or reply "${DEFER_REPLY} <reason>". ` +
         `If this is asked again at a turn end, it is because you neither saved nor replied.`,
@@ -254,7 +254,7 @@ function remind(env, sessionId, transcriptPath, tokens, limit) {
       additionalContext:
         `${ASK_MARK}: reminder ${asks} of ${MAX_ASKS}. This session's context is about ${k(tokens)} tokens (threshold ${k(limit)}) ` +
         (answer === null ? `and you were asked to save a handover but neither saved one nor replied. ` : `and it has grown since you last replied. `) +
-        `Now either write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
+        `Now either write a handover with the /cornerman:handover skill, ${afterSave(env)} ` +
         `or, only if the session's whole goal is done and nothing remains open, reply "${FINISHED_REPLY}" and end your turn; if you must finish something first, reply "${DEFER_REPLY} <reason>".`,
     },
   };
@@ -267,7 +267,7 @@ function remind(env, sessionId, transcriptPath, tokens, limit) {
 const SAVE_SCRIPT = fileURLToPath(new URL("../save.mjs", import.meta.url));
 function headlessAsk(tokens, limit, midTurn) {
   return (
-    `clear-resume headless mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}).${midTurn} ` +
+    `cornerman headless mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}).${midTurn} ` +
     `If your task is finished, do not save a handover: just end, and the run stops. ` +
     `Otherwise: commit all your work on your branch now, then save a handover by running ` +
     `node "${SAVE_SCRIPT.replace(/\\/g, "/")}" --title "<short title>" with the handover markdown on stdin (a quoted heredoc). ` +
@@ -280,7 +280,7 @@ function headlessAsk(tokens, limit, midTurn) {
 // The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
 function userLine(env, tokens, limit, ask) {
   const then = relayOn(env) ? "and the relay then clears and continues by itself" : "then you can type /clear";
-  return `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, ${then}.`;
+  return `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, ${then}.`;
 }
 
 // With the relay on, a saved handover is what makes it clear and continue, so a
@@ -316,7 +316,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
 
   if (headless(env)) {
     return {
-      systemMessage: `clear-resume: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover when this step is done; the runner resumes it.`,
+      systemMessage: `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover when this step is done; the runner resumes it.`,
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext: headlessAsk(tokens, limit, " This turn is still running: finish the current step first, but do not start new work."),
@@ -329,9 +329,9 @@ export function runMidTurn(input, { env = process.env } = {}) {
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext:
-        `clear-resume auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
+        `cornerman auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
         `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
-        `then write a handover with the /clear-resume:handover skill, ${afterSave(env)} ` +
+        `then write a handover with the /cornerman:handover skill, ${afterSave(env)} ` +
         (relayOn(env) ? RELAY_FINISHED : "") +
         `Do not abandon work in progress to do it. If the turn ends and you neither saved nor replied "${DEFER_REPLY} <reason>", you are asked again at the turn end.`,
     },

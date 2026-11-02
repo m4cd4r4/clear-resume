@@ -46,7 +46,7 @@ export function runHook({ argv = process.argv, cwd = process.cwd(), log = consol
 
   // post-rewrite also fires for `git commit --amend`; only a rebase is a pull.
   if (hookName === "post-rewrite" && hookArg !== "rebase") {
-    log(`clear-resume auto-update: skipped (post-rewrite reason "${hookArg || "amend"}", not a rebase)`);
+    log(`cornerman auto-update: skipped (post-rewrite reason "${hookArg || "amend"}", not a rebase)`);
     return;
   }
 
@@ -56,14 +56,14 @@ export function runHook({ argv = process.argv, cwd = process.cwd(), log = consol
 
   const decision = decideAutoUpdate({ branch, isPrimaryCheckout, changedPaths });
   if (!decision.run) {
-    log(`clear-resume auto-update: skipped (${decision.reason})`);
+    log(`cornerman auto-update: skipped (${decision.reason})`);
     return;
   }
 
   const result = update();
   log(
     result.ok
-      ? `clear-resume auto-update: ran \`claude plugin marketplace update\` + \`claude plugin update\` (${decision.reason})`
-      : `clear-resume auto-update: attempted the update but hit an error - ${result.detail}`,
+      ? `cornerman auto-update: ran \`claude plugin marketplace update\` + \`claude plugin update\` (${decision.reason})`
+      : `cornerman auto-update: attempted the update but hit an error - ${result.detail}`,
   );
 }

@@ -55,9 +55,16 @@ describe("buildTrail", () => {
 
   it("does not list this plugin's own save and load commands", () => {
     const rows = [];
-    call(rows, "Bash", { command: 'node "C:/Users/me/.claude/plugins/cache/clear-resume/clear-resume/0.4.0/scripts/save.mjs" --title x' });
+    call(rows, "Bash", { command: 'node "C:/Users/me/.claude/plugins/cache/cornerman/cornerman/0.4.0/scripts/save.mjs" --title x' });
     call(rows, "Bash", { command: "git log --oneline -5" });
     expect(buildTrail(write(rows)).ran).toEqual(["git log --oneline -5"]);
+  });
+
+  it("does not list the save and load commands of a window still on the old name", () => {
+    const rows = [];
+    call(rows, "Bash", { command: 'node "C:/Users/me/.claude/plugins/cache/clear-resume/clear-resume/0.5.0/scripts/load.mjs" 0eebca3' });
+    call(rows, "Bash", { command: "git status" });
+    expect(buildTrail(write(rows)).ran).toEqual(["git status"]);
   });
 
   it("shows a path only when two different files in the same list share a name", () => {
@@ -188,10 +195,10 @@ describe("save.mjs", () => {
     writeFileSync(join(proj, "sess-2.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
     execFileSync("git", ["init", "-q"], { cwd: repo });
     execFileSync("git", ["-c", "user.email=t@x.invalid", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init"], { cwd: repo });
-    const env = { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: "sess-2", CLEAR_RESUME_AUTO: "" };
+    const env = { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: "sess-2", CORNERMAN_AUTO: "" };
     const out = execFileSync("node", [save, "--title", "with trail", "--cwd", repo], { input: "# T\n\n## Goal\ng\n", env, encoding: "utf8" });
     expect(out).toContain("Saved handover");
-    const stored = walk(join(home, ".clear-resume")).map((f) => readFileSync(f, "utf8")).join("\n");
+    const stored = walk(join(home, ".cornerman")).map((f) => readFileSync(f, "utf8")).join("\n");
     expect(stored).toContain("Recent trail");
     expect(stored).toContain("npm run lint");
   });
@@ -201,7 +208,7 @@ describe("save.mjs", () => {
     mkdirSync(repo, { recursive: true });
     execFileSync("git", ["init", "-q"], { cwd: repo });
     execFileSync("git", ["-c", "user.email=t@x.invalid", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init"], { cwd: repo });
-    const env = { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: "", CLEAR_RESUME_AUTO: "" };
+    const env = { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: "", CORNERMAN_AUTO: "" };
     const out = execFileSync("node", [save, "--title", "no transcript", "--cwd", repo], { input: "# T\n\n## Goal\ng\n", env, encoding: "utf8" });
     expect(out).toContain("Saved handover");
   });

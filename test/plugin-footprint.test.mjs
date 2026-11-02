@@ -26,14 +26,14 @@ const inside = (p) => {
 };
 
 describe("plugin footprint", () => {
-  it("keeps the install id clear-resume@clear-resume and points the entry at plugin/", () => {
+  it("keeps the install id cornerman@cornerman and points the entry at plugin/", () => {
     const market = JSON.parse(readFileSync(join(REPO, ".claude-plugin", "marketplace.json"), "utf8"));
-    expect(market.name).toBe("clear-resume");
+    expect(market.name).toBe("cornerman");
     expect(market.plugins).toHaveLength(1);
-    expect(market.plugins[0].name).toBe("clear-resume");
+    expect(market.plugins[0].name).toBe("cornerman");
     expect(market.plugins[0].source).toBe("./plugin");
     const manifest = JSON.parse(readFileSync(join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8"));
-    expect(manifest.name).toBe("clear-resume");
+    expect(manifest.name).toBe("cornerman");
     expect(existsSync(join(REPO, ".claude-plugin", "plugin.json"))).toBe(false);
   });
 

@@ -64,7 +64,7 @@ so it is not retried in a slightly different form.
 
 Do not write a "Recent trail" section. Saving adds one from this session's own tool calls (the last
 files written, edited and read, and the last commands that succeeded and failed), and replaces any
-you wrote, so it is exact. `CLEAR_RESUME_TRAIL=0` turns it off.
+you wrote, so it is exact. `CORNERMAN_TRAIL=0` turns it off.
 
 Leave out sections that would be empty; an empty heading costs the reader a stop.
 Do not include secrets, tokens or passwords: the file is plain text on disk.
@@ -86,12 +86,12 @@ runs without a permission prompt. Do not write the handover to a temporary file
 and redirect it with `<`, and do not add a `cd`: either one makes the user approve
 it by hand.
 
-It saves one JSON record under `~/.clear-resume/handovers/`. Saving again archives only this
+It saves one JSON record under `~/.cornerman/handovers/`. Saving again archives only this
 window's own earlier handover, never another window's, so two windows on the same branch each
 keep their own waiting handover.
 
-With `CLEAR_RESUME_WEB=1` set (for Claude Code on the web), it also pushes
-`.clear-resume/HANDOVER.md` to its own branch, `clear-resume/<branch>`, leaving the
+With `CORNERMAN_WEB=1` set (for Claude Code on the web), it also pushes
+`.cornerman/HANDOVER.md` to its own branch, `cornerman/<branch>`, leaving the
 current branch untouched, so the next cloud session can find it. That session lists it
 with the command that prints it; it does not load it automatically. If the output says
 the push failed, tell the user: the handover is saved on this machine, but a new cloud
@@ -100,7 +100,7 @@ session will not see it.
 ## 4. Tell the user
 
 One line: the handover's title, and that running `/clear` now will load it in the fresh session.
-If a clear-resume nudge this session said the relay is on, say instead that the relay clears
+If a cornerman nudge this session said the relay is on, say instead that the relay clears
 and continues when this turn ends, and end the turn with no further tool calls.
 
 To read a waiting handover without taking it from its window, use

@@ -21,10 +21,10 @@ if (command === "init") {
   }
   const result = initSync(root, remote);
   if (!result.ok) {
-    console.error(`clear-resume: could not set up syncing - ${result.reason}`);
+    console.error(`cornerman: could not set up syncing - ${result.reason}`);
     process.exit(1);
   }
-  console.log(`clear-resume: ${root} is synced with ${remote}`);
+  console.log(`cornerman: ${root} is synced with ${remote}`);
   process.exit(0);
 }
 
@@ -34,7 +34,7 @@ if (command && command !== "run") {
 }
 
 if (!isSynced(root)) {
-  console.log(`clear-resume: ${root} is not synced. Set it up with:\n  node scripts/sync.mjs init <remote-url>`);
+  console.log(`cornerman: ${root} is not synced. Set it up with:\n  node scripts/sync.mjs init <remote-url>`);
   process.exit(0);
 }
 
@@ -42,9 +42,9 @@ const result = sync(root);
 if (!result.ok) {
   // Not an error exit: being offline is a normal state for this, and a non-zero
   // exit would make a hook that calls it look broken.
-  console.log(`clear-resume: sync skipped - ${result.reason}`);
+  console.log(`cornerman: sync skipped - ${result.reason}`);
   process.exit(0);
 }
 
 const settled = result.resolved?.length ? `, ${result.resolved.length} conflict(s) settled by timestamp` : "";
-console.log(`clear-resume: store is up to date${settled}`);
+console.log(`cornerman: store is up to date${settled}`);

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs after `git merge` completes - which includes a `git pull` that merges
 # or fast-forwards (confirmed: `git pull --ff-only` fires this hook, with
-# ORIG_HEAD set to the pre-pull HEAD). Keeps the installed clear-resume plugin
+# ORIG_HEAD set to the pre-pull HEAD). Keeps the installed cornerman plugin
 # copy in step with this repo. See "Developing this plugin" in README.md and
 # scripts/lib/auto-update.mjs for why and scripts/lib/auto-update-hook.mjs for
 # the decision logic.
@@ -15,7 +15,7 @@ repo_root=$(CDPATH= cd -- "$hook_dir/.." && pwd)
 if command -v node >/dev/null 2>&1; then
   node "$repo_root/scripts/auto-update-on-pull.mjs" post-merge "$1"
 else
-  echo "clear-resume auto-update: skipped (node not found on PATH)"
+  echo "cornerman auto-update: skipped (node not found on PATH)"
 fi
 
 exit 0

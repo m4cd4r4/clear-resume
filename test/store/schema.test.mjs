@@ -15,9 +15,9 @@ import {
 } from "../../plugin/packages/store/schema.mjs";
 
 const BASE = {
-  title: "clear-resume extension phase 1",
+  title: "cornerman extension phase 1",
   body: "# handover\n\nbody text",
-  repoPath: "I:/Scratch/clear-resume",
+  repoPath: "I:/Scratch/cornerman",
   machine: "WORKSTATION",
   pid: 26096,
   createdAt: "2026-09-19T23:28:51.277Z",
@@ -61,8 +61,8 @@ describe("recordId", () => {
 
 describe("normalisePath", () => {
   it("folds windows separators and drive-letter casing", () => {
-    expect(normalisePath("i:\\Scratch\\clear-resume\\")).toBe("I:/Scratch/clear-resume");
-    expect(normalisePath("I:/Scratch/clear-resume")).toBe("I:/Scratch/clear-resume");
+    expect(normalisePath("i:\\Scratch\\cornerman\\")).toBe("I:/Scratch/cornerman");
+    expect(normalisePath("I:/Scratch/cornerman")).toBe("I:/Scratch/cornerman");
   });
 });
 
@@ -72,7 +72,7 @@ describe("normalise", () => {
     expect(r.schema).toBe(SCHEMA_VERSION);
     expect(r.status).toBe("waiting");
     expect(r.pinned).toBe(false);
-    expect(r.repo).toBe("clear-resume");
+    expect(r.repo).toBe("cornerman");
     expect(r.branch).toBe("");
     expect(r.source).toBe("native");
   });

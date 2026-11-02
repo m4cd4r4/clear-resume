@@ -24,12 +24,12 @@ import type { Register } from 'claude-code'
 export const SAVED = 'Saved handover "'
 export const SAVE_SCRIPT = /scripts\/save\.mjs/
 
-export const RESUME_TEXT = 'Continue from the clear-resume handover that was just loaded.'
+export const RESUME_TEXT = 'Continue from the cornerman handover that was just loaded.'
 
 // What the status bar's "Hand over" button runs, and the prompt sent instead if
 // the command is refused (a host that does not list plugin skills as commands).
-export const HANDOVER_COMMAND = 'clear-resume:handover'
-export const HANDOVER_TEXT = 'Write a clear-resume handover now, with the /clear-resume:handover skill.'
+export const HANDOVER_COMMAND = 'cornerman:handover'
+export const HANDOVER_TEXT = 'Write a cornerman handover now, with the /cornerman:handover skill.'
 const POLL_MS = 1000
 
 // Idle handover. The prompt cache lasts cache_ttl_minutes after the last reply;
@@ -56,8 +56,8 @@ export const IDLE_HANDOVER_TEXT =
 // the cold rewrite the user would have paid anyway, never lost work: no save, no clear.
 export const IDLE_SMART_TEXT =
   'The user is away and the prompt cache is about to expire. If the work is finished and no step remains, ' +
-  'do not save a handover: reply "Nothing to hand over." and stop. Otherwise write a clear-resume handover now, ' +
-  'with the /clear-resume:handover skill. If a question is open, the Next action is to wait for their answer; do not guess.'
+  'do not save a handover: reply "Nothing to hand over." and stop. Otherwise write a cornerman handover now, ' +
+  'with the /cornerman:handover skill. If a question is open, the Next action is to wait for their answer; do not guess.'
 
 // "toast", "smart" or "auto"; anything else, or unset, is off.
 export function idleMode(raw: unknown): IdleMode {
@@ -123,7 +123,7 @@ export function idleClearedText(saved: IdleSaved | undefined): string {
 
 export const idleToast = (leftMin: number): string =>
   `The prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
-  'Measured once: a handover now was about 5x cheaper than resuming cold. Run /clear-resume:handover, then /clear.'
+  'Measured once: a handover now was about 5x cheaper than resuming cold. Run /cornerman:handover, then /clear.'
 
 // "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
 export function budget(raw: unknown): number {
@@ -182,17 +182,29 @@ export function relayStatus(limit: number, used: number): string {
   return `relay: ${Math.max(0, limit - used)} of ${limit} left`
 }
 
-// <store>/relay, the store being CLEAR_RESUME_HOME or ~/.clear-resume as in
-// packages/store/store.mjs. Undefined when there is no home to put it under.
+// <store>/relay, the store chosen by the rule in resolveStore (packages/store/rename.mjs):
+// a folder named by the variable, then ~/.cornerman if it exists, then ~/.clear-resume if
+// that exists, and ~/.cornerman otherwise. Undefined when there is no home to put it under.
 export async function relayDir($: Engine): Promise<string | undefined> {
-  const own = await $.env.get('CLEAR_RESUME_HOME')
+  const own = (await $.env.get('CORNERMAN_HOME')) || (await $.env.get('CLEAR_RESUME_HOME'))
   if (own) return `${own.replace(/[/\\]+$/, '')}/relay`
   const home = (await $.env.get('USERPROFILE')) || (await $.env.get('HOME'))
-  return home ? `${home.replace(/[/\\]+$/, '')}/.clear-resume/relay` : undefined
+  if (!home) return undefined
+  const base = home.replace(/[/\\]+$/, '')
+  const stayed = !(await folderThere($, `${base}/.cornerman`)) && (await folderThere($, `${base}/.clear-resume`))
+  return `${base}/${stayed ? '.clear-resume' : '.cornerman'}/relay`
+}
+
+async function folderThere($: Engine, path: string): Promise<boolean> {
+  try {
+    return await $.fs.exists(path)
+  } catch {
+    return false
+  }
 }
 
 async function headlessRun($: Engine): Promise<boolean> {
-  return /^(1|true|on|yes)$/i.test((await $.env.get('CLEAR_RESUME_HEADLESS')) ?? '')
+  return /^(1|true|on|yes)$/i.test((await $.env.get('CORNERMAN_HEADLESS')) ?? (await $.env.get('CLEAR_RESUME_HEADLESS')) ?? '')
 }
 
 // One process's relay. The module lives in the process, so this outlives /clear.
@@ -254,8 +266,8 @@ type Relay = {
 // user's own skill also named "handover" saved by its own script, the relay never
 // armed, and nothing said so.
 export const UNARMED_TEXT =
-  'clear-resume relay: no handover was saved with /clear-resume:handover after the context nudge, so the relay will not clear. ' +
-  'If the work goes on, run /clear-resume:handover (another handover skill does not count), or type /clear.'
+  'cornerman relay: no handover was saved with /cornerman:handover after the context nudge, so the relay will not clear. ' +
+  'If the work goes on, run /cornerman:handover (another handover skill does not count), or type /clear.'
 
 // The nudge (scripts/lib/nudge.mjs) marks a session it has asked to hand over at
 // <store>/.nudged/<slug of the session id>, the slug as in scripts/lib/store.mjs.
@@ -468,7 +480,7 @@ async function claimIdle($: Engine, id: string): Promise<boolean> {
 // Mark that the relay is about to ask this session for a handover, at
 // <store>/.asked/<slug> holding { at }. The PreToolUse hook (scripts/pre-tool.mjs)
 // allows the handover skill call once with it: nobody is at the keyboard to answer
-// "Use skill /clear-resume:handover?" in a profile that has not allowed it (rig run,
+// "Use skill /cornerman:handover?" in a profile that has not allowed it (rig run,
 // 2026-10-30). Wall-clock time, as the hook reads it. A failed write only means the
 // prompt may ask. An ask that ended unused writes at 0, which the hook refuses: the
 // mods' fs has no delete.
@@ -647,7 +659,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
         })
         .catch(err => {
           $.ui.status(shown(r))
-          $.ui.toast(`clear-resume idle handover: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
+          $.ui.toast(`cornerman idle handover: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
         })
     })
     return
@@ -669,7 +681,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
   }
   if (r.used >= r.limit) {
     r.pending = false
-    $.ui.toast(`clear-resume relay: budget of ${r.limit} used. Type /clear to continue from the handover.`, {
+    $.ui.toast(`cornerman relay: budget of ${r.limit} used. Type /clear to continue from the handover.`, {
       timeoutMs: 15000,
     })
     return
@@ -680,7 +692,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
   if (r.stalled >= 2) {
     r.pending = false
     $.ui.toast(
-      'clear-resume relay: stopped. Two continued sessions in a row made no new commit. Type /clear to continue from the handover.',
+      'cornerman relay: stopped. Two continued sessions in a row made no new commit. Type /clear to continue from the handover.',
       { timeoutMs: 15000 },
     )
     return
@@ -693,7 +705,7 @@ async function decide($: Engine, r: Relay, reason: string): Promise<void> {
     $.command.run({ command: 'clear' }).catch(err => {
       r.pending = false
       $.ui.status(shown(r))
-      $.ui.toast(`clear-resume relay: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
+      $.ui.toast(`cornerman relay: /clear refused: ${String(err)}`, { timeoutMs: 15000 })
     })
   })
 }
@@ -878,12 +890,12 @@ export const register: Register = (on, options) => {
         .then(() => {
           $.ui.status(shown(r))
           // The VS Code panel draws no status line; a toast is the count it can show.
-          $.ui.toast(`clear-resume ${relayStatus(r.limit, r.used)}`, { timeoutMs: 8000 })
+          $.ui.toast(`cornerman ${relayStatus(r.limit, r.used)}`, { timeoutMs: 8000 })
           return publish($, r)
         })
         .catch(err => {
           $.ui.status(shown(r))
-          $.ui.toast(`clear-resume relay: submit refused: ${String(err)}`, { timeoutMs: 15000 })
+          $.ui.toast(`cornerman relay: submit refused: ${String(err)}`, { timeoutMs: 15000 })
         })
     })
     return result

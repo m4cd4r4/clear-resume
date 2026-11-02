@@ -13,7 +13,7 @@
 // (test/node-guard.test.mjs checks it).
 "use strict";
 
-var NEEDS_NODE = "clear-resume needs Node.js 18 or later on your PATH. Install it and restart Claude Code.";
+var NEEDS_NODE = "cornerman needs Node.js 18 or later on your PATH. Install it and restart Claude Code.";
 var MIN_MAJOR = 18;
 var HOOKS = { "session-start": true, "session-end": true, "pre-tool": true, "post-tool": true, stop: true };
 

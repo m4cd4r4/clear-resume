@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How it works: clear-resume</title>
+<title>How it works: cornerman</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="wrap">
-    <a class="brand" href="index.html">clear-resume</a>
+    <a class="brand" href="index.html">cornerman</a>
     <nav aria-label="Site">
       <ul class="nav">
         <li><a href="#handover">The handover</a></li>
@@ -49,8 +49,8 @@
 
         <h3 data-fact="F122">Where it is kept</h3>
         <div class="prose">
-          <p data-fact="F46">Handovers are plain text files on your disk, in <code>~/.clear-resume</code>. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
-          <p data-fact="F111">Each loaded handover is also saved as markdown in <code>~/.clear-resume/<wbr>loaded/</code> for 30 days.</p>
+          <p data-fact="F46">Handovers are plain text files on your disk, in <code>~/.cornerman</code>. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
+          <p data-fact="F111">Each loaded handover is also saved as markdown in <code>~/.cornerman/<wbr>loaded/</code> for 30 days.</p>
         </div>
 
         <h3 data-fact="F123">When it loads</h3>
@@ -139,7 +139,7 @@
         <ol class="loop-alt">
           <li data-fact="F143">Claude works and the chat grows.</li>
           <li data-fact="F144">With the nudge on, past the size you set, the plugin asks Claude to save a handover.</li>
-          <li data-fact="F145">Claude saves a handover: you type <code class="nw">/clear-resume:handover</code>, or the nudge asks.</li>
+          <li data-fact="F145">Claude saves a handover: you type <code class="nw">/cornerman:handover</code>, or the nudge asks.</li>
           <li data-fact="F146"><code>/clear</code>: you type it, or the plugin runs it when the turn ends, with the relay on.</li>
           <li data-fact="F147">The fresh session loads the handover, and Claude carries on.</li>
         </ol>
@@ -154,17 +154,17 @@
         <p data-fact="F150">The README's example: a handover in a widget-shop repo, saved, loaded after <code>/clear</code>, and the copy it leaves.</p>
       </div>
       <div class="term transcript">
-        <pre><span class="in" data-fact="F19">/clear-resume:handover</span>
+        <pre><span class="in" data-fact="F19">/cornerman:handover</span>
 <span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span>
 <span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span>
 
 <span class="in" data-fact="F6">/clear</span>
-<span class="out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span>
-<span class="out" data-fact="F15">A copy to read or share: <span class="nw">~/.clear-resume/</span><wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span></pre>
+<span class="out" data-fact="F14">cornerman: loaded handover "Cart totals rounding" (saved just now).</span>
+<span class="out" data-fact="F15">A copy to read or share: <span class="nw">~/.cornerman/</span><wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span></pre>
       </div>
-      <p class="copy-note" data-fact="F151">The copy in <code>~/.clear-resume/<wbr>loaded/</code> stays for 30 days: reread what a session started from, or <span class="nw">@-mention</span> it in another session.</p>
+      <p class="copy-note" data-fact="F151">The copy in <code>~/.cornerman/<wbr>loaded/</code> stays for 30 days: reread what a session started from, or <span class="nw">@-mention</span> it in another session.</p>
       <div class="term file">
-        <p class="file-name" data-fact="F152">~/<wbr>.clear-resume/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</p>
+        <p class="file-name" data-fact="F152">~/<wbr>.cornerman/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</p>
         <pre><span class="note" data-fact="F153"># the copy, as the README's screenshot of it reads</span>
 <span class="out h" data-fact="F154"># Cart totals rounding</span>
 <span class="out" data-fact="F155">Repo: widget-shop. Branch: fix/cart-rounding.</span>
@@ -190,7 +190,7 @@
             <tr><th scope="row" data-fact="F168">/compact</th><td data-label="Claude keeps" data-fact="F101">Its own summary of the chat</td><td data-label="You lose" data-fact="F102">What the summary leaves out</td><td data-label="Chat size after" data-fact="F162">Smaller</td></tr>
             <tr><th scope="row" data-fact="F169">--resume</th><td data-label="Claude keeps" data-fact="F103">The whole chat</td><td data-label="You lose" data-fact="F104">Nothing</td><td data-label="Chat size after" data-fact="F163">Same as before</td></tr>
             <tr><th scope="row" data-fact="F6">/clear</th><td data-label="Claude keeps" data-fact="F164">Nothing</td><td data-label="You lose" data-fact="F105">Everything, including where you were</td><td data-label="Chat size after" data-fact="F165">Empty</td></tr>
-            <tr class="us"><th scope="row" data-fact="F170">clear-resume</th><td data-label="Claude keeps" data-fact="F106">A short handover it wrote on purpose</td><td data-label="You lose" data-fact="F166">The rest of the chat</td><td data-label="Chat size after" data-fact="F167">Just the handover</td></tr>
+            <tr class="us"><th scope="row" data-fact="F170">cornerman</th><td data-label="Claude keeps" data-fact="F106">A short handover it wrote on purpose</td><td data-label="You lose" data-fact="F166">The rest of the chat</td><td data-label="Chat size after" data-fact="F167">Just the handover</td></tr>
           </tbody>
         </table>
       </div>
@@ -202,7 +202,7 @@
     <div class="wrap">
       <h2 id="h-model" data-fact="F173">The model</h2>
       <div class="prose">
-        <p data-fact="F174">A model, not a measurement. Claude rereads the whole context for every reply: set a task and see how much it rereads with clear-resume and without it.</p>
+        <p data-fact="F174">A model, not a measurement. Claude rereads the whole context for every reply: set a task and see how much it rereads with cornerman and without it.</p>
       </div>
       <form class="model-ui" id="model-form">
         <fieldset class="m-win">
@@ -225,12 +225,12 @@
           <input type="range" id="m-work" min="200000" max="5000000" step="100000" value="2000000">
         </div>
       </form>
-      <p class="m-note" id="m-note200" hidden data-fact="F182">On a 200k window, the run without clear-resume compacts on its own at <span data-run="mCompact"></span> (assumed).</p>
-      <p class="m-sum" aria-live="polite" data-fact="F183">Reread over the task: <span data-run="mClearReread"></span> with <span class="nw">clear-resume</span>, <span data-run="mBaseReread"></span> without it.</p>
+      <p class="m-note" id="m-note200" hidden data-fact="F182">On a 200k window, the run without cornerman compacts on its own at <span data-run="mCompact"></span> (assumed).</p>
+      <p class="m-sum" aria-live="polite" data-fact="F183">Reread over the task: <span data-run="mClearReread"></span> with <span class="nw">cornerman</span>, <span data-run="mBaseReread"></span> without it.</p>
       <figure class="chart m-chart">
         <div class="chart-svg" id="model-svg"></div>
         <div class="m-key">
-          <p><span class="key-line" aria-hidden="true"></span><span data-fact="F170">clear-resume</span></p>
+          <p><span class="key-line" aria-hidden="true"></span><span data-fact="F170">cornerman</span></p>
           <p><span class="key-line base" aria-hidden="true"></span><span data-fact="F184">without it: Claude Code compacts on its own</span></p>
         </div>
       </figure>
@@ -240,7 +240,7 @@
             <tr><td></td><th scope="col" data-fact="F185">Resets</th><th scope="col" data-fact="F186">Peak context</th><th scope="col" data-fact="F187">Context reread</th></tr>
           </thead>
           <tbody>
-            <tr class="us"><th scope="row" data-fact="F170">clear-resume</th><td data-fact="F188"><span data-run="mClearResets"></span></td><td data-fact="F189"><span data-run="mClearPeak"></span></td><td data-fact="F190"><span data-run="mClearReread"></span></td></tr>
+            <tr class="us"><th scope="row" data-fact="F170">cornerman</th><td data-fact="F188"><span data-run="mClearResets"></span></td><td data-fact="F189"><span data-run="mClearPeak"></span></td><td data-fact="F190"><span data-run="mClearReread"></span></td></tr>
             <tr><th scope="row" data-fact="F191">without it</th><td data-fact="F192"><span data-run="mBaseResets"></span></td><td data-fact="F193"><span data-run="mBasePeak"></span></td><td data-fact="F194"><span data-run="mBaseReread"></span></td></tr>
           </tbody>
         </table>
@@ -252,7 +252,7 @@
           <li data-fact="F196">Each reply adds 5000 new tokens to the context: assumed.</li>
           <li data-fact="F197">Claude rereads the whole context for every reply, so the reread figure is the context summed over every reply.</li>
           <li data-fact="F198">After a clear, the run restarts at the start size plus the handover: about 780 tokens in the handover, an estimate. Measured on the author's own 104 /clears, 20 to 28 Sep 2026, medians.</li>
-          <li data-fact="F199">Without clear-resume, the run compacts at nine tenths of the window and keeps an 8000-token summary: both assumed.</li>
+          <li data-fact="F199">Without cornerman, the run compacts at nine tenths of the window and keeps an 8000-token summary: both assumed.</li>
           <li data-fact="F73">On the API, cache reads are billed at a tenth of the input price.</li>
           <li data-fact="F200">The model clears at or below the clear-at size. The plugin asks Claude to save once context is past the size you set, and Claude then saves, so in use, peaks pass it.</li>
         </ul>
@@ -317,14 +317,14 @@
             <p class="set-def" data-fact="F217">Default: off</p>
           </div>
           <div class="ss-body">
-            <p data-fact="F218">A number of clears per Claude Code window, or unlimited. After Claude saves a handover, clear-resume runs <code>/clear</code> when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it.</p>
+            <p data-fact="F218">A number of clears per Claude Code window, or unlimited. After Claude saves a handover, cornerman runs <code>/clear</code> when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it.</p>
             <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
           </div>
         </div>
       </div>
       <div class="prose set-notes">
-        <p data-fact="F220">Set them with <code>/plugin configure <span class="nw">clear-resume@clear-resume</span></code>, or in <code>/config</code>: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with <code>claude plugin install <span class="nw">clear-resume@clear-resume --config</span></code>.</p>
-        <p data-fact="F221">The environment variables still work: <code>CLEAR_RESUME_AUTO</code> wins whenever it is set, and <code>CLEAR_RESUME_NUDGE_AT</code> wins when it is a positive number.</p>
+        <p data-fact="F220">Set them with <code>/plugin configure <span class="nw">cornerman@cornerman</span></code>, or in <code>/config</code>: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with <code>claude plugin install <span class="nw">cornerman@cornerman --config</span></code>.</p>
+        <p data-fact="F221">The environment variables still work: <code>CORNERMAN_AUTO</code> wins whenever it is set, and <code>CORNERMAN_NUDGE_AT</code> wins when it is a positive number.</p>
         <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
         <p data-fact="F222">Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web).</p>
         <p class="src" data-fact="F223">Source: the README.</p>
@@ -339,7 +339,7 @@
         <div class="ss-row">
           <div>
             <p class="set-name" data-fact="F258">One skill</p>
-            <p class="set-key"><code class="nw">/clear-resume:handover</code></p>
+            <p class="set-key"><code class="nw">/cornerman:handover</code></p>
           </div>
           <div class="ss-body">
             <p data-fact="F259">Claude writes the handover and saves it with <code>save.mjs</code>, which reads it on stdin.</p>
@@ -392,7 +392,7 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="how-it-works.html">How it works</a></li>
       <li><a href="changelog.html">Changelog</a></li>
-      <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
+      <li><a href="https://github.com/m4cd4r4/cornerman">GitHub</a></li>
     </ul>
   </div>
 </footer>

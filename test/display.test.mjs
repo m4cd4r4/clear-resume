@@ -11,7 +11,7 @@ describe("tildePath and shellPath", () => {
   it("write a path under home as ~/... for reading and \"$HOME/...\" for a command, and leave other paths alone", () => {
     const home = mkdtempSync(join(tmpdir(), "cr-home-"));
     try {
-      expect(tildePath(join(home, ".clear-resume", "handovers", "x.json"), home)).toBe("~/.clear-resume/handovers/x.json");
+      expect(tildePath(join(home, ".cornerman", "handovers", "x.json"), home)).toBe("~/.cornerman/handovers/x.json");
       expect(tildePath(home, home)).toBe("~");
       expect(tildePath("/elsewhere/repo", home)).toBe("/elsewhere/repo");
       expect(tildePath(`${home}-other/repo`, home)).toBe(`${home}-other/repo`);

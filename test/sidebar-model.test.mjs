@@ -24,8 +24,8 @@ const rec = (over = {}) => ({
   title: "Ship the nudge",
   body: "# Ship the nudge\n\n## Goal\nGet it out.\n\n## Next action\n- Rebase onto origin/main\n- Open the PR\n\n## Notes\nlater",
   resumePrompt: "Resume from handover",
-  repo: "clear-resume",
-  repoPath: "I:/Scratch/clear-resume",
+  repo: "cornerman",
+  repoPath: "I:/Scratch/cornerman",
   branch: "feat/nudge",
   createdAt: ago(3 * H),
   updatedAt: ago(3 * H),
@@ -62,16 +62,16 @@ describe("fadeOf", () => {
 describe("rowOf", () => {
   it("uses the tree's strings: repo and branch, short age", () => {
     const r = rowOf(rec(), NOW);
-    expect(r).toMatchObject({ title: "Ship the nudge", meta: "clear-resume \u00b7 feat/nudge", age: "3h", kind: "waiting", pinned: false });
+    expect(r).toMatchObject({ title: "Ship the nudge", meta: "cornerman \u00b7 feat/nudge", age: "3h", kind: "waiting", pinned: false });
   });
   it("says the worktree and the branch once when one repeats the other", () => {
     const meta = (repo, branch) => rowOf(rec({ repo, branch }), NOW).meta;
-    expect(meta("clear-resume-restyle-webview", "feat/restyle-webview")).toBe("clear-resume-restyle-webview");
-    expect(meta("clear-resume", "clear-resume/fix-x")).toBe("clear-resume/fix-x");
+    expect(meta("cornerman-restyle-webview", "feat/restyle-webview")).toBe("cornerman-restyle-webview");
+    expect(meta("cornerman", "cornerman/fix-x")).toBe("cornerman/fix-x");
     expect(meta("main", "main")).toBe("main");
-    expect(meta("clear-resume", "feat/restyle-webview")).toBe("clear-resume · feat/restyle-webview");
+    expect(meta("cornerman", "feat/restyle-webview")).toBe("cornerman · feat/restyle-webview");
     expect(meta("domain-site", "feat/main")).toBe("domain-site · feat/main");
-    expect(meta("clear-resume", "")).toBe("clear-resume");
+    expect(meta("cornerman", "")).toBe("cornerman");
   });
   it("labels a loaded row with its loaded age and a distinct key", () => {
     const loaded = rec({ status: "archived", archivedAt: ago(25 * 60_000), archivedBy: { via: "hook" } });
@@ -84,7 +84,7 @@ describe("rowOf", () => {
 });
 
 describe("handoverSections", () => {
-  const opts = { repoPath: "I:/Scratch/clear-resume", roots: [], now: NOW, showArchived: false };
+  const opts = { repoPath: "I:/Scratch/cornerman", roots: [], now: NOW, showArchived: false };
 
   it("puts waiting groups above a Loaded handover from another repo, then Stale", () => {
     const records = [
@@ -100,9 +100,9 @@ describe("handoverSections", () => {
     const loaded = (id, repoPath) => rec({ id, status: "archived", archivedAt: ago(60_000), archivedBy: { via: "hook" }, repoPath });
     const waiting = [rec({ id: "c" }), rec({ id: "o", repoPath: "I:/Scratch/other", repo: "other" })];
     const order = (records, o = opts) => handoverSections(records, o).map((s) => s.id);
-    expect(order([...waiting, loaded("l", "I:/Scratch/clear-resume")])).toEqual(["loaded", "current", "other"]);
+    expect(order([...waiting, loaded("l", "I:/Scratch/cornerman")])).toEqual(["loaded", "current", "other"]);
     // A sibling worktree counts when the caller passes it in roots.
-    const sibling = "I:/Scratch/clear-resume-sidebar";
+    const sibling = "I:/Scratch/cornerman-sidebar";
     expect(order([...waiting, loaded("l", sibling)], { ...opts, roots: [sibling] })).toEqual(["loaded", "current", "other"]);
   });
 
@@ -165,7 +165,7 @@ describe("handoverSections", () => {
     const compact = Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.compact)]));
     expect(compact).toEqual({ loaded: [true], current: [true], other: [true], stale: [true] });
     // Only Loaded rows tag the repo; the other groups already name it in their heading.
-    expect(Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.tag)]))).toEqual({ loaded: ["clear-resume"], current: [""], other: [""], stale: [""] });
+    expect(Object.fromEntries(handoverSections(records, opts).map((s) => [s.id, s.rows.map((r) => r.tag)]))).toEqual({ loaded: ["cornerman"], current: [""], other: [""], stale: [""] });
     // The row still carries the repo and branch, for its tooltip and its peek.
     expect(handoverSections(records, opts).find((s) => s.id === "other")?.rows[0].meta).toBe("other \u00b7 feat/nudge");
   });
@@ -216,7 +216,7 @@ describe("lanesModel", () => {
 
 describe("search", () => {
   it("needs every word, in any case", () => {
-    expect(matches("Ship the nudge clear-resume", "NUDGE ship")).toBe(true);
+    expect(matches("Ship the nudge cornerman", "NUDGE ship")).toBe(true);
     expect(matches("Ship the nudge", "nudge cache")).toBe(false);
     expect(matches("anything", "   ")).toBe(true);
   });
@@ -231,14 +231,14 @@ describe("search", () => {
   });
   it("narrows a section's repo groups to the matching rows and drops the ones left empty", () => {
     const stale = (id, title, mainPath) => rec({ id, title, repoPath: mainPath, mainPath, createdAt: ago(40 * D) });
-    const opts = { repoPath: "I:/Scratch/clear-resume", roots: [], now: NOW, showArchived: false };
+    const opts = { repoPath: "I:/Scratch/cornerman", roots: [], now: NOW, showArchived: false };
     const [section] = handoverSections([stale("a", "Ship nudge", "I:/Scratch/alpha"), stale("b", "Fix footer", "I:/Scratch/beta")], opts);
     const [hit] = filterSections([section], "footer");
     expect(hit.rows.map((r) => r.id)).toEqual(["b"]);
     expect(hit.groups?.map((g) => g.label)).toEqual(["beta"]);
   });
   it("still finds a row by a branch its second line no longer shows", () => {
-    const row = rowOf(rec({ repo: "clear-resume-restyle-webview", branch: "feat/restyle-webview" }), NOW);
+    const row = rowOf(rec({ repo: "cornerman-restyle-webview", branch: "feat/restyle-webview" }), NOW);
     expect(row.meta).not.toContain("feat/");
     expect(filterSections([{ id: "current", label: "", rows: [row] }], "feat/restyle")).toHaveLength(1);
   });

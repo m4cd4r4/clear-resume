@@ -1,19 +1,21 @@
-// Web fallback (opt-in, CLEAR_RESUME_WEB=1): a cloud session's home folder does not
+// Web fallback (opt-in, CORNERMAN_WEB=1): a cloud session's home folder does not
 // survive between sessions, so the handover also travels in git. Save pushes it
-// to its own ref (clear-resume/<branch>). The next session fetches and lists what it
+// to its own ref (cornerman/<branch>). The next session fetches and lists what it
 // finds there with the command that reads it, but never loads it on its own: anything
 // carried in git may have been written by someone else. The SessionStart hook never
 // writes to the repo or its remote; the only git write it makes is that fetch.
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { LEGACY_REF_PREFIX, LEGACY_REPO_FILE } from "../../packages/store/rename.mjs";
 import { handoverMarkdown, parseHandover } from "./store.mjs";
 
-export const REPO_FILE = ".clear-resume/HANDOVER.md";
+export const REPO_FILE = ".cornerman/HANDOVER.md";
+const REPO_FILES = [REPO_FILE, LEGACY_REPO_FILE];
 const MAX_REFS = 50;
 
 export function webEnabled(env = process.env) {
-  return /^(1|true|on|yes)$/i.test(String(env.CLEAR_RESUME_WEB ?? "").trim());
+  return /^(1|true|on|yes)$/i.test(String(env.CORNERMAN_WEB ?? "").trim());
 }
 
 function git(cwd, args, { quiet = true } = {}) {
@@ -34,15 +36,17 @@ export const handoverId = (meta) => `${meta.created ?? ""}|${meta.title ?? ""}`;
 // Each branch's handover travels on its own ref, never on the user's branch: a new
 // cloud session starts from a cached clone that is behind the last push, so a
 // commit on the user's branch would fail to push (seen live 2026-09-19).
-export const REF_PREFIX = "clear-resume/";
+export const REF_PREFIX = "cornerman/";
 export const handoverRef = (branch) => REF_PREFIX + (branch || "detached");
+// The file each ref family carries, keyed by the name after the remote. Only ever read: save writes REF_PREFIX.
+const REF_FILES = { [REF_PREFIX.slice(0, -1)]: REPO_FILE, [LEGACY_REF_PREFIX.slice(0, -1)]: LEGACY_REPO_FILE };
 
 function gitIn(cwd, args, input) {
   return execFileSync("git", args, { cwd, input, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 8000 }).trim();
 }
 
 // Push the saved handover as a standalone commit holding only REPO_FILE, to
-// refs/heads/clear-resume/<branch>. The working tree, index and branch are untouched.
+// refs/heads/cornerman/<branch>. The working tree, index and branch are untouched.
 export function commitHandover(top, savedPath, branch) {
   const ref = handoverRef(branch);
   const result = { ref, pushed: false, error: null };
@@ -51,7 +55,7 @@ export function commitHandover(top, savedPath, branch) {
     const [dir, name] = REPO_FILE.split("/");
     const inner = gitIn(top, ["mktree"], `100644 blob ${blob}\t${name}\n`);
     const outer = gitIn(top, ["mktree"], `040000 tree ${inner}\t${dir}\n`);
-    const commit = gitIn(top, ["commit-tree", outer, "-m", "chore: clear-resume handover"]);
+    const commit = gitIn(top, ["commit-tree", outer, "-m", "chore: cornerman handover"]);
     gitIn(top, ["push", "-q", "--force", "origin", `${commit}:refs/heads/${ref}`]);
     result.pushed = true;
   } catch (err) {
@@ -126,7 +130,7 @@ export function refreshRemotes(top) {
 
 const SAFE_REF = /^[A-Za-z0-9._\/-]+$/;
 
-const REPO_DIR = REPO_FILE.split("/")[0];
+const dirOf = (file) => file.split("/")[0];
 
 // A folder path that is safe inside double quotes in bash, PowerShell and cmd: no
 // $, backtick, quote, %, ! or ^, which one of those shells would act on. A repo can
@@ -154,25 +158,25 @@ function blobAt(top, rev) {
 const showBlob = (top, blob) => `${gitAt(top)} cat-file -p ${blob}`;
 
 /**
- * What the index holds at or under .clear-resume, ignoring letter case (on a
- * case-insensitive disk a committed `.Clear-Resume/handover.md` is REPO_FILE).
+ * What the index holds at or under .cornerman, ignoring letter case (on a
+ * case-insensitive disk a committed `.Cornerman/handover.md` is REPO_FILE).
  * `null` when git cannot say, which callers read as tracked. Otherwise `any` says
  * whether there is an entry at all (a file, a symlink, a submodule), and `file` is
  * the index spelling of a regular file that is REPO_FILE up to letter case, or null.
  *
  * `file` is the only path from git that is ever printed in a command, and only
- * because it is REPO_FILE up to case: a committed `.clear-resume/HANDOVER.md/$(x)`
+ * because it is REPO_FILE up to case: a committed `.cornerman/HANDOVER.md/$(x)`
  * is an entry too, and printed it would run `x` (security review, 2026-09-27).
  */
-function indexEntries(top) {
-  const out = tryGit(top, ["ls-files", "-s", "-z", "--", `:(icase)${REPO_DIR}`]);
+function indexEntries(top, file) {
+  const out = tryGit(top, ["ls-files", "-s", "-z", "--", `:(icase)${dirOf(file)}`]);
   if (out === null) return null;
   const entries = out
     .split("\0")
     .filter(Boolean)
     .map((line) => ({ mode: line.split(" ")[0], path: line.slice(line.indexOf("\t") + 1) }));
-  const file = entries.find((e) => (e.mode === "100644" || e.mode === "100755") && e.path.toLowerCase() === REPO_FILE.toLowerCase());
-  return { any: entries.length > 0, file: file?.path ?? null };
+  const entry = entries.find((e) => (e.mode === "100644" || e.mode === "100755") && e.path.toLowerCase() === file.toLowerCase());
+  return { any: entries.length > 0, file: entry?.path ?? null };
 }
 
 /**
@@ -181,24 +185,24 @@ function indexEntries(top) {
  * path inside a submodule or behind a symlinked folder, and both let a cloned repo
  * put a file there that was loaded and then deleted (security review, 2026-09-27).
  * So every one of these must hold, and anything unexpected fails closed:
- *   - .clear-resume is a real folder and HANDOVER.md a regular file, neither a link;
+ *   - .cornerman is a real folder and HANDOVER.md a regular file, neither a link;
  *   - the file's real path is REPO_FILE under the repo's real path;
- *   - the index has nothing at or under .clear-resume;
+ *   - the index has nothing at or under .cornerman;
  *   - git lists exactly REPO_FILE as untracked there;
- *   - .clear-resume belongs to this repo, not to a nested one.
+ *   - .cornerman belongs to this repo, not to a nested one.
  */
-function untrackedCopy(top) {
+function untrackedCopy(top, file) {
   try {
-    const dir = join(top, REPO_DIR);
-    const local = join(top, REPO_FILE);
+    const dir = join(top, dirOf(file));
+    const local = join(top, file);
     const d = lstatSync(dir);
     const f = lstatSync(local);
     if (!d.isDirectory() || d.isSymbolicLink() || !f.isFile() || f.isSymbolicLink()) return null;
-    if (realpathSync.native(local) !== join(realpathSync.native(top), REPO_FILE)) return null;
-    const index = indexEntries(top);
+    if (realpathSync.native(local) !== join(realpathSync.native(top), file)) return null;
+    const index = indexEntries(top, file);
     if (!index || index.any) return null;
-    const others = tryGit(top, ["ls-files", "--others", "-z", "--", REPO_FILE]);
-    if (others === null || others.split("\0").filter(Boolean).join("\n") !== REPO_FILE) return null;
+    const others = tryGit(top, ["ls-files", "--others", "-z", "--", file]);
+    if (others === null || others.split("\0").filter(Boolean).join("\n") !== file) return null;
     const outer = tryGit(top, ["rev-parse", "--show-toplevel"]);
     if (!outer || tryGit(dir, ["rev-parse", "--show-toplevel"]) !== outer) return null;
     return local;
@@ -225,9 +229,10 @@ export function repoHandovers(top, { web = false } = {}) {
   // An unsafe folder name is left out of every command, which then has to be run
   // from the repo's top folder; `fromTop` has the listing say so.
   const fromTop = !SAFE_TOP.test(top);
-  if (existsSync(join(top, REPO_DIR))) {
-    const local = untrackedCopy(top);
-    const index = local ? null : indexEntries(top);
+  for (const file of REPO_FILES) {
+    if (!existsSync(join(top, dirOf(file)))) continue;
+    const local = untrackedCopy(top, file);
+    const index = local ? null : indexEntries(top, file);
     if (local) {
       found.push({ source: "worktree", ref: null, show: null, path: local, ...parseHandover(readFileSync(local, "utf8")) });
     } else if (index?.file) {
@@ -239,8 +244,8 @@ export function repoHandovers(top, { web = false } = {}) {
   // Only the refs save pushes to, and only names that are safe to print inside a
   // command: a remote can name a branch `$(anything)`, and the user runs this line.
   refreshRemotes(top);
-  for (const ref of remoteBranches(top).filter((r) => r.split("/")[1] === REF_PREFIX.slice(0, -1) && SAFE_REF.test(r))) {
-    const got = blobAt(top, `${ref}:${REPO_FILE}`);
+  for (const ref of remoteBranches(top).filter((r) => Object.hasOwn(REF_FILES, r.split("/")[1]) && SAFE_REF.test(r))) {
+    const got = blobAt(top, `${ref}:${REF_FILES[ref.split("/")[1]]}`);
     if (got) found.push({ source: "remote", ref, show: showBlob(top, got.blob), fromTop, ...parseHandover(got.text) });
   }
 
@@ -255,11 +260,13 @@ export function repoHandovers(top, { web = false } = {}) {
  */
 export function removeUntrackedCopy(top, id) {
   try {
-    const local = untrackedCopy(top);
-    if (!local) return false;
-    if (handoverId(parseHandover(readFileSync(local, "utf8")).meta) !== id) return false;
-    unlinkSync(local);
-    return true;
+    for (const file of REPO_FILES) {
+      const local = untrackedCopy(top, file);
+      if (!local || handoverId(parseHandover(readFileSync(local, "utf8")).meta) !== id) continue;
+      unlinkSync(local);
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }

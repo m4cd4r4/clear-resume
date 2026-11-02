@@ -77,7 +77,7 @@ describe("effective", () => {
 
 describe("projectDirName", () => {
   it("turns every character but letters and digits into a dash, as Claude Code names its project folders", () => {
-    expect(projectDirName("i:\\Scratch\\clear-resume")).toBe("i--Scratch-clear-resume");
+    expect(projectDirName("i:\\Scratch\\cornerman")).toBe("i--Scratch-cornerman");
     expect(projectDirName("I:/Scratch/my_app.v2")).toBe("I--Scratch-my-app-v2");
   });
 });
@@ -154,13 +154,13 @@ describe("hoverText", () => {
       threshold: 180_000,
       relay: { limit: 15, used: 3, pending: false },
       totals: { sessions: 4, replies: 31, tokens: 1_234_000, saved: 950_000 },
-      links: { handover: "command:clearResume.openLoaded", log: "command:clearResume.relayLog" },
+      links: { handover: "command:cornerman.openLoaded", log: "command:cornerman.relayLog" },
     });
     expect(md.split("\n\n")).toEqual([
       "`▰▰▰▰▱` 144k of 180k nudge",
       "Relay: 3 clears used, 12 left in this window",
       "This chain: 1234k tokens read over 31 replies in 4 sessions, saved up to ~950k (an upper bound)",
-      "[Open handover](command:clearResume.openLoaded) · [Relay log](command:clearResume.relayLog)",
+      "[Open handover](command:cornerman.openLoaded) · [Relay log](command:cornerman.relayLog)",
     ]);
   });
 
@@ -227,7 +227,7 @@ describe("rowForTab", () => {
   });
 
   it("matches a label VS Code cut with an ellipsis to the title it starts", () => {
-    const rows = [row("a", "Footer follows focused tab (clear-resume)")];
+    const rows = [row("a", "Footer follows focused tab (cornerman)")];
     expect(rowForTab(rows, "Footer follows focused…", NOW)?.id).toBe("a");
   });
 

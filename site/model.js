@@ -1,4 +1,4 @@
-/* clear-resume cost model. A model, not a measurement. No DOM access, so node can load it (site/simtest.mjs). */
+/* cornerman cost model. A model, not a measurement. No DOM access, so node can load it (site/simtest.mjs). */
 var crModel = (function () {
   var STEP = 5000;
   var HANDOVER = 780;

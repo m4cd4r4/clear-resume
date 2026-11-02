@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v node >/dev/null 2>&1 || { echo '{\"systemMessage\":\"clear-resume needs Node.js 18 or later on your PATH. Install it and restart Claude Code.\"}'; exit 0; }; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-entry.cjs\" session-start",
+            "command": "command -v node >/dev/null 2>&1 || { echo '{\"systemMessage\":\"cornerman needs Node.js 18 or later on your PATH. Install it and restart Claude Code.\"}'; exit 0; }; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-entry.cjs\" session-start",
             "timeout": 20
           }
         ]

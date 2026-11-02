@@ -20,6 +20,7 @@ export interface Handover {
   archivedAt?: string;
   archivedBy?: ArchivedBy;
   deletedAt?: string;
+  deletedBy?: string;
   updatedAt: string;
   status: "waiting" | "archived" | "deleted";
   pinned: boolean;

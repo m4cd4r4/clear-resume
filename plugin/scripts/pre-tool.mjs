@@ -2,7 +2,7 @@
 // PreToolUse hook on the Skill tool: allows the one handover-skill call the relay
 // asked for while the user was away (plugin/hooks/relay.ts, idleCheck). In a profile
 // that had not allowed the skill, that call waited on "Use skill
-// /clear-resume:handover?" with nobody to answer, and no handover was saved (rig
+// /cornerman:handover?" with nobody to answer, and no handover was saved (rig
 // run, 2026-10-30).
 //
 // The relay writes <store>/.asked/<slug of the session id> holding { at } just before
@@ -15,7 +15,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { slugify, storeRoot } from "./lib/store.mjs";
 
-export const HANDOVER_SKILL = "clear-resume:handover";
+export const HANDOVER_SKILL = "cornerman:handover";
 // The idle prompt is answered in seconds; a mark older than this was never used.
 export const ASK_WINDOW_MS = 15 * 60_000;
 
@@ -33,7 +33,7 @@ try {
           hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "allow",
-            permissionDecisionReason: "clear-resume asked for this handover while the session was idle.",
+            permissionDecisionReason: "cornerman asked for this handover while the session was idle.",
           },
         }),
       );

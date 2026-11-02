@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>clear-resume loop</title>
+<title>cornerman loop</title>
 <style>
 @font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; }
 @font-face { font-family: "JetBrains Mono"; src: url("../../../site/fonts/jetbrains-mono-700.woff2") format("woff2"); font-weight: 700; }
@@ -65,7 +65,7 @@ const handover = [
   '<span class="arg">EOF</span>',
 ];
 const saved = plug('Saved handover "Cart totals rounding" (id 31c9af7).<br>After /clear, the next session in ~/code/widget-shop loads it automatically.', true);
-const loaded = (hi) => plug('SessionStart:clear says: clear-resume: loaded handover "Cart totals rounding" (saved just now).<br><span' + (hi ? ' class="hi"' : '') + '>A copy to read or share: ~/.clear-resume/loaded/widget-shop-cart-totals-rounding-31c9af7.md</span>');
+const loaded = (hi) => plug('SessionStart:clear says: cornerman: loaded handover "Cart totals rounding" (saved just now).<br><span' + (hi ? ' class="hi"' : '') + '>A copy to read or share: ~/.cornerman/loaded/widget-shop-cart-totals-rounding-31c9af7.md</span>');
 const work = [
   'Running the cart tests, then fixing src/cart.js:2.',
   t('Bash&nbsp;', 'npm test -- cart'),
@@ -86,7 +86,7 @@ const typing = (rows, text, meter, gap) => {
 
 let rows = [...chat];
 push([...rows, you('<span class="p">&gt;</span> <span class="caret"></span>', true)], 94, 2600);
-rows = typing(rows, '/clear-resume:handover', 94, true);
+rows = typing(rows, '/cornerman:handover', 94, true);
 for (let i = 1; i <= handover.length; i++) push([...rows, cl('<span class="tool">Bash</span> ' + handover.slice(0, i).join('<br>'))], 95, 180);
 rows = [...rows, cl('<span class="tool">Bash</span> ' + handover.join('<br>'))];
 rows.push(saved); push(rows, 96, 2800);

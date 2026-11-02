@@ -27,7 +27,7 @@ export function liveSessions(records, owned) {
 
 // Session Compass (an optional extension) writes ~/.claude/session-compass/<id>.json
 // per session, with `title` the tab title it set. The logic below is copied from
-// its rows.ts so clear-resume works with compass absent; it is never imported.
+// its rows.ts so cornerman works with compass absent; it is never imported.
 const COMPASS_GONE_MS = 24 * 60 * 60 * 1000;
 
 // The row whose recorded title is this tab's label; newest wins when two sessions
