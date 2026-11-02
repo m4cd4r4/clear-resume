@@ -100,7 +100,6 @@ Lists the repo's git worktrees and opens each in its own window.
 - **Context pie:** how full the chat is, filling towards the nudge size. Hover it to see which handover the tab loaded.
 - **Relay:** the window's clears left. Click to change them.
 - **Idle handover:** what happens while you are away. Off, toast, smart or auto.
-- **Spare Cycles:** a timer that reminds you to do a short task you pick. Off by default.
 
 ### In the VS Code sidebar
 
