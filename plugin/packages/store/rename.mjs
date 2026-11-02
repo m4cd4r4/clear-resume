@@ -230,19 +230,32 @@ function carryGit(from, to, deadline) {
   const dst = join(to, ".git");
   const tmp = join(to, GIT_TMP);
   if (existsSync(dst)) {
-    rmSync(tmp, { recursive: true, force: true });
+    dropCarry(tmp);
     return true;
   }
   if (!existsSync(src)) return true;
   // A lock belongs to a git process in the old folder. Copied, it would stop every git here.
-  if (!copyInto(src, tmp, deadline, (name) => name.endsWith(".lock"))) return false;
-  try {
-    renameSync(tmp, dst);
-  } catch {
-    // Another merge finished first, or something holds it. Held, this aside stays unmarked and the next run tries again.
-    return existsSync(dst);
+  if (copyInto(src, tmp, deadline, (name) => name.endsWith(".lock"))) {
+    try {
+      renameSync(tmp, dst);
+      return true;
+    } catch {
+      // Another merge finished first, or something holds it.
+    }
   }
+  // Held or cut short, this aside stays unmarked and the next run tries again.
+  if (!existsSync(dst)) return false;
+  dropCarry(tmp);
   return true;
+}
+
+// A parallel merge may still be writing here, and whichever finishes last clears what is left.
+function dropCarry(tmp) {
+  try {
+    rmSync(tmp, { recursive: true, force: true });
+  } catch {
+    // The writer still in it clears it when it finishes.
+  }
 }
 
 /** False when the deadline stopped it or a file would not land. Safe to run again: what is there already is judged the same way. */

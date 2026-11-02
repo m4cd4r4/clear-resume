@@ -93,7 +93,8 @@ const gitIn = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8
 function commitAll(root) {
   gitIn(root, "init", "-q", "-b", "main");
   gitIn(root, "add", "-A");
-  gitIn(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "first");
+  // No background maintenance: it changes .git while a test reads it.
+  gitIn(root, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "commit", "-q", "-m", "first");
 }
 
 function runMigrateProcess() {
