@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+- **Sync no longer stops behind a secret scanner.** A pre-commit scanner read the key in the store's
+  per-window `relay/` files as a credential and blocked every commit, with nothing on screen. Those
+  files now stay out of git and stay on disk, and an existing store fixes itself at its next sync. A
+  scanner still blocks a credential written into a handover.
+
 ## 0.6.0
 
 - **clear-resume is now cornerman.** The plugin, the slash command (`/cornerman:handover`), the

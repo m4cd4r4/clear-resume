@@ -2,7 +2,7 @@
   "name": "cornerman",
   "displayName": "cornerman",
   "description": "Browse your Claude Code handovers and resume one in a fresh conversation.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "macdara",
   "license": "MIT",
   "icon": "media/icon.png",
