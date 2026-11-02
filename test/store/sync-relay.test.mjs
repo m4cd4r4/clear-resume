@@ -25,7 +25,7 @@ function blockLikeAScanner() {
   writeFileSync(
     join(root, ".git", "hooks", "pre-commit"),
     '#!/bin/sh\ngit diff --cached --name-only | grep -q "^relay/" && exit 1\ngit diff --cached | grep -q "SECRET" && exit 1\nexit 0\n',
-    "utf8",
+    { encoding: "utf8", mode: 0o755 },
   );
   git(root, "config", "core.hooksPath", ".git/hooks");
 }
