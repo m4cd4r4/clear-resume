@@ -1,4 +1,4 @@
-# Publishing clear-resume
+# Publishing cornerman
 
 Everything the packaging needs is already in place: `icon`, `galleryBanner`,
 `categories`, `keywords`, `repository.directory`, `homepage`, `bugs`, and a
@@ -63,8 +63,8 @@ would rather not hand-edit the version number first.
 
 ## After publishing
 
-- Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume`
-- Open VSX listing: `https://open-vsx.org/extension/macdara/clear-resume`
+- Marketplace listing: `https://marketplace.visualstudio.com/items?itemName=macdara.cornerman`
+- Open VSX listing: `https://open-vsx.org/extension/macdara/cornerman`
 - The root README's "The VS Code sidebar" section links to these
   listings. Check both links resolve after the first publish.
 

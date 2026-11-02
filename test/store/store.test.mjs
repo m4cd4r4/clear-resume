@@ -16,7 +16,7 @@ afterEach(() => {
 const BASE = {
   title: "phase 1",
   body: "body text",
-  repoPath: "I:/Scratch/clear-resume",
+  repoPath: "I:/Scratch/cornerman",
   machine: "desk",
   pid: 1,
   createdAt: "2026-09-19T23:28:51.277Z",

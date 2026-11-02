@@ -12,7 +12,7 @@ angle: mechanism
 
 ## Intent
 
-A demo for the clear-resume README. A stranger who has never used the plugin should
+A demo for the cornerman README. A stranger who has never used the plugin should
 watch it once and understand the loop: a session fills up, a handover is written, the
 session is cleared, and the fresh session already has the work. The register is a
 developer tool being shown, not sold: a terminal that behaves, no voiceover, no music.

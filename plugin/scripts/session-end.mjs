@@ -3,11 +3,11 @@
 // last replies) in <store>/artifacts/<session id>/, so a list read a moment before /clear is
 // still there afterwards. A handover records its session's id and finds the folder by it.
 // Any failure exits 0 with no output: a broken plugin must never block a session.
-// CLEAR_RESUME_ARTIFACTS=0 turns it off.
+// CORNERMAN_ARTIFACTS=0 turns it off.
 import { readFileSync } from "node:fs";
 
 try {
-  if (process.env.CLEAR_RESUME_ARTIFACTS !== "0") {
+  if (process.env.CORNERMAN_ARTIFACTS !== "0") {
     const input = JSON.parse(readFileSync(0, "utf8") || "{}");
     const transcript = String(input.transcript_path || "");
     const sessionId = String(input.session_id || "");

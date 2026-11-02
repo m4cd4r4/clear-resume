@@ -12,14 +12,18 @@
 // tombstone and only the prune, ninety days later, removes the file - otherwise a
 // synced copy on another machine puts the record straight back.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir, hostname } from "node:os";
+import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pruneCaptures } from "./artifacts.mjs";
 import { fileName, isPurgeable, normalise, recordId } from "./schema.mjs";
 import { pruneLoaded } from "./loaded.mjs";
+import { adoptLegacyEnv, resolveStore } from "./rename.mjs";
+
+// Before anything reads a variable: a settings file from before the rename keeps working.
+adoptLegacyEnv();
 
 export function storeRoot(env = process.env) {
-  return env.CLEAR_RESUME_HOME ? resolve(env.CLEAR_RESUME_HOME) : join(homedir(), ".clear-resume");
+  return resolveStore(env);
 }
 
 export function handoversDir(root = storeRoot()) {
@@ -121,7 +125,8 @@ export function remove(id, { root = storeRoot(), now = new Date() } = {}) {
     return false;
   }
   if (current.status === "deleted") return false;
-  update(id, { status: "deleted", body: "", resumePrompt: "", deletedAt: new Date(now).toISOString() }, { root, now });
+  // deletedBy tells a pull this was asked for: see restoreAgedOut in sync.mjs.
+  update(id, { status: "deleted", body: "", resumePrompt: "", deletedAt: new Date(now).toISOString(), deletedBy: "person" }, { root, now });
   return true;
 }
 

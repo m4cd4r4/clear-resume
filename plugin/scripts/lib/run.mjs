@@ -6,14 +6,14 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
+import { migrateHeadlessStore, resolveHeadlessStore } from "../../packages/store/rename.mjs";
 import { listAll } from "../../packages/store/store.mjs";
 import { archive, repoInfo, repoKey, listWaiting } from "./store.mjs";
 
 export const EXIT = { usage: 2, stall: 3, cap: 4 };
-export const DEFAULT_STORE = () => join(homedir(), ".clear-resume-headless");
-const RUNNER = "clear-resume-run";
+export const DEFAULT_STORE = () => resolveHeadlessStore();
+const RUNNER = "cornerman-run";
 
 class Usage extends Error {}
 
@@ -57,7 +57,7 @@ function config(argv, env) {
   const settings = flagValue(command, "--settings");
   if (settings != null) {
     const text = existsSync(settings) ? readFileSync(settings, "utf8") : settings;
-    const hit = /CLEAR_RESUME_[A-Z_]+/.exec(text);
+    const hit = /(?:CORNERMAN|CLEAR_RESUME)_[A-Z_]+/.exec(text);
     if (hit) throw new Usage(`the command's --settings sets ${hit[0]}, which overrides the runner's own and can switch the nudge off. Remove it.`);
   }
 
@@ -68,13 +68,16 @@ function config(argv, env) {
 
   if (o["--done-check"] != null && !o["--done-check"].trim()) throw new Usage("--done-check needs a non-empty command");
   const nudgeAt = o["--nudge-at"] != null ? positive(o["--nudge-at"], "--nudge-at") : undefined;
+  // A store someone named is not ours to move. Only a valid command gets this far.
+  const named = o["--store"] ?? env.CORNERMAN_RUN_STORE;
+  if (named == null && !env.CORNERMAN_NO_MIGRATE) migrateHeadlessStore();
   return {
     maxSegments,
     totalBudget,
     segmentBudget,
     prompt,
     nudgeAt,
-    store: resolve(o["--store"] ?? env.CLEAR_RESUME_RUN_STORE ?? DEFAULT_STORE()),
+    store: resolve(named ?? DEFAULT_STORE()),
     eventLog: o["--event-log"],
     label: o["--label"] ?? "run",
     alertCmd: o["--alert-cmd"],
@@ -159,7 +162,7 @@ function resumePrompt(original, n, max, body) {
   const of = max === Infinity ? "" : ` of at most ${max}`;
   return (
     `${original.trimEnd()}\n\n---\n\n` +
-    `clear-resume: this is segment ${n}${of}. The previous segment ran out of context and saved the handover below. ` +
+    `cornerman: this is segment ${n}${of}. The previous segment ran out of context and saved the handover below. ` +
     `Resume from it in this fresh context. Its branch, file and status claims are a snapshot: check them against git before acting.\n\n` +
     body.trim()
   );
@@ -185,7 +188,7 @@ function unfinishedPrompt(original, n, max, check) {
   const of = max === Infinity ? "" : ` of at most ${max}`;
   return (
     `${original.trimEnd()}\n\n---\n\n` +
-    `clear-resume: this is segment ${n}${of}. The previous segment ended its turn without finishing the task and without saving a handover. ` +
+    `cornerman: this is segment ${n}${of}. The previous segment ended its turn without finishing the task and without saving a handover. ` +
     `The done check (\`${check.cmd}\`) failed with exit ${check.code}. Its output is below. ` +
     `Check git for what is already done, then carry on with the rest of the task.\n\n` +
     (check.output ? check.output : "(the check printed nothing)")
@@ -194,7 +197,7 @@ function unfinishedPrompt(original, n, max, check) {
 
 /** Run the chain. Resolves to the exit code the CLI should return. */
 export async function runChain(argv, { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr } = {}) {
-  const say = (msg) => stderr.write(`clear-resume run: ${msg}\n`);
+  const say = (msg) => stderr.write(`cornerman run: ${msg}\n`);
   let c;
   try {
     c = config(argv, env);
@@ -212,7 +215,7 @@ export async function runChain(argv, { cwd = process.cwd(), env = process.env, s
   let stalled = 0;
   const alert = (msg) => {
     if (!c.alertCmd) return;
-    spawnSync(c.alertCmd, { shell: true, env: { ...env, CLEAR_RESUME_ALERT: msg }, stdio: "ignore", windowsHide: true });
+    spawnSync(c.alertCmd, { shell: true, env: { ...env, CORNERMAN_ALERT: msg, CLEAR_RESUME_ALERT: msg }, stdio: "ignore", windowsHide: true });
   };
 
   for (let n = 1; ; n++) {
@@ -222,13 +225,13 @@ export async function runChain(argv, { cwd = process.cwd(), env = process.env, s
     args = withFlag(args, "--session-id", sessionId);
     const segEnv = {
       ...env,
-      CLEAR_RESUME_AUTO: "1",
-      CLEAR_RESUME_HEADLESS: "1",
-      CLEAR_RESUME_HOME: c.store,
-      CLEAR_RESUME_SYNC: "off",
-      CLEAR_RESUME_CHAIN: String(n),
-      CLEAR_RESUME_BUDGET: c.maxSegments === Infinity ? "-1" : String(c.maxSegments - n),
-      ...(c.nudgeAt ? { CLEAR_RESUME_NUDGE_AT: String(c.nudgeAt) } : {}),
+      CORNERMAN_AUTO: "1",
+      CORNERMAN_HEADLESS: "1",
+      CORNERMAN_HOME: c.store,
+      CORNERMAN_SYNC: "off",
+      CORNERMAN_CHAIN: String(n),
+      CORNERMAN_BUDGET: c.maxSegments === Infinity ? "-1" : String(c.maxSegments - n),
+      ...(c.nudgeAt ? { CORNERMAN_NUDGE_AT: String(c.nudgeAt) } : {}),
     };
     if (c.eventLog) appendFileSync(c.eventLog, `${new Date().toISOString()} segment ${c.label} ${n} ${sessionId}\n`);
     say(`segment ${n} started (session ${sessionId}, budget ${money(budget)} USD)`);
@@ -264,7 +267,7 @@ export async function runChain(argv, { cwd = process.cwd(), env = process.env, s
     if (n > 1) stalled = before && head(cwd) === before ? stalled + 1 : 0;
     const left = check ? "The done check was still failing." : `The handover is still waiting in ${c.store} (id ${next.short}).`;
     if (stalled >= 2) {
-      const msg = `clear-resume run (${c.label}): stopped after segment ${n}. Two continued segments in a row made no new commits. ${left}`;
+      const msg = `cornerman run (${c.label}): stopped after segment ${n}. Two continued segments in a row made no new commits. ${left}`;
       say(msg);
       alert(msg);
       return EXIT.stall;

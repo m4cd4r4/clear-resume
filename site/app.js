@@ -1,4 +1,4 @@
-/* clear-resume site: page behaviour. No dependencies, works from disk. */
+/* cornerman site: page behaviour. No dependencies, works from disk. */
 (function () {
   "use strict";
   var run = window.crRun || null;

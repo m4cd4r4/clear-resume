@@ -60,7 +60,7 @@ describe("a handover written in a worktree", () => {
 // because its check looked the record up from there by path (docs check, 2026-09-27).
 describe("save.mjs in a worktree", () => {
   it("names the worktree as the folder that loads it, and the hook loads it there and only there", () => {
-    const env = { ...process.env, CLEAR_RESUME_HOME: root };
+    const env = { ...process.env, CORNERMAN_HOME: root };
     const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "Worktree work", "--cwd", tree], {
       cwd: tree,
       input: "# Handover\n\nbody\n",
@@ -70,7 +70,7 @@ describe("save.mjs in a worktree", () => {
     expect(out).toContain("it loads in a session started there");
     expect(out).toContain(`${basename(tree)} loads it automatically`);
 
-    expect(run({ cwd: main }, { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
-    expect(run({ cwd: tree }, { env: { CLEAR_RESUME_HOME: root } }).systemMessage).toMatch(/loaded handover "Worktree work"/);
+    expect(run({ cwd: main }, { env: { CORNERMAN_HOME: root } })).toBeNull();
+    expect(run({ cwd: tree }, { env: { CORNERMAN_HOME: root } }).systemMessage).toMatch(/loaded handover "Worktree work"/);
   });
 });

@@ -1,14 +1,14 @@
-# clear-resume
+# cornerman
 
 Clear the chat. Keep the goal, the next step and the decisions.
 
-Before you `/clear` a long Claude Code chat, type `/clear-resume:handover`. Claude writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it. After `/clear`, the fresh session starts with the handover already loaded, so you type `go` and Claude carries on. Nothing to paste.
+Before you `/clear` a long Claude Code chat, type `/cornerman:handover`. Claude writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it. After `/clear`, the fresh session starts with the handover already loaded, so you type `go` and Claude carries on. Nothing to paste.
 
 Coming back to a 390k-token session after the prompt cache expired cost US$1.56; a handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 (Sonnet 5.5, n=3 each, 10 Oct 2026). The handover is a plain text file you can read and edit. On a 30-item build, the relay and Claude Code's auto-compaction each finished 5 of 6 runs at about the same tokens.
 
 ## Use it
 
-1. `/clear-resume:handover`: Claude reads your branch, your changes and your last few commits, then writes and saves the handover.
+1. `/cornerman:handover`: Claude reads your branch, your changes and your last few commits, then writes and saves the handover.
 2. `/clear`: the fresh session loads it.
 3. `go`: Claude carries on from it.
 
@@ -22,10 +22,10 @@ Optional settings, all off by default:
 
 - **Hooks.** `SessionStart` (startup, clear and compact) loads a waiting handover. `PostToolUse` and `Stop` check the context size for the nudge and the relay. Each hook runs `node` on a script in this plugin, and exits quietly if Node 18 or later is missing.
 - **Git, read-only by default.** The plugin runs `git` in your repo to read the branch, status and recent commits. It never switches your branch or touches your index or files, and outside web mode (below) it never commits or pushes.
-- **Storage.** Handovers are plain text files on your disk, in `~/.clear-resume`. Each loaded handover is also copied to `~/.clear-resume/loaded/` for 30 days. Keep secrets out of them.
+- **Storage.** Handovers are plain text files on your disk, in `~/.cornerman`. Each loaded handover is also copied to `~/.cornerman/loaded/` for 30 days. Keep secrets out of them.
 - **Network: nothing by default.** No telemetry, no analytics, no web requests. Two opt-in modes use git and nothing else:
   - **Sync** pushes and pulls the store to a private git remote that you set up.
-  - **Web mode** (`CLEAR_RESUME_WEB=1`, for Claude Code on the web) pushes each handover to its own `clear-resume/<branch>` branch on your repo's `origin`, and runs one `git fetch origin` at session start. Handovers found in git are listed as untrusted and never loaded on their own.
+  - **Web mode** (`CORNERMAN_WEB=1`, for Claude Code on the web) pushes each handover to its own `cornerman/<branch>` branch on your repo's `origin`, and runs one `git fetch origin` at session start. Handovers found in git are listed as untrusted and never loaded on their own.
 
 ### The relay mod (`hooks/relay.ts`)
 
@@ -34,9 +34,9 @@ A mod is a function-hooks module that runs inside Claude Code. This one runs the
 - **When it is active.** Only when Relay is on: the `relay` setting, or `/relay` typed in that window. Otherwise it registers the `/relay` command and the status line, and nothing more.
 - **Programs it starts.** One by default: `git rev-parse HEAD` in the current repo, with a 5 second timeout (the `headOf` function). The stall guard compares the commit before and after each continued session, to stop when two in a row make no new commit. If git is missing or fails, it carries on without the check. With `idle_handover` on, it can also run `node <plugin>/scripts/context-tokens.mjs <transcript>` (see Idle handover below). It starts no other program.
 - **Slash command it runs.** `/clear`, once after Claude saves a handover, and only while the number of clears used is below the budget you set.
-- **Prompt it submits.** After the clear, as if you typed it: "Continue from the clear-resume handover that was just loaded." It contains no conversation text.
-- **Files it writes.** A status file at `~/.clear-resume/relay/<key>.json` (or `$CLEAR_RESUME_HOME/relay/<key>.json`). Fields: `v`, `key`, `cwd`, `sessions` (this window's session ids, up to 100), `limit`, `configured`, `used`, `stalled`, `applied`, `updatedAt`. Only the VS Code status bar reads it (the extension that ships with clear-resume), to show the clears left. The mod also reads `<key>.set.json` beside it, which the status bar writes to change the budget. It writes no settings, build, start-up or instructions file.
-- **Idle handover.** Only when `idle_handover` is `toast` or `auto`, with the relay on or off. It then reads the clock after each reply that finished normally, counts the tool calls and turns in flight, and every 30 seconds looks at whether the cache is about to expire. Only when that is due does it read the context size: from `$.session.usage()`, else by running one extra program, `node <plugin>/scripts/context-tokens.mjs <transcript>`, on the session transcript under `~/.claude/projects` (or `$CLAUDE_CONFIG_DIR/projects`), with a 15 second timeout. It then sets a status line message that stays until your next turn and shows a toast or, with `auto`, submits "Write a clear-resume handover now, with the /clear-resume:handover skill. The user is away. If a question is open, the Next action is to wait for their answer; do not guess." as if you typed it, and runs `/clear` once that handover is saved (it does not submit the continue prompt). With `smart` it submits "The user is away and the prompt cache is about to expire. If the work is finished and no step remains, do not save a handover: reply "Nothing to hand over." and stop. Otherwise write a clear-resume handover now, with the /clear-resume:handover skill. If a question is open, the Next action is to wait for their answer; do not guess." instead, and clears only if a handover was saved. It writes one marker file, `~/.clear-resume/.idle/<session id>`, so it acts once per session; it does not touch the `.nudged` mark. It sends nothing anywhere.
+- **Prompt it submits.** After the clear, as if you typed it: "Continue from the cornerman handover that was just loaded." It contains no conversation text.
+- **Files it writes.** A status file at `~/.cornerman/relay/<key>.json` (or `$CORNERMAN_HOME/relay/<key>.json`). Fields: `v`, `key`, `cwd`, `sessions` (this window's session ids, up to 100), `limit`, `configured`, `used`, `stalled`, `applied`, `updatedAt`. Only the VS Code status bar reads it (the extension that ships with cornerman), to show the clears left. The mod also reads `<key>.set.json` beside it, which the status bar writes to change the budget. It writes no settings, build, start-up or instructions file.
+- **Idle handover.** Only when `idle_handover` is `toast` or `auto`, with the relay on or off. It then reads the clock after each reply that finished normally, counts the tool calls and turns in flight, and every 30 seconds looks at whether the cache is about to expire. Only when that is due does it read the context size: from `$.session.usage()`, else by running one extra program, `node <plugin>/scripts/context-tokens.mjs <transcript>`, on the session transcript under `~/.claude/projects` (or `$CLAUDE_CONFIG_DIR/projects`), with a 15 second timeout. It then sets a status line message that stays until your next turn and shows a toast or, with `auto`, submits "Write a cornerman handover now, with the /cornerman:handover skill. The user is away. If a question is open, the Next action is to wait for their answer; do not guess." as if you typed it, and runs `/clear` once that handover is saved (it does not submit the continue prompt). With `smart` it submits "The user is away and the prompt cache is about to expire. If the work is finished and no step remains, do not save a handover: reply "Nothing to hand over." and stop. Otherwise write a cornerman handover now, with the /cornerman:handover skill. If a question is open, the Next action is to wait for their answer; do not guess." instead, and clears only if a handover was saved. It writes one marker file, `~/.cornerman/.idle/<session id>`, so it acts once per session; it does not touch the `.nudged` mark. It sends nothing anywhere.
 - **What it adds.** The `/relay` command (`off`, `on`, `unlimited` or a number), the status line entry that shows the clears left, and toasts that report a stop or a refused command.
 - **Network.** It sends nothing anywhere. No data leaves your machine.
 - **The `tool.call` and `turn.start` hooks.** Registered only when `idle_handover` is not `off`; with it off they do not exist. They only count calls and turns in flight, and `turn.start` clears the idle status message. They do not filter, rewrite or deny anything,. On an unanswered `AskUserQuestion` in `smart` or `auto` mode, once the cache is about to expire, the mod saves a handover by script (no prompt, no `/clear`) and shows a toast and status line saying which handover was saved and when. It never changes your answer.
@@ -48,8 +48,8 @@ Node 18 or later and git. On Windows, Claude Code runs plugin hooks through Git 
 
 ## More
 
-- Full README, with the replay video and comparisons with `/compact` and `--resume`: https://github.com/m4cd4r4/clear-resume
-- How it works, every setting and the opt-in modes: https://github.com/m4cd4r4/clear-resume/blob/main/docs/HOW-IT-WORKS.md
-- Site: https://m4cd4r4.github.io/clear-resume
+- Full README, with the replay video and comparisons with `/compact` and `--resume`: https://github.com/m4cd4r4/cornerman
+- How it works, every setting and the opt-in modes: https://github.com/m4cd4r4/cornerman/blob/main/docs/HOW-IT-WORKS.md
+- Site: https://m4cd4r4.github.io/cornerman
 
 MIT licence.

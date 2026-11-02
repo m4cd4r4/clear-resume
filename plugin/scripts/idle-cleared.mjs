@@ -3,7 +3,7 @@
 // after an idle clear (a mod may not import node:fs).
 //   node idle-cleared.mjs <session id>
 // Prints {status, loaded, title, repo, next}, or nothing (exit 1) when the session saved
-// none. loaded: a session start or /clear-resume:load took it, not a hand in the sidebar.
+// none. loaded: a session start or /cornerman:load took it, not a hand in the sidebar.
 import { listAll, storeRoot } from "../packages/store/store.mjs";
 import { LOADED_VIA } from "./lib/store.mjs";
 

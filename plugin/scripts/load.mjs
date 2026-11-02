@@ -33,11 +33,11 @@ const want = args.find((a) => !a.startsWith("--"));
 // A typo such as --peak must not fall through to a load that archives.
 const unknown = args.filter((a) => a.startsWith("--") && a !== "--peek" && a !== "--take");
 if (unknown.length) {
-  console.error(`clear-resume: unknown option ${unknown.join(", ")}. Options are --peek and --take.`);
+  console.error(`cornerman: unknown option ${unknown.join(", ")}. Options are --peek and --take.`);
   process.exit(1);
 }
 if (peek && take) {
-  console.error("clear-resume: --peek and --take contradict each other. Use one.");
+  console.error("cornerman: --peek and --take contradict each other. Use one.");
   process.exit(1);
 }
 
@@ -65,17 +65,17 @@ const found = inWaiting.length ? inWaiting : named(listLoaded(root, key));
 const wasLoaded = !inWaiting.length && found.length > 0;
 if (found.length > 1 && wasLoaded) {
   // The listing below shows only waiting ones, so the ids are given here.
-  console.error(`clear-resume: ${found.length} loaded handovers are titled "${want}". Name one by its id:`);
+  console.error(`cornerman: ${found.length} loaded handovers are titled "${want}". Name one by its id:`);
   for (const f of found) console.error(`  ${f.short}  loaded ${age(f.archivedAt)}`);
   process.exit(1);
 }
 if (found.length > 1) {
-  console.error(`clear-resume: ${found.length} waiting handovers are titled "${want}". Name one by its id; run with no argument to list them.`);
+  console.error(`cornerman: ${found.length} waiting handovers are titled "${want}". Name one by its id; run with no argument to list them.`);
   process.exit(1);
 }
 const [h] = found;
 if (!h) {
-  console.error(`clear-resume: no waiting or loaded handover named ${want}. Run with no argument to list the waiting ones.`);
+  console.error(`cornerman: no waiting or loaded handover named ${want}. Run with no argument to list the waiting ones.`);
   process.exit(1);
 }
 const copySource = { id: h.id, title: h.meta.title, repoPath: h.meta.repo || top, branch: h.meta.branch, createdAt: h.meta.created, body: h.body };
@@ -88,24 +88,24 @@ if (wasLoaded && take) {
   reopen(root, h.path, { owner: me });
   console.log(
     me
-      ? "clear-resume: taken. This handover is waiting again and belongs to this window: this window's next /clear picks it up, and no other open window loads it.\n"
-      : "clear-resume: taken. This handover is waiting again. This window could not be identified, so the next /clear on its branch picks it up.\n",
+      ? "cornerman: taken. This handover is waiting again and belongs to this window: this window's next /clear picks it up, and no other open window loads it.\n"
+      : "cornerman: taken. This handover is waiting again. This window could not be identified, so the next /clear on its branch picks it up.\n",
   );
 } else if (wasLoaded && !peek) {
   // A plain load means "resume this", and this one has been resumed already.
   // Loading it again would be a guess at which of the two the user meant.
   const self = `node ${shellPath(process.argv[1])}`;
   console.error(
-    `clear-resume: "${h.meta.title}" was already loaded ${age(h.archivedAt)}. To read it: ${self} --peek ${h.short}\n` +
+    `cornerman: "${h.meta.title}" was already loaded ${age(h.archivedAt)}. To read it: ${self} --peek ${h.short}\n` +
       `To make it this window's again, for its next /clear: ${self} --take ${h.short}`,
   );
   process.exit(1);
 } else if (peek && wasLoaded) {
-  console.log(`clear-resume: peek only. This handover was already loaded ${age(h.archivedAt)} and stays archived.\n`);
+  console.log(`cornerman: peek only. This handover was already loaded ${age(h.archivedAt)} and stays archived.\n`);
   const copy = loadedCopyPath(root, copySource);
   if (existsSync(copy)) console.log(`A copy to read or share: ${tildePath(copy)}\n`);
 } else if (peek) {
-  console.log("clear-resume: peek only, the handover stays waiting.\n");
+  console.log("cornerman: peek only, the handover stays waiting.\n");
 } else {
   // No time budget here, so the process lookup may take as long as it needs.
   const me = ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
@@ -113,7 +113,7 @@ if (wasLoaded && take) {
   const theirs = Boolean(owner) && !sameOwner(owner, me) && ownerOpen(owner, { timeout: PATIENT_TIMEOUT_MS });
   if (theirs && !take) {
     console.log(
-      `clear-resume: read only. This handover belongs to another open Claude window (pid ${parseOwner(owner).pid}), ` +
+      `cornerman: read only. This handover belongs to another open Claude window (pid ${parseOwner(owner).pid}), ` +
         `so it stays waiting for that window's /clear. To move it to this session instead: ` +
         `node ${shellPath(process.argv[1])} --take ${h.short}\n`,
     );

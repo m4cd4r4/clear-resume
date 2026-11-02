@@ -72,8 +72,8 @@ export function isSynced(root = storeRoot()) {
 /** A store repo needs an identity to commit with, and may not inherit one. */
 function ensureIdentity(root) {
   if (!tryGit(root, ["config", "user.email"]).out) {
-    tryGit(root, ["config", "user.email", "clear-resume@localhost"]);
-    tryGit(root, ["config", "user.name", "clear-resume"]);
+    tryGit(root, ["config", "user.email", "cornerman@localhost"]);
+    tryGit(root, ["config", "user.name", "cornerman"]);
   }
 }
 
@@ -131,7 +131,8 @@ export function commitLocal(root = storeRoot(), { now = new Date() } = {}) {
   if (!isSynced(root)) return { ok: false, committed: false, reason: "not synced" };
   ensureIdentity(root);
 
-  const add = tryGit(root, ["add", "-A"]);
+  // Half-finished writes and what an interrupted move left: a carried .git config can hold a token in its remote URL.
+  const add = tryGit(root, ["add", "-A", "--", ".", ":(exclude)*.tmp", ":(exclude).git.carry.tmp"]);
   if (!add.ok) return { ok: false, committed: false, reason: add.reason };
 
   // `diff --cached --quiet` exits 0 when nothing is staged, non-zero when there is.
@@ -180,10 +181,14 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
       return { ok: false, resolved: [], reason: "merge too large for this budget, left to the next sync" };
     }
   }
+  const before = tryGit(root, ["rev-parse", "--verify", "--quiet", "HEAD"]).out;
   const merged = tryGit(root, ["merge", "origin/main", "--no-edit", "--allow-unrelated-histories"], {
     timeout: budgeted ? MERGE_MS : left(),
   });
-  if (merged.ok) return { ok: true, resolved: [] };
+  if (merged.ok) {
+    restoreAgedOut(root, before);
+    return { ok: true, resolved: [] };
+  }
 
   const resolved = resolveConflicts(root);
   if (resolved === null) {
@@ -193,7 +198,69 @@ export function pull(root = storeRoot(), { timeout = TIMEOUT_MS } = {}) {
 
   const committed = tryGit(root, ["commit", "--no-edit"]);
   if (!committed.ok) return { ok: false, resolved, reason: committed.reason };
+  restoreAgedOut(root, before);
   return { ok: true, resolved };
+}
+
+// Every version before 0.6.0 tombstones an archived record 30 days after it was archived,
+// and leaves no sign a person did not ask for it. A pull is where that reaches a machine
+// that keeps handovers, so a record this pull emptied by that rule is put back, and goes
+// out again on the next push. Drop this when no machine runs an old version.
+const AGED_OUT_AFTER_DAYS = 30;
+
+function agedOut(was, is) {
+  if ((was?.status !== "archived" && was?.status !== "waiting") || was.pinned) return false;
+  if (is?.status !== "deleted" || is.deletedBy) return false;
+  // Still waiting here means the other machine archived it, and only its tombstone says when.
+  const archived = is.archivedAt || was.archivedAt || (was.status === "archived" && was.createdAt);
+  return Boolean(archived) && (Date.parse(is.deletedAt) - Date.parse(archived)) / 86400000 > AGED_OUT_AFTER_DAYS;
+}
+
+function restoreAgedOut(root, before) {
+  if (!before) return;
+  const changed = tryGit(root, ["diff", "--name-only", "--diff-filter=M", before, "HEAD", "--", "handovers/"]);
+  if (!changed.ok || !changed.out) return;
+  const paths = changed.out.split("\n").map((p) => p.trim()).filter(Boolean);
+  const versions = readBlobs(root, paths.flatMap((path) => [`${before}:${path}`, `HEAD:${path}`]));
+  if (!versions) return;
+  const restored = paths.filter((path, i) => {
+    const was = parseRecord(versions[2 * i]);
+    if (!agedOut(was, parseRecord(versions[2 * i + 1]))) return false;
+    // A fresh archivedAt, or an old machine's next prune empties it again and the two trade a commit per record every sync.
+    const now = new Date().toISOString();
+    writeFileSync(join(root, path), `${JSON.stringify({ ...was, status: "archived", archivedAt: now, updatedAt: now }, null, 2)}\n`, "utf8");
+    return true;
+  });
+  if (!restored.length) return;
+  if (tryGit(root, ["add", "--", ...restored]).ok) tryGit(root, ["commit", "-m", `store: restored ${restored.length} aged out by an older version`]);
+}
+
+function parseRecord(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Many blobs in one git process: a session start has no time for one per record. Null if git fails. */
+function readBlobs(root, specs) {
+  let out;
+  try {
+    out = execFileSync(GIT_EXE, ["cat-file", "--batch"], { cwd: root, input: `${specs.join("\n")}\n`, timeout: MERGE_MS, maxBuffer: 256 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+  } catch {
+    return null;
+  }
+  const blobs = [];
+  let at = 0;
+  for (let i = 0; i < specs.length; i++) {
+    const end = out.indexOf(10, at);
+    const size = Number(out.toString("utf8", at, end).split(" ")[2]);
+    if (!Number.isInteger(size)) return null;
+    blobs.push(out.toString("utf8", end + 1, end + 1 + size));
+    at = end + 1 + size + 1;
+  }
+  return blobs;
 }
 
 /**
@@ -299,7 +366,7 @@ function cliPath() {
  * started it; the returned handle exists so a test can wait for it.
  */
 export function pushInBackground(root = storeRoot(), env = process.env, cli = cliPath()) {
-  if (String(env.CLEAR_RESUME_SYNC || "").toLowerCase() === "off") return null;
+  if (String(env.CORNERMAN_SYNC || "").toLowerCase() === "off") return null;
   if (!cli || !existsSync(cli)) return null;
   const child = spawn(process.execPath, [cli], {
     detached: true,
@@ -307,7 +374,7 @@ export function pushInBackground(root = storeRoot(), env = process.env, cli = cl
     windowsHide: true,
     // Inside VS Code, process.execPath is the editor itself. Without this flag the
     // child would start another editor instead of running the CLI as node.
-    env: { ...process.env, CLEAR_RESUME_HOME: root, ELECTRON_RUN_AS_NODE: "1" },
+    env: { ...process.env, CORNERMAN_HOME: root, ELECTRON_RUN_AS_NODE: "1" },
   });
   child.unref();
   return child;

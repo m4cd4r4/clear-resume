@@ -17,7 +17,7 @@ const PLUGIN = resolve(import.meta.dirname, "..", "plugin");
 const ENTRY = join(PLUGIN, "scripts", "hook-entry.cjs");
 const HOOKS = JSON.parse(readFileSync(join(PLUGIN, "hooks", "hooks.json"), "utf8")).hooks;
 const commandOf = (event) => HOOKS[event][0].hooks[0].command;
-const MESSAGE = "clear-resume needs Node.js 18 or later on your PATH. Install it and restart Claude Code.";
+const MESSAGE = "cornerman needs Node.js 18 or later on your PATH. Install it and restart Claude Code.";
 
 // The shell Claude Code would use. On Windows that is Git Bash, found from git
 // itself so that WSL's bash.exe (which is earlier on some PATHs) is never picked.
@@ -37,12 +37,12 @@ const hasNode = (dir) => existsSync(join(dir, "node")) || existsSync(join(dir, "
 const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
 const fullPath = [dirname(process.execPath), ...(process.env[pathKey] ?? "").split(delimiter)].filter(Boolean);
 
-// A clean env for one shell run: no CLEAR_RESUME_* from the machine running the
+// A clean env for one shell run: no CORNERMAN_* from the machine running the
 // suite, PATH with or without every folder that holds node.
 function envFor({ node, extra = {} }) {
   const env = {};
   for (const [k, v] of Object.entries(process.env)) {
-    if (k.toUpperCase() === "PATH" || k.startsWith("CLEAR_RESUME_")) continue;
+    if (k.toUpperCase() === "PATH" || k.startsWith("CORNERMAN_")) continue;
     env[k] = v;
   }
   env.PATH = (node ? fullPath : fullPath.filter((d) => !hasNode(d))).join(delimiter);
@@ -70,14 +70,14 @@ describe("hook commands with no node on PATH", { skip: !SHELL, timeout: 30_000 }
   it("SessionStart prints the one line as a systemMessage and exits 0", () => {
     const hidden = spawnSync(SHELL, ["-c", "command -v node || echo none"], { env: envFor({ node: false }), encoding: "utf8" });
     expect(hidden.stdout.trim()).toBe("none");
-    const r = runHook("SessionStart", { node: false, extra: { CLEAR_RESUME_HOME: root } });
+    const r = runHook("SessionStart", { node: false, extra: { CORNERMAN_HOME: root } });
     expect(r.status).toBe(0);
     expect(r.stderr).toBe("");
     expect(JSON.parse(r.stdout)).toEqual({ systemMessage: MESSAGE });
   });
 
   it.each(["PostToolUse", "Stop"])("%s prints nothing and exits 0", (event) => {
-    const r = runHook(event, { node: false, extra: { CLEAR_RESUME_HOME: root, CLEAR_RESUME_AUTO: "1" } });
+    const r = runHook(event, { node: false, extra: { CORNERMAN_HOME: root, CORNERMAN_AUTO: "1" } });
     expect(r.status).toBe(0);
     expect(r.stdout).toBe("");
     expect(r.stderr).toBe("");
@@ -90,7 +90,7 @@ describe("hook commands with node on PATH", { skip: !SHELL, timeout: 30_000 }, (
     const r = runHook("SessionStart", {
       node: true,
       input: JSON.stringify({ cwd: repo, source: "startup" }),
-      extra: { CLEAR_RESUME_HOME: root, CLEAR_RESUME_SYNC: "off" },
+      extra: { CORNERMAN_HOME: root, CORNERMAN_SYNC: "off" },
     });
     expect(r.stderr).toBe("");
     expect(r.status).toBe(0);
@@ -105,7 +105,7 @@ describe("hook commands with node on PATH", { skip: !SHELL, timeout: 30_000 }, (
 describe("hook-entry.cjs with auto mode off", () => {
   it.each(["post-tool", "stop"])("%s exits at once, before reading its input", async (name) => {
     const child = spawn(process.execPath, [ENTRY, name], {
-      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_AUTO: "", CORNERMAN_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "";

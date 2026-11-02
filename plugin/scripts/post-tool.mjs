@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// PostToolUse hook (opt-in auto mode, CLEAR_RESUME_AUTO=1): warns once per
-// session, mid-turn, when the context passes CLEAR_RESUME_NUDGE_AT. The Stop
+// PostToolUse hook (opt-in auto mode, CORNERMAN_AUTO=1): warns once per
+// session, mid-turn, when the context passes CORNERMAN_NUDGE_AT. The Stop
 // hook cannot see this: it only runs when a turn ends, and compaction does not
 // wait for one.
 // Any failure exits 0 with no output: a broken plugin must never block a session.

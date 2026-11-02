@@ -5,7 +5,7 @@ import { join } from "node:path";
 export const IDLE_MODES = ["off", "toast", "smart", "auto"] as const;
 export type IdleMode = (typeof IDLE_MODES)[number];
 
-const PLUGIN = "clear-resume@clear-resume";
+const PLUGIN = "cornerman@cornerman";
 
 export const IDLE_DETAIL: Record<IdleMode, string> = {
   off: "does nothing while you are away",

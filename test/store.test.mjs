@@ -175,7 +175,7 @@ describe("save.mjs CLI", () => {
     execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "# Handover\n\nCost is $600 and `code` stays.\n",
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
     const [record] = listAll(root);
@@ -190,7 +190,7 @@ describe("save.mjs CLI", () => {
     const out = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "cli test", "--cwd", repo], {
       cwd: repo,
       input: "body",
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
     const [record] = listAll(root);
@@ -206,7 +206,7 @@ describe("save.mjs CLI", () => {
       execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/save.mjs"), "--title", "t", "--cwd", repo], {
         cwd: repo,
         input: "",
-        env: { ...process.env, CLEAR_RESUME_HOME: root },
+        env: { ...process.env, CORNERMAN_HOME: root },
         stdio: "pipe",
       }),
     ).toThrow();

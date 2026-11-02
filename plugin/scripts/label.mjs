@@ -3,7 +3,7 @@
 // worktree names its window and its kickoff handover the way the sidebar does.
 //   node label.mjs <slug> --registry <path/to/registry.json>
 // Prints JSON: { row, slug, short, context, plan, seq, total, wave }.
-// The registry path can also come from CLEAR_RESUME_REGISTRY.
+// The registry path can also come from CORNERMAN_REGISTRY.
 import { readFileSync } from "node:fs";
 import { entryLabel } from "../packages/store/lanes.mjs";
 
@@ -13,7 +13,7 @@ function arg(name) {
 }
 
 const slug = process.argv[2];
-const path = arg("--registry") || process.env.CLEAR_RESUME_REGISTRY;
+const path = arg("--registry") || process.env.CORNERMAN_REGISTRY || process.env.CLEAR_RESUME_REGISTRY;
 if (!slug || slug.startsWith("--") || !path) {
   console.error("usage: label.mjs <slug> --registry <registry.json>");
   process.exit(64);
@@ -28,6 +28,6 @@ try {
   }
   console.log(JSON.stringify(entryLabel(entry, entries)));
 } catch (err) {
-  console.error(`clear-resume: ${err.message}`);
+  console.error(`cornerman: ${err.message}`);
   process.exit(1);
 }

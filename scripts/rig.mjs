@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Recording rig: a clean, isolated Claude Code + VS Code setup on Windows, for
-// screen-recording clear-resume in real use.
+// screen-recording cornerman in real use.
 //
 // Nothing from your own setup reaches the rig. It gets its own home folder
 // (USERPROFILE/HOME), so anything that reads the home directory, such as the
-// clear-resume store and the extension's context pie, reads the rig's. Claude Code
+// cornerman store and the extension's context pie, reads the rig's. Claude Code
 // gets an empty config (CLAUDE_CONFIG_DIR = <home>/.claude), with no CLAUDE.md,
 // rules, memory, skills or MCP servers, and VS Code gets a throwaway profile and
 // extensions folder. Claude signs in with CLAUDE_CODE_OAUTH_TOKEN (made by
@@ -58,7 +58,7 @@ const HOME = join(ROOT, "home");
 const P = {
   home: HOME,
   config: join(HOME, ".claude"),
-  store: join(HOME, ".clear-resume"),
+  store: join(HOME, ".cornerman"),
   src: join(HOME, "src"),
   userData: join(ROOT, "vscode", "user-data"),
   extensions: join(ROOT, "vscode", "extensions"),
@@ -118,7 +118,7 @@ function rigEnv() {
     HOMEDRIVE: P.home.slice(0, 2),
     HOMEPATH: P.home.slice(2),
     CLAUDE_CONFIG_DIR: P.config,
-    CLEAR_RESUME_HOME: P.store,
+    CORNERMAN_HOME: P.store,
     TEMP: P.tmp,
     TMP: P.tmp,
     npm_config_cache: P.npmCache,
@@ -224,7 +224,7 @@ function setup() {
     "window.zoomLevel": 2,
   });
 
-  for (const slug of new Set(["m4cd4r4/clear-resume", ...plugins, ...clones])) {
+  for (const slug of new Set(["m4cd4r4/cornerman", ...plugins, ...clones])) {
     const repo = slug.split("/").pop();
     const dest = join(P.src, repo);
     if (existsSync(dest)) console.log(`${repo}: already cloned, left as is`);
@@ -233,15 +233,15 @@ function setup() {
 
   // The plugin comes from GitHub, as a reader would install it. The relay budget
   // (a number of clears) is left off here: it is set from the command palette.
-  must("marketplace add", claude("plugin", "marketplace", "add", "m4cd4r4/clear-resume"));
-  must("plugin install", claude("plugin", "install", "clear-resume@clear-resume", "--config", "auto_nudge=true", "--config", "nudge_at=60000"));
+  must("marketplace add", claude("plugin", "marketplace", "add", "m4cd4r4/cornerman"));
+  must("plugin install", claude("plugin", "install", "cornerman@cornerman", "--config", "auto_nudge=true", "--config", "nudge_at=60000"));
   for (const slug of plugins) {
     const repo = slug.split("/").pop();
     must(`marketplace add ${slug}`, claude("plugin", "marketplace", "add", slug));
     must(`plugin install ${repo}`, claude("plugin", "install", `${repo}@${repo}`, ...pluginConfig));
   }
 
-  for (const ext of ["anthropic.claude-code", "macdara.clear-resume"]) must(`install ${ext}`, code("--install-extension", ext, "--force"));
+  for (const ext of ["anthropic.claude-code", "macdara.cornerman"]) must(`install ${ext}`, code("--install-extension", ext, "--force"));
   console.log(`\nrig ready at ${ROOT}`);
 }
 

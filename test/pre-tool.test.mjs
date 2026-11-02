@@ -1,6 +1,6 @@
 // The idle handover is asked for while nobody is at the keyboard. In a profile that
 // has not allowed the handover skill, the Skill call waits on "Use skill
-// /clear-resume:handover?" and nothing is saved (rig run, 2026-10-30). The relay now
+// /cornerman:handover?" and nothing is saved (rig run, 2026-10-30). The relay now
 // leaves a one-shot mark when it asks, and the PreToolUse hook allows that one call.
 // Everything else goes through the user's permissions as before.
 import { execFileSync } from "node:child_process";
@@ -28,13 +28,13 @@ function ask(at = Date.now(), session = SESSION) {
 function run(input, script = [SCRIPT]) {
   const out = execFileSync(process.execPath, script, {
     input: JSON.stringify(input),
-    env: { ...process.env, CLEAR_RESUME_HOME: root },
+    env: { ...process.env, CORNERMAN_HOME: root },
     encoding: "utf8",
   });
   return out ? JSON.parse(out) : null;
 }
 
-const skillCall = (skill = "clear-resume:handover", session = SESSION) => ({
+const skillCall = (skill = "cornerman:handover", session = SESSION) => ({
   hook_event_name: "PreToolUse",
   session_id: session,
   tool_name: "Skill",
@@ -86,7 +86,7 @@ describe("pre-tool hook", () => {
   });
 
   it("exits 0 with no output on bad input", () => {
-    const out = execFileSync(process.execPath, [SCRIPT], { input: "not json", env: { ...process.env, CLEAR_RESUME_HOME: root }, encoding: "utf8" });
+    const out = execFileSync(process.execPath, [SCRIPT], { input: "not json", env: { ...process.env, CORNERMAN_HOME: root }, encoding: "utf8" });
     expect(out).toBe("");
   });
 

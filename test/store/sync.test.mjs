@@ -13,7 +13,7 @@ import { initSync, isSynced, pull, pushIfSynced, pushInBackground, sync } from "
 vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 // Two machines, one bare repo between them. Every test builds its own - the live
-// store at ~/.clear-resume is never touched.
+// store at ~/.cornerman is never touched.
 let tmp;
 let remote;
 let a;
@@ -27,7 +27,7 @@ function base(overrides = {}) {
   return {
     title: "a handover",
     body: "body text",
-    repoPath: "I:/Scratch/clear-resume",
+    repoPath: "I:/Scratch/cornerman",
     machine: "desk",
     pid: 1,
     createdAt: "2026-09-19T23:28:51.277Z",
@@ -287,7 +287,9 @@ describe("wiring", () => {
     initSync(a, remote);
     const archivedAt = new Date(Date.now() - 29.9 * 86_400_000).toISOString();
     const { id } = save(
-      base({ title: "taken back", status: "archived", archivedAt, archivedBy: { owner: "999", pid: "1", via: "hook" } }),
+      // A folder that exists, and not the hook's cwd: reopen makes this machine's record, prune archives
+      // one whose repo has gone, and a session start in its repo would load it.
+      base({ title: "taken back", repoPath: a, status: "archived", archivedAt, archivedBy: { owner: "999", pid: "1", via: "hook" } }),
       { root: a },
     );
     sync(a);
@@ -306,7 +308,7 @@ describe("wiring", () => {
     expect(onRemote()).toBe("waiting");
 
     // The other machine's SessionStart, three hours later: pull, then prune.
-    run({ cwd: tmp }, { env: { CLEAR_RESUME_HOME: b }, now: new Date(Date.now() + 3 * 3_600_000) });
+    run({ cwd: tmp }, { env: { CORNERMAN_HOME: b }, now: new Date(Date.now() + 3 * 3_600_000) });
     expect(read(id, b).status).toBe("waiting");
   });
 });
@@ -321,12 +323,12 @@ describe("session start", () => {
     // saveHandover starts its own push in the background. Racing it, the sync
     // below could lose the commit and give up, and machine b then fetched before
     // the winner had pushed (macOS CI, three runs). One sync, checked.
-    vi.stubEnv("CLEAR_RESUME_SYNC", "off");
+    vi.stubEnv("CORNERMAN_SYNC", "off");
     saveHandover({ cwd: repo, title: "written on a", body: "do the thing", root: a });
     vi.unstubAllEnvs();
     expect(sync(a).ok).toBe(true);
 
-    const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: b } });
+    const out = run({ cwd: repo }, { env: { CORNERMAN_HOME: b } });
     expect(out.hookSpecificOutput.additionalContext).toContain("written on a");
   });
 
@@ -337,7 +339,7 @@ describe("session start", () => {
     save(base({ title: "local only", repoPath: repo }), { root: a });
     rmSync(remote, { recursive: true, force: true });
 
-    const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: a } });
+    const out = run({ cwd: repo }, { env: { CORNERMAN_HOME: a } });
     expect(out.hookSpecificOutput.additionalContext).toContain("local only");
   });
 });
@@ -345,7 +347,7 @@ describe("session start", () => {
 describe("sync.mjs CLI", () => {
   function cli(root, ...args) {
     return execFileSync(process.execPath, [join(import.meta.dirname, "../../plugin/scripts/sync.mjs"), ...args], {
-      env: { ...process.env, CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_HOME: root },
       encoding: "utf8",
     });
   }

@@ -133,7 +133,7 @@ describe("the store", () => {
 
 describe("the SessionEnd hook", () => {
   const end = (input, env = {}) =>
-    spawnSync(process.execPath, [END], { input: JSON.stringify(input), env: { ...process.env, CLEAR_RESUME_HOME: root, ...env }, encoding: "utf8" });
+    spawnSync(process.execPath, [END], { input: JSON.stringify(input), env: { ...process.env, CORNERMAN_HOME: root, ...env }, encoding: "utf8" });
 
   it("writes a capture for the session, and nothing when it said nothing worth keeping", () => {
     const r = end({ session_id: SID, transcript_path: transcript(assistant(TABLE, "m1")), cwd: repo, reason: "clear" });
@@ -143,14 +143,14 @@ describe("the SessionEnd hook", () => {
     expect(existsSync(captureDir(root, "quiet"))).toBe(false);
   });
   it("exits 0 on garbage input and when switched off", () => {
-    expect(spawnSync(process.execPath, [END], { input: "not json", env: { ...process.env, CLEAR_RESUME_HOME: root } }).status).toBe(0);
-    end({ session_id: SID, transcript_path: transcript(assistant(TABLE, "m1")) }, { CLEAR_RESUME_ARTIFACTS: "0" });
+    expect(spawnSync(process.execPath, [END], { input: "not json", env: { ...process.env, CORNERMAN_HOME: root } }).status).toBe(0);
+    end({ session_id: SID, transcript_path: transcript(assistant(TABLE, "m1")) }, { CORNERMAN_ARTIFACTS: "0" });
     expect(existsSync(captureDir(root, SID))).toBe(false);
   });
 });
 
 describe("the load notice", () => {
-  const hook = () => run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "111" } });
+  const hook = () => run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: "111" } });
   const save = (sessionId) => saveHandover({ cwd: repo, title: "Job hunt", body: "## Next action\nApply.", root, owner: "111", sessionId });
 
   it("names the files the handover's session left, with counts and titles, not their text", () => {

@@ -30,7 +30,7 @@ in 0.2.1.
 - **Headless:** the runner's `--max-segments`.
 - **Interactive (phase 2)**, most specific wins: `/auto <n|on|off>` in chat for this
   window, then a status-bar item per window (click cycles Off -> 3 -> Unlimited, shows
-  "auto: 2 of 4 left"), then the extension setting `clear-resume.autoContinue` (default
+  "auto: 2 of 4 left"), then the extension setting `cornerman.autoContinue` (default
   off).
 
 ## The handover record
@@ -49,12 +49,12 @@ unknown fields through.
 
 How `save.mjs` decides `auto`:
 
-- `CLEAR_RESUME_HEADLESS=1` (the runner sets it, with a private store): always auto.
+- `CORNERMAN_HEADLESS=1` (the runner sets it, with a private store): always auto.
 - Otherwise: auto when this session has been nudged (the `.nudged/<session id>` marker the
   Stop and PostToolUse hooks already write) and auto-continue is on. This does not rely on
   Claude remembering to pass a flag.
 
-`chain` and `budget` come from `CLEAR_RESUME_CHAIN` and `CLEAR_RESUME_BUDGET`, which the
+`chain` and `budget` come from `CORNERMAN_CHAIN` and `CORNERMAN_BUDGET`, which the
 runner sets per segment (phase 2: from the window's state).
 
 ## The nudge
@@ -68,7 +68,7 @@ runner sets per segment (phase 2: from the window's state).
 The "if finished, don't save" clause matters: the Stop hook fires on the final turn end
 too, and a finished worker that saves a handover would be resumed into a done task.
 
-## Phase 1: `clear-resume run`
+## Phase 1: `cornerman run`
 
 ```
 node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file p.txt \
@@ -83,11 +83,11 @@ node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file
   left.
 - **Prompt on stdin**, not argv. Segment 2+ appends the handover body, and Windows cuts a
   command line at about 8k characters.
-- **Environment per segment:** `CLEAR_RESUME_AUTO=1`, `CLEAR_RESUME_HEADLESS=1`,
-  `CLEAR_RESUME_HOME=<private store>` (default `~/.clear-resume-headless`),
-  `CLEAR_RESUME_SYNC=off`, `CLEAR_RESUME_NUDGE_AT`, `CLEAR_RESUME_CHAIN`,
-  `CLEAR_RESUME_BUDGET`. The private store means worker handovers never reach the
-  extension or an interactive session. A `--settings` JSON that sets `CLEAR_RESUME_*`
+- **Environment per segment:** `CORNERMAN_AUTO=1`, `CORNERMAN_HEADLESS=1`,
+  `CORNERMAN_HOME=<private store>` (default `~/.cornerman-headless`),
+  `CORNERMAN_SYNC=off`, `CORNERMAN_NUDGE_AT`, `CORNERMAN_CHAIN`,
+  `CORNERMAN_BUDGET`. The private store means worker handovers never reach the
+  extension or an interactive session. A `--settings` JSON that sets `CORNERMAN_*`
   would override these, so the runner refuses it.
 - **Session ids.** A `--session-id` in the command is used for segment 1; later segments
   get fresh UUIDs (one id cannot be reused). Each is written to the event log.
@@ -100,7 +100,7 @@ node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file
   waiting in the private store and its id printed), or at the stall guard (exit 3).
 - **Stall guard**, also with a large budget: HEAD is compared before and after each
   continued segment. Two continued segments in a row with no new commit stop the chain
-  and run `--alert-cmd` with the message in `CLEAR_RESUME_ALERT`.
+  and run `--alert-cmd` with the message in `CORNERMAN_ALERT`.
 - **Cost** is read from the `result` line of `--output-format json|stream-json`
   (`total_cost_usd`). Without one, the segment is charged its full `--max-budget-usd`.
 - **Event log** (optional): `<iso> segment <label> <n> <session id>` lines. The examworthy
@@ -136,7 +136,7 @@ Pick a check that is cheap and exits 0 only when the whole task is done, for exa
 ### Harness swap (after this merges)
 
 `~/.claude/headless-examworthy-rd-wave2/run-one.sh` today runs one `claude -p` with
-`--max-turns 500 --max-budget-usd 40 --settings CLEAR_RESUME_AUTO=0`. It becomes the
+`--max-turns 500 --max-budget-usd 40 --settings CORNERMAN_AUTO=0`. It becomes the
 runner with `--max-segments 4 --total-budget-usd 60 --nudge-at 180000 --event-log
 queue.log --label $SLUG`, the `--settings` override dropped. Evidence for 180k: workers
 start at a median of 92k, and first builds reached 460k at 15-31 USD

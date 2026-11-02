@@ -1,8 +1,8 @@
 {
-  "name": "clear-resume",
-  "displayName": "clear-resume",
+  "name": "cornerman",
+  "displayName": "cornerman",
   "description": "Browse your Claude Code handovers and resume one in a fresh conversation.",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "publisher": "macdara",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -10,13 +10,13 @@
     "color": "#0A0A0A",
     "theme": "dark"
   },
-  "homepage": "https://github.com/m4cd4r4/clear-resume/tree/main/extension#readme",
+  "homepage": "https://github.com/m4cd4r4/cornerman/tree/main/extension#readme",
   "bugs": {
-    "url": "https://github.com/m4cd4r4/clear-resume/issues"
+    "url": "https://github.com/m4cd4r4/cornerman/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/m4cd4r4/clear-resume",
+    "url": "https://github.com/m4cd4r4/cornerman",
     "directory": "extension"
   },
   "engines": {
@@ -42,225 +42,225 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onView:clearResume.history",
+    "onView:cornerman.history",
     "onStartupFinished"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "clearResume",
-          "title": "clear-resume",
+          "id": "cornerman",
+          "title": "cornerman",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "clearResume": [
+      "cornerman": [
         {
-          "id": "clearResume.history",
+          "id": "cornerman.history",
           "name": "Handovers",
-          "contextualTitle": "clear-resume",
+          "contextualTitle": "cornerman",
           "type": "webview"
         },
         {
-          "id": "clearResume.lanes",
+          "id": "cornerman.lanes",
           "name": "Worktrees",
-          "contextualTitle": "clear-resume",
+          "contextualTitle": "cornerman",
           "type": "webview"
         }
       ]
     },
     "commands": [
       {
-        "command": "clearResume.resume",
+        "command": "cornerman.resume",
         "title": "Resume",
         "icon": "$(play)"
       },
       {
-        "command": "clearResume.pin",
+        "command": "cornerman.pin",
         "title": "Pin",
         "icon": "$(pin)"
       },
       {
-        "command": "clearResume.unpin",
+        "command": "cornerman.unpin",
         "title": "Unpin",
         "icon": "$(pinned)"
       },
       {
-        "command": "clearResume.delete",
+        "command": "cornerman.delete",
         "title": "Delete",
         "icon": "$(trash)"
       },
       {
-        "command": "clearResume.open",
+        "command": "cornerman.open",
         "title": "Open handover"
       },
       {
-        "command": "clearResume.openLoaded",
+        "command": "cornerman.openLoaded",
         "title": "Open loaded handover"
       },
       {
-        "command": "clearResume.asset",
+        "command": "cornerman.asset",
         "title": "Open what the session left on screen"
       },
       {
-        "command": "clearResume.refresh",
+        "command": "cornerman.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "clearResume.toggleArchived",
+        "command": "cornerman.toggleArchived",
         "title": "Show/hide archived",
         "icon": "$(history)"
       },
       {
-        "command": "clearResume.migrate",
-        "title": "clear-resume: Import existing handovers"
+        "command": "cornerman.migrate",
+        "title": "cornerman: Import existing handovers"
       },
       {
-        "command": "clearResume.openLane",
+        "command": "cornerman.openLane",
         "title": "Open worktree window",
-        "category": "clear-resume"
+        "category": "cornerman"
       },
       {
-        "command": "clearResume.pickRelay",
+        "command": "cornerman.pickRelay",
         "title": "Set relay for this window",
-        "category": "clear-resume"
+        "category": "cornerman"
       },
       {
-        "command": "clearResume.pickNudge",
+        "command": "cornerman.pickNudge",
         "title": "Set nudge size for this window",
-        "category": "clear-resume"
+        "category": "cornerman"
       },
       {
-        "command": "clearResume.pickIdle",
+        "command": "cornerman.pickIdle",
         "title": "Set idle handover mode",
-        "category": "clear-resume"
+        "category": "cornerman"
       },
       {
-        "command": "clearResume.handoverNow",
+        "command": "cornerman.handoverNow",
         "title": "Hand over now",
-        "category": "clear-resume"
+        "category": "cornerman"
       },
       {
-        "command": "clearResume.spareAct",
+        "command": "cornerman.spareAct",
         "title": "Spare Cycles: Done / Skip / Snooze",
-        "category": "clear-resume"
+        "category": "cornerman"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "clearResume.resume",
+          "command": "cornerman.resume",
           "when": "false"
         },
         {
-          "command": "clearResume.pin",
+          "command": "cornerman.pin",
           "when": "false"
         },
         {
-          "command": "clearResume.unpin",
+          "command": "cornerman.unpin",
           "when": "false"
         },
         {
-          "command": "clearResume.delete",
+          "command": "cornerman.delete",
           "when": "false"
         },
         {
-          "command": "clearResume.open",
+          "command": "cornerman.open",
           "when": "false"
         },
         {
-          "command": "clearResume.openLoaded",
+          "command": "cornerman.openLoaded",
           "when": "false"
         },
         {
-          "command": "clearResume.asset",
+          "command": "cornerman.asset",
           "when": "false"
         },
         {
-          "command": "clearResume.migrate",
-          "when": "clearResume.hasLegacy"
+          "command": "cornerman.migrate",
+          "when": "cornerman.hasLegacy"
         },
         {
-          "command": "clearResume.openLane",
+          "command": "cornerman.openLane",
           "when": "false"
         },
         {
-          "command": "clearResume.spareAct",
-          "when": "config.clearResume.spareCycles"
+          "command": "cornerman.spareAct",
+          "when": "config.cornerman.spareCycles"
         }
       ],
       "view/title": [
         {
-          "command": "clearResume.toggleArchived",
-          "when": "view == clearResume.history",
+          "command": "cornerman.toggleArchived",
+          "when": "view == cornerman.history",
           "group": "navigation@1"
         },
         {
-          "command": "clearResume.refresh",
-          "when": "view == clearResume.history",
+          "command": "cornerman.refresh",
+          "when": "view == cornerman.history",
           "group": "navigation@2"
         },
         {
-          "command": "clearResume.refresh",
-          "when": "view == clearResume.lanes",
+          "command": "cornerman.refresh",
+          "when": "view == cornerman.lanes",
           "group": "navigation"
         }
       ],
       "webview/context": [
         {
-          "command": "clearResume.open",
+          "command": "cornerman.open",
           "when": "webviewSection == 'handover'",
           "group": "1_open@1"
         },
         {
-          "command": "clearResume.resume",
+          "command": "cornerman.resume",
           "when": "webviewSection == 'handover' && !archived",
           "group": "2_act@1"
         },
         {
-          "command": "clearResume.pin",
+          "command": "cornerman.pin",
           "when": "webviewSection == 'handover' && !pinned",
           "group": "2_act@2"
         },
         {
-          "command": "clearResume.unpin",
+          "command": "cornerman.unpin",
           "when": "webviewSection == 'handover' && pinned",
           "group": "2_act@2"
         },
         {
-          "command": "clearResume.delete",
+          "command": "cornerman.delete",
           "when": "webviewSection == 'handover'",
           "group": "3_delete@1"
         },
         {
-          "command": "clearResume.openLane",
+          "command": "cornerman.openLane",
           "when": "webviewSection == 'lane'",
           "group": "1_open@1"
         }
       ]
     },
     "configuration": {
-      "title": "clear-resume",
+      "title": "cornerman",
       "properties": {
-        "clearResume.storePath": {
+        "cornerman.storePath": {
           "type": "string",
           "default": "",
-          "description": "Folder holding the handover store. Defaults to ~/.clear-resume."
+          "description": "Folder holding the handover store. Defaults to ~/.cornerman."
         },
-        "clearResume.showArchived": {
+        "cornerman.showArchived": {
           "type": "boolean",
           "default": false,
           "description": "Show archived handovers in the tree."
         },
-        "clearResume.registryPath": {
+        "cornerman.registryPath": {
           "type": "string",
           "default": "",
           "description": "Optional worktree registry (JSON with an entries array). When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up."
         },
-        "clearResume.spareCycles": {
+        "cornerman.spareCycles": {
           "type": "boolean",
           "default": false,
           "description": "Show the Spare Cycles timer in the status bar: a countdown to the next task, Done / Skip / Snooze on click, and one notification when a task comes due. Needs the spare-cycles plugin, which owns the timer."

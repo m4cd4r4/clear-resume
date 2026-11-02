@@ -1,6 +1,6 @@
 # Research: what was measured, what it showed, what it did not
 
-clear-resume was tested before release. This page is the evidence behind the claims in the [README](../README.md): every result with its sample size (n), model and date, what each study cannot tell you, and the things that are a judgement rather than a measurement. Nothing here is needed to use the plugin.
+cornerman, then called clear-resume, was tested before release. This page is the evidence behind the claims in the [README](../README.md): every result with its sample size (n), model and date, what each study cannot tell you, and the things that are a judgement rather than a measurement. Nothing here is needed to use the plugin.
 
 **How to read the labels.** *Measured* means a run produced the number. *Modelled* means a fitted formula produced it. *Judgement* means the author chose it. Costs are API-equivalent (list price), because the runs used a subscription token. Prices changed between 9 and 10 Oct 2026, so only numbers from the same day compare.
 

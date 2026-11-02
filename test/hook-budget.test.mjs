@@ -37,7 +37,7 @@ describe("SessionStart owner lookup on the echo path", () => {
     saveHandover({ cwd: repo, title: "Theirs", body: "t", root, owner: String(process.pid) });
     git("checkout", "-q", "main");
     saveHandover({ cwd: repo, title: "Mine", body: "m", root, owner: "" });
-    const env = { CLEAR_RESUME_HOME: root };
+    const env = { CORNERMAN_HOME: root };
 
     run({ cwd: repo, source: "startup" }, { env });
     ownerId.mockClear();

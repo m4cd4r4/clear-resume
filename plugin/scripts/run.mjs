@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// clear-resume run: a headless claude -p that hands over and resumes itself.
+// cornerman run: a headless claude -p that hands over and resumes itself.
 //   node run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file task.txt \
 //     [--nudge-at 180000] [--store DIR] [--event-log FILE --label NAME] [--alert-cmd CMD] \
 //     [--done-check CMD] \

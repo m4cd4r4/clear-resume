@@ -1,4 +1,4 @@
-# Design spec - clear-resume demo
+# Design spec - cornerman demo
 
 ## Concept angle
 

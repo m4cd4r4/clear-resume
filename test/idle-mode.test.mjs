@@ -25,7 +25,7 @@ describe("idle mode from the plugin option", () => {
 
   it("reads the plugin option and treats anything unknown as off", () => {
     const p = join(dir(), "settings.json");
-    writeFileSync(p, JSON.stringify({ pluginConfigs: { "clear-resume@clear-resume": { options: { idle_handover: "Smart" } } } }));
+    writeFileSync(p, JSON.stringify({ pluginConfigs: { "cornerman@cornerman": { options: { idle_handover: "Smart" } } } }));
     expect(settingsIdleMode(p)).toBe("smart");
     expect(parseIdleMode("sometimes")).toBe("off");
     expect(parseIdleMode(undefined)).toBe("off");

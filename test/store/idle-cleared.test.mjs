@@ -10,7 +10,7 @@ const SCRIPT = fileURLToPath(new URL("../../plugin/scripts/idle-cleared.mjs", im
 
 describe("idle-cleared.mjs", () => {
   let root;
-  const ask = (id) => JSON.parse(execFileSync("node", [SCRIPT, id], { env: { ...process.env, CLEAR_RESUME_HOME: root }, encoding: "utf8" }));
+  const ask = (id) => JSON.parse(execFileSync("node", [SCRIPT, id], { env: { ...process.env, CORNERMAN_HOME: root }, encoding: "utf8" }));
   const write = (over, now = new Date("2026-10-30T10:00:00Z")) =>
     save(
       {

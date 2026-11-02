@@ -21,6 +21,7 @@ export default defineConfig({
     exclude: ["**/node_modules/**", ".claude/worktrees/**", "test/mod/**", "site/**"],
     // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
     // launched the tests would make every save in every test one owner's.
-    env: { CLAUDE_PID: "", CLEAR_RESUME_NO_PROCESS_WALK: "1" },
+    // CORNERMAN_NO_MIGRATE: a test calling run() must never move the real store.
+    env: { CLAUDE_PID: "", CORNERMAN_NO_PROCESS_WALK: "1", CORNERMAN_NO_MIGRATE: "1" },
   },
 });

@@ -1,4 +1,4 @@
-# How clear-resume works
+# How cornerman works
 
 The details behind the [README](../README.md).
 
@@ -34,8 +34,8 @@ acting, because a branch or a file can move between sessions.
 
 ## Where handovers live
 
-One JSON file per handover in `~/.clear-resume/handovers/`, named
-`<machine>-<pid>-<time>.json`. `CLEAR_RESUME_HOME` moves the whole store.
+One JSON file per handover in `~/.cornerman/handovers/`, named
+`<machine>-<pid>-<time>.json`. `CORNERMAN_HOME` moves the whole store.
 
 A handover is filed against the folder the session started in, even after a `cd`. It loads only
 in that checkout. A handover written in a git worktree is not offered in the repo's main
@@ -58,7 +58,7 @@ and auto mode keeps one marker file per nudged session in `.nudged/`. Nothing pr
 ### The readable copy
 
 Each time a handover loads, the plugin also writes it as plain markdown to
-`~/.clear-resume/loaded/<repo>-<title>-<id>.md` (title, repo, branch, when it was saved and
+`~/.cornerman/loaded/<repo>-<title>-<id>.md` (title, repo, branch, when it was saved and
 loaded, then the body) and prints the path on the line under the load message. Open it to reread
 what the session started from, or @-mention it in another session. The name holds no user or
 machine name. A copy is deleted 30 days after its handover loaded; the record keeps the body. The
@@ -99,7 +99,7 @@ See [Claude Code on the web](#claude-code-on-the-web-opt-in).
 
 The listing gives Claude the command for each handover. To run it yourself, from inside the
 repo, the script is
-`~/.claude/plugins/cache/clear-resume/clear-resume/<version>/scripts/load.mjs`.
+`~/.claude/plugins/cache/cornerman/cornerman/<version>/scripts/load.mjs`.
 
 | Command | What it does |
 |---|---|
@@ -119,7 +119,7 @@ copy too.
 
 A handover is a summary Claude writes, so it drops whatever Claude did not think to keep: a list of
 jobs read a moment before `/clear` is gone. So a `SessionEnd` hook reads the session's own transcript
-and keeps these, mechanically, in `~/.clear-resume/artifacts/<session id>/`:
+and keeps these, mechanically, in `~/.cornerman/artifacts/<session id>/`:
 
 | File | Holds |
 |---|---|
@@ -132,12 +132,12 @@ redacted by the same net the Recent trail uses. A session that left nothing of t
 nothing. Nothing is sent anywhere, and the folder ignores itself so sync never pushes it.
 
 A handover records the id of the session that saved it. Load a handover and the notice adds one line,
-for example `Earlier session left 2 tables, 12 links: ~/.clear-resume/artifacts/<id>/artifacts.md`.
+for example `Earlier session left 2 tables, 12 links: ~/.cornerman/artifacts/<id>/artifacts.md`.
 Only the counts and a few titles reach Claude's context, never the text, so a resumed session stays
 light; Claude reads the file when you ask about something from before the clear. In the sidebar, open
 a handover row with its chevron: **Assets** lists the items, and a click opens a link in the browser,
 a path in the editor, a table or list in a markdown tab, or the last screen. Captures are deleted 30
-days after they were taken, except while a waiting handover names them. `CLEAR_RESUME_ARTIFACTS=0`
+days after they were taken, except while a waiting handover names them. `CORNERMAN_ARTIFACTS=0`
 turns the capture off.
 
 A session cleared with no handover still leaves its folder, which you can open or @-mention, but there
@@ -150,21 +150,21 @@ All optional. Set them as environment variables, for example in the `env` block 
 
 | Variable | Default | What it does |
 |---|---|---|
-| `CLEAR_RESUME_AUTO` | off | `1` turns on the context-size nudge. |
-| `CLEAR_RESUME_NUDGE_AT` | `250000` | Context size, in tokens, that triggers the nudge. |
-| `CLEAR_RESUME_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
-| `CLEAR_RESUME_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
-| `CLEAR_RESUME_HOME` | `~/.clear-resume` | Where handovers are stored. |
-| `CLEAR_RESUME_ARTIFACTS` | on | `0` stops the SessionEnd hook keeping what the session left on screen. |
-| `CLEAR_RESUME_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
-| `CLEAR_RESUME_SYNC_TIMEOUT_MS` | `4000` | How long a session start waits on the fetch before giving up. A merge then gets up to 5s of its own, and one over 200 files is left to the next sync. `1000` or lower never merges. |
+| `CORNERMAN_AUTO` | off | `1` turns on the context-size nudge. |
+| `CORNERMAN_NUDGE_AT` | `250000` | Context size, in tokens, that triggers the nudge. |
+| `CORNERMAN_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
+| `CORNERMAN_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
+| `CORNERMAN_HOME` | `~/.cornerman` | Where handovers are stored. |
+| `CORNERMAN_ARTIFACTS` | on | `0` stops the SessionEnd hook keeping what the session left on screen. |
+| `CORNERMAN_SYNC` | on once set up | Sync only runs after `sync.mjs init` makes the store a git repo. `off` stops the plugin's pull and push on this machine. The sidebar does not read it. |
+| `CORNERMAN_SYNC_TIMEOUT_MS` | `4000` | How long a session start waits on the fetch before giving up. A merge then gets up to 5s of its own, and one over 200 files is left to the next sync. `1000` or lower never merges. |
 
 The nudge's two settings are also plugin options, `auto_nudge` and `nudge_at`, so you can set them
-without editing `settings.json`: with `/plugin configure clear-resume@clear-resume`, in `/config`
+without editing `settings.json`: with `/plugin configure cornerman@cornerman`, in `/config`
 (Claude Code 2.1.269 or later), or from a terminal with
-`claude plugin install clear-resume@clear-resume --config auto_nudge=true --config nudge_at=150000`.
+`claude plugin install cornerman@cornerman --config auto_nudge=true --config nudge_at=150000`.
 Sessions started after that use the new values. Claude Code keeps `nudge_at` between 50000 and
-1000000. `CLEAR_RESUME_AUTO` wins over `auto_nudge` whenever it is set. `CLEAR_RESUME_NUDGE_AT` wins
+1000000. `CORNERMAN_AUTO` wins over `auto_nudge` whenever it is set. `CORNERMAN_NUDGE_AT` wins
 over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 250000.
 
 The third plugin option, `relay`, is `off` (the default), a number of clears per Claude Code
@@ -177,15 +177,15 @@ Three more plugin options belong to the idle handover, which is off by default. 
 (default 100000) at which it acts. See [Idle handover](#idle-handover-before-the-cache-expires).
 
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
-sidebar's `clearResume.storePath` to the same folder.
+sidebar's `cornerman.storePath` to the same folder.
 
 ## Auto mode (opt-in)
 
 The nudge gets Claude to save a handover. The relay, below, then runs `/clear` and continues, so
 with both on the session carries itself. With the relay off, you type `/clear`.
 
-With the nudge on (`auto_nudge`, or `CLEAR_RESUME_AUTO=1`), once the session's context passes the
-threshold (`nudge_at`, or `CLEAR_RESUME_NUDGE_AT`), Claude
+With the nudge on (`auto_nudge`, or `CORNERMAN_AUTO=1`), once the session's context passes the
+threshold (`nudge_at`, or `CORNERMAN_NUDGE_AT`), Claude
 is asked to write a handover and tell you to type `/clear`. The size is read
 from the tail of the session transcript on disk. Set the threshold well above your
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
@@ -202,7 +202,7 @@ tail for what Claude did after the last ask. A saved handover (the skill, or `sa
 If Claude did neither, it is asked again, up to 3 asks in all. The mid-turn check never repeats, and the headless
 runner is never re-asked.
 
-You see one status line, such as `clear-resume: context is about 182k tokens (nudge at 180k).
+You see one status line, such as `cornerman: context is about 182k tokens (nudge at 180k).
 Claude is asked to save a handover, then you can type /clear.` It is only a note. At a
 turn end, the instruction to Claude also shows, labelled `Stop hook feedback`.
 
@@ -212,13 +212,13 @@ is always on.
 ### The relay: clear and continue with no keypress
 
 Set `relay` to a number of clears per Claude Code window, or `unlimited`. After Claude saves a
-handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from
+handover, cornerman runs `/clear` when the turn ends and submits the prompt that continues from
 it. It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless
 runs. It stops, and says so, at its count, or when two continued sessions in a row make no new
 commit (outside a git repo, only the count applies). With the relay on, the nudge tells Claude to
 end without a handover when the task is finished, so a finished job is not resumed.
 
-It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of clear-resume works
+It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of cornerman works
 as before. It works in a terminal and in the VS Code chat panel.
 
 `/relay off|on|unlimited|<n>` overrides the option for the current window only and starts its
@@ -236,11 +236,11 @@ node plugin/scripts/run.mjs --max-segments 4 --total-budget-usd 60 --prompt-file
   -- claude -p --max-turns 500 --max-budget-usd 40 --output-format stream-json --verbose
 ```
 
-Each segment gets `CLEAR_RESUME_HEADLESS=1`, so the nudge asks Claude to commit, save a handover
+Each segment gets `CORNERMAN_HEADLESS=1`, so the nudge asks Claude to commit, save a handover
 and end its turn (or, if the task is done, to save nothing). The runner then archives that
 handover and starts the next segment with the original prompt plus the handover. It stops when a
 segment saves no handover, at a cap (exit 4), or when two continued segments in a row add no
-commit (exit 3). Its handovers live in `~/.clear-resume-headless`, never in your own store.
+commit (exit 3). Its handovers live in `~/.cornerman-headless`, never in your own store.
 Every option and cap: [AUTO-CONTINUE.md](AUTO-CONTINUE.md).
 
 As a fallback, set auto-compaction to fire well before the context window is full, with
@@ -291,23 +291,23 @@ State starts over on every session end, on compaction and on a new session start
 ## Claude Code on the web (opt-in)
 
 A cloud session's home folder, and the store in it, is not kept between sessions. With
-`CLEAR_RESUME_WEB=1`, saving a handover also pushes it to its own branch on `origin`,
-`clear-resume/<your-branch>`, as a single commit holding only `.clear-resume/HANDOVER.md`.
+`CORNERMAN_WEB=1`, saving a handover also pushes it to its own branch on `origin`,
+`cornerman/<your-branch>`, as a single commit holding only `.cornerman/HANDOVER.md`.
 Your branch, index and files are not touched.
 
 A new cloud session can start from a cached clone that is behind your last push, so the next
 session with web mode on runs one `git fetch origin`, limited to 5 seconds (offline, it uses
-what is already fetched). Then it looks for handovers in git: on `clear-resume/*` branches of
-the remote, and in a `.clear-resume/HANDOVER.md` committed to the repo. It lists up to three
+what is already fetched). Then it looks for handovers in git: on `cornerman/*` branches of
+the remote, and in a `.cornerman/HANDOVER.md` committed to the repo. It lists up to three
 of them as untrusted repo content, each with a command that prints it, counts the rest, and
 never loads them. Anyone who can push to the repo could have written them. Ask Claude to print
 the one you want. A handover still waiting in your store, or loaded once, is not listed again.
 
-An untracked `.clear-resume/HANDOVER.md` in your working tree is treated as yours: it can load
+An untracked `.cornerman/HANDOVER.md` in your working tree is treated as yours: it can load
 like a stored handover, and it is deleted once it has loaded.
 
 The session-start hook never commits, pushes or changes a branch in your repo; in web mode its
-only git write there is that fetch. Nothing deletes the `clear-resume/*` branches: the next
+only git write there is that fetch. Nothing deletes the `cornerman/*` branches: the next
 save from the same branch overwrites one, and you can delete them yourself. Outside web mode
 the plugin does not look for handovers in git at all.
 
@@ -315,7 +315,7 @@ A cloud session does not read your local settings, so set it in the repo's
 `.claude/settings.json`:
 
 ```json
-{ "env": { "CLEAR_RESUME_WEB": "1" } }
+{ "env": { "CORNERMAN_WEB": "1" } }
 ```
 
 ## Syncing two machines (optional)
@@ -327,14 +327,14 @@ Run these from a clone of this repo, on each machine, against the same **private
 (empty at the start):
 
 ```bash
-git clone https://github.com/m4cd4r4/clear-resume
-cd clear-resume
+git clone https://github.com/m4cd4r4/cornerman
+cd cornerman
 node plugin/scripts/sync.mjs init git@github.com:you/your-store.git
 ```
 
 On the second machine, `init` merges the handovers it already has with the store on the
-remote. A machine with none yet can clone the store into `~/.clear-resume` (or your
-`CLEAR_RESUME_HOME`) instead. `node plugin/scripts/sync.mjs` runs a sync by hand. The store holds
+remote. A machine with none yet can clone the store into `~/.cornerman` (or your
+`CORNERMAN_HOME`) instead. `node plugin/scripts/sync.mjs` runs a sync by hand. The store holds
 every handover you have written, with repo paths, branch names and whatever was in context, so
 keep the repo private.
 
@@ -359,7 +359,7 @@ so the cost is a repeat listing.
 | Sidebar resume, pin, delete | Push, detached | Same |
 | Two machines rewrote one record | Later `updatedAt` wins | Settled at the next pull |
 
-`CLEAR_RESUME_SYNC=off` stops the plugin's sync on one machine. The sidebar reads its own
+`CORNERMAN_SYNC=off` stops the plugin's sync on one machine. The sidebar reads its own
 environment, not Claude Code's settings, so it still pushes its own changes.
 
 ### Proving it before you trust it
@@ -374,7 +374,7 @@ node scripts/drill.mjs <your-store-url>   # your real store, at its real size
 The drill tests four conflicts between two machines: the same record rewritten on both in each push order, a delete
 racing an edit, and simultaneous creates. Then it checks the two stores agree record for
 record. Given a URL, it clones your store into a throwaway bare repo and pushes only there:
-your remote is read, never written, and `~/.clear-resume` is never opened.
+your remote is read, never written, and `~/.cornerman` is never opened.
 
 ## The VS Code sidebar (optional)
 
@@ -394,11 +394,11 @@ oldest first; details in the [extension README](../extension/README.md#worktrees
 The plugin covers the common path. The sidebar is for the rest: an older handover, one from
 another repo, or one you want to read before you resume it.
 
-Install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume)
-or [Open VSX](https://open-vsx.org/extension/macdara/clear-resume):
+Install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.cornerman)
+or [Open VSX](https://open-vsx.org/extension/macdara/cornerman):
 
 ```bash
-code --install-extension macdara.clear-resume
+code --install-extension macdara.cornerman
 ```
 
 To build and install your own copy from a clone of this repo instead:
@@ -407,8 +407,8 @@ To build and install your own copy from a clone of this repo instead:
 cd extension
 npm install
 node esbuild.mjs
-npx @vscode/vsce package --no-dependencies --allow-missing-repository --out clear-resume.vsix
-code --install-extension clear-resume.vsix --force
+npx @vscode/vsce package --no-dependencies --allow-missing-repository --out cornerman.vsix
+code --install-extension cornerman.vsix --force
 ```
 
 Do not launch an Extension Development Host to try it. On Windows
@@ -421,7 +421,7 @@ window you have open.
   under 40 lines.
 - **No permission prompt for the save.** The handover skill pre-approves the plugin's own
   `save.mjs` and `load.mjs`, and nothing else, for the turn the skill runs in. The git commands
-  it runs are read-only. If Claude starts the skill without you typing `/clear-resume:handover`,
+  it runs are read-only. If Claude starts the skill without you typing `/cornerman:handover`,
   Claude Code asks once whether to use the skill.
 - **Files on disk.** One small JSON file per handover, plain text and not encrypted, and a
   markdown copy of each loaded one, removed on the timers in
@@ -440,7 +440,7 @@ window you have open.
 The plugin runs locally. What it reads:
 
 - Your repo's git state: top folder, branch and worktrees. In web mode, also the
-  `clear-resume/*` refs and any committed `.clear-resume/HANDOVER.md`.
+  `cornerman/*` refs and any committed `.cornerman/HANDOVER.md`.
 - The process list, to tell Claude windows apart: process id, parent id, name and start time.
 - The start of the current session's transcript, when a handover is saved, to find the folder
   the session started in. In auto mode, also the end of it, to measure the context size.
@@ -494,12 +494,12 @@ had loaded. Press ctrl+o to see it.
 2. **Is it another open window's?** It is listed. Read it with `--peek`, or move it here with
    `--take`.
 3. **Is it older than 7 days?** It is listed. Load it by hand, or raise
-   `CLEAR_RESUME_MAX_AGE_DAYS`.
+   `CORNERMAN_MAX_AGE_DAYS`.
 4. **Were several waiting on other branches?** They are listed. Say which one.
 5. **Did you start with `--resume` or `/resume`?** The hook does not run then.
 6. **Is the new session in the same folder?** A handover loads only in the checkout it was
    written in, the folder the save names. A save made in a worktree says so.
-7. **Did the session start with `clear-resume needs Node.js 18 or later on your PATH`?** Install
+7. **Did the session start with `cornerman needs Node.js 18 or later on your PATH`?** Install
    Node 18 or later where Claude Code can find it, and restart Claude Code.
 8. **Still nothing?** Run `load.mjs` from inside the repo to list what is waiting, and ask Claude
    to run `node --version`: the hooks need `node` on the PATH Claude Code sees.
@@ -511,7 +511,7 @@ store. The VS Code extension and the headless runner sit on top of the same stor
 
 | Part | Where | What it does |
 |---|---|---|
-| Skill | [`plugin/skills/handover/SKILL.md`](../plugin/skills/handover/SKILL.md) | `/clear-resume:handover`. Claude writes the handover and pipes it to `scripts/save.mjs`. `scripts/load.mjs` lists what is waiting, or loads one with `--peek` or `--take`. |
+| Skill | [`plugin/skills/handover/SKILL.md`](../plugin/skills/handover/SKILL.md) | `/cornerman:handover`. Claude writes the handover and pipes it to `scripts/save.mjs`. `scripts/load.mjs` lists what is waiting, or loads one with `--peek` or `--take`. |
 | SessionStart hook | [`plugin/scripts/session-start.mjs`](../plugin/scripts/session-start.mjs) | Runs at startup, `/clear` and compaction. Loads the waiting handover, then archives it so it loads once. |
 | PostToolUse hook | [`plugin/scripts/post-tool.mjs`](../plugin/scripts/post-tool.mjs) | With the nudge on, warns once mid-turn past the Nudge at size. Compaction does not wait for a turn to end, so the Stop hook alone would miss it. |
 | Stop hook | [`plugin/scripts/stop.mjs`](../plugin/scripts/stop.mjs) | With the nudge on, asks Claude, at a turn end, to save a handover, and asks again (up to 3 asks) if it neither saved nor replied. |
@@ -529,10 +529,10 @@ with no output, because a broken plugin must never block a session.
 ### The Claude Code mod
 
 A mod is a function-hooks module that runs inside Claude Code, listed under `modules` in
-`hooks.json`. clear-resume has one, the relay. It does nothing until Relay is on. Then, after
+`hooks.json`. cornerman has one, the relay. It does nothing until Relay is on. Then, after
 Claude saves a handover, it runs `/clear` when the turn ends and submits "Continue from the
-clear-resume handover that was just loaded." The one program it starts is `git rev-parse HEAD`,
-for the stall guard. It writes one status file, `~/.clear-resume/relay/<key>.json`, which the
+cornerman handover that was just loaded." The one program it starts is `git rev-parse HEAD`,
+for the stall guard. It writes one status file, `~/.cornerman/relay/<key>.json`, which the
 VS Code status bar reads to show the clears left. Everything it runs, reads and writes is listed
 in the [plugin README](../plugin/README.md#the-relay-mod-hooksrelayts).
 
@@ -544,7 +544,7 @@ defined in one place:
 - `schema.mjs`: the handover record, shared by the plugin and the extension.
 - `store.mjs`: the reader and writer. Hooks, the extension and the migration all go through it.
 - `sync.mjs`: the git transport for [sync](#syncing-two-machines-optional), off unless you set it up.
-- `loaded.mjs`: the readable markdown copy in `~/.clear-resume/loaded/`.
+- `loaded.mjs`: the readable markdown copy in `~/.cornerman/loaded/`.
 - `view.mjs`, `lanes.mjs`, `worktree.mjs`: grouping and labels, so the sidebar and the CLI
   picker agree.
 - `relay-state.mjs`: what the status bar shows, worked out from the relay mod's status file.
@@ -557,8 +557,8 @@ machine (see [Running the tests](#running-the-tests)).
 ### Updating
 
 ```bash
-claude plugin marketplace update clear-resume
-claude plugin update clear-resume@clear-resume
+claude plugin marketplace update cornerman
+claude plugin update cornerman@cornerman
 ```
 
 Restart Claude Code afterwards.
@@ -569,8 +569,8 @@ The repo is its own marketplace (`.claude-plugin/marketplace.json`), and the plu
 `plugin/` folder. To load it for one session only:
 
 ```bash
-git clone https://github.com/m4cd4r4/clear-resume
-claude --plugin-dir ./clear-resume/plugin
+git clone https://github.com/m4cd4r4/cornerman
+claude --plugin-dir ./cornerman/plugin
 ```
 
 ### Running the tests
@@ -590,13 +590,13 @@ and `test/plugin-footprint.test.mjs` fails if that changes.
 ### Developing this plugin
 
 Installing the plugin copies `plugin/` into
-`~/.claude/plugins/cache/clear-resume/clear-resume/<version>/`, and a session loads that copy,
+`~/.claude/plugins/cache/cornerman/cornerman/<version>/`, and a session loads that copy,
 not your checkout. A change you merge reaches your install only after an update:
 
 ```bash
 git pull --ff-only                                  # 1. bring the repo up to date
-claude plugin marketplace update clear-resume       # 2. re-read the marketplace
-claude plugin update clear-resume@clear-resume      # 3. copy the new version into the cache
+claude plugin marketplace update cornerman       # 2. re-read the marketplace
+claude plugin update cornerman@cornerman      # 3. copy the new version into the cache
 ```
 
 Where step 2 reads from depends on how you added the marketplace. Added from the GitHub URL, it

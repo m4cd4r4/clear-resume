@@ -2,10 +2,10 @@
 // INSTALLED plugin copy in step with this repo after a pull.
 //
 // Claude Code installs a copy of the plugin under
-// ~/.claude/plugins/cache/clear-resume/clear-resume/<version>/, resolved from a
+// ~/.claude/plugins/cache/cornerman/cornerman/<version>/, resolved from a
 // "directory" marketplace entry that points at this repo. A merge here changes
-// nothing about that copy until `claude plugin marketplace update clear-resume`
-// and `claude plugin update clear-resume@clear-resume` both run. Nobody
+// nothing about that copy until `claude plugin marketplace update cornerman`
+// and `claude plugin update cornerman@cornerman` both run. Nobody
 // remembered to run them by hand (the installed copy sat three fixes behind
 // from 2026-09-20 to 2026-09-25, and again on 2026-09-27) so the hook runs them
 // automatically, but only when all of the following hold:

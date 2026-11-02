@@ -5,8 +5,8 @@
 import { execFileSync } from "node:child_process";
 
 const STEPS = [
-  ["claude", ["plugin", "marketplace", "update", "clear-resume"]],
-  ["claude", ["plugin", "update", "clear-resume@clear-resume"]],
+  ["claude", ["plugin", "marketplace", "update", "cornerman"]],
+  ["claude", ["plugin", "update", "cornerman@cornerman"]],
 ];
 
 function defaultRun(cmd, args) {

@@ -77,8 +77,8 @@ afterEach(() => {
 }, 20_000);
 
 function sessionStart(extraEnv) {
-  const env = { ...process.env, CLEAR_RESUME_HOME: home, CLEAR_RESUME_NO_PROCESS_WALK: "", CR_TEST_TABLE_LOG: tableLog, ...extraEnv };
-  delete env.CLEAR_RESUME_PROCESS_TIMEOUT_MS;
+  const env = { ...process.env, CORNERMAN_HOME: home, CORNERMAN_NO_PROCESS_WALK: "", CR_TEST_TABLE_LOG: tableLog, ...extraEnv };
+  delete env.CORNERMAN_PROCESS_TIMEOUT_MS;
   const began = Date.now();
   const out = spawnSync(process.execPath, ["--require", preload, SESSION_START], {
     input: JSON.stringify({ cwd: repo, source: "startup" }),

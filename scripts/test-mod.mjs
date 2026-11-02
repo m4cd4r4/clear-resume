@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const REPO = resolve(import.meta.dirname, "..");
-const dir = mkdtempSync(join(tmpdir(), "clear-resume-mod-"));
+const dir = mkdtempSync(join(tmpdir(), "cornerman-mod-"));
 try {
   cpSync(join(REPO, "plugin"), dir, { recursive: true });
   for (const name of readdirSync(join(REPO, "test", "mod")).filter((n) => /\.test\.tsx?$/.test(n)))

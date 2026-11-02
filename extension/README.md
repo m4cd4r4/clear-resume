@@ -1,19 +1,19 @@
-# clear-resume
+# cornerman
 
 Browse your Claude Code handovers and resume one in a fresh conversation.
 
-![The clear-resume sidebar in VS Code: Loaded, Current repo, Other repos and Stale groups, the loaded handover's readable copy open in the editor, and the status bar reading Handover: Cart totals rounding (loaded 3h ago).](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-sidebar.png)
+![The cornerman sidebar in VS Code: Loaded, Current repo, Other repos and Stale groups, and the loaded handover's readable copy open in the editor.](https://raw.githubusercontent.com/m4cd4r4/cornerman/main/docs/media/extension-sidebar.png)
 
 A handover is a short brief a session writes about its own work, so the next
 session can carry on without the conversation that produced it. This extension
-lists them in a VS Code sidebar. The [clear-resume plugin](https://github.com/m4cd4r4/clear-resume)
+lists them in a VS Code sidebar. The [cornerman plugin](https://github.com/m4cd4r4/cornerman)
 writes them and loads them automatically when you `/clear`.
 
 It needs that plugin. Install it first, in Claude Code:
 
 ```bash
-claude plugin marketplace add https://github.com/m4cd4r4/clear-resume
-claude plugin install clear-resume@clear-resume
+claude plugin marketplace add https://github.com/m4cd4r4/cornerman
+claude plugin install cornerman@cornerman
 ```
 
 ## What it gives you
@@ -32,9 +32,7 @@ claude plugin install clear-resume@clear-resume
 - A **Spare Cycles** countdown, off by default, such as `1:42 Wash the dishes`. It
   needs the spare-cycles plugin, which owns the timer. Click it to mark the task Done,
   Skip it or Snooze it, and you get one notification with the same choices when a task
-  comes due. Turn it on with `clearResume.spareCycles`.
-
-![After Resume, a Claude Code tab with the prompt box filled in: Resume from handover "Refund flow tests", then its goal and next action. It is not sent.](https://raw.githubusercontent.com/m4cd4r4/clear-resume/main/docs/media/extension-resume.png)
+  comes due. Turn it on with `cornerman.spareCycles`.
 
 The plugin handles the usual case: you write a handover, type `/clear`, and the next
 session in that folder loads it automatically. The sidebar is for the rest: an older
@@ -52,7 +50,7 @@ main · started 05-30 10:33 · handover waiting
 ```
 
 It works with no setup. If you keep a registry of planned worktrees, point
-`clearResume.registryPath` at it and each row also names its plan row, its position in
+`cornerman.registryPath` at it and each row also names its plan row, its position in
 the plan and its wave, and entries not yet started appear under **Next up**. The
 registry is a JSON file of `{ "entries": [...] }`, each entry carrying `slug`, `branch`,
 `status` and optionally `plan`, `wave`, `label` and `why`.
@@ -69,17 +67,17 @@ Scripts that create worktrees can use the same labels:
 
 | Setting | Default | What it does |
 |---|---|---|
-| `clearResume.storePath` | `~/.clear-resume` | Folder holding the handover store. |
-| `clearResume.showArchived` | `false` | Show archived handovers (loaded, resumed or replaced by a newer save) in the tree. |
-| `clearResume.registryPath` | (empty) | Optional worktree registry. When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up. |
-| `clearResume.spareCycles` | `false` | Show the Spare Cycles countdown in the status bar, with Done / Skip / Snooze on click and one notification per due task. Needs the spare-cycles plugin. |
+| `cornerman.storePath` | `~/.cornerman` | Folder holding the handover store. |
+| `cornerman.showArchived` | `false` | Show archived handovers (loaded, resumed or replaced by a newer save) in the tree. |
+| `cornerman.registryPath` | (empty) | Optional worktree registry. When set, the Worktrees view labels each worktree by its plan row and lists queued entries as Next up. |
+| `cornerman.spareCycles` | `false` | Show the Spare Cycles countdown in the status bar, with Done / Skip / Snooze on click and one notification per due task. Needs the spare-cycles plugin. |
 
 The extension does not read Claude Code's settings. If you moved the store with
-`CLEAR_RESUME_HOME` there, set `clearResume.storePath` to the same folder.
+`CORNERMAN_HOME` there, set `cornerman.storePath` to the same folder.
 
 ## Privacy
 
 The store is plain JSON files on disk, one per handover. Nothing leaves your
-machine unless you set up [syncing](https://github.com/m4cd4r4/clear-resume/blob/main/docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
+machine unless you set up [syncing](https://github.com/m4cd4r4/cornerman/blob/main/docs/HOW-IT-WORKS.md#syncing-two-machines-optional).
 Once the store is synced, a resume, pin, unpin or delete in the sidebar pushes it
 to your git remote in the background.

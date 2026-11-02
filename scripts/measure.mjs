@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Measure how much context the clear-resume plugin saves, from real Claude Code
+// Measure how much context the cornerman plugin saves, from real Claude Code
 // session transcripts on this machine. Node 18+, ESM, no dependencies.
 //
 // WHAT WE COUNT AS A "REAL LOAD"
 // -------------------------------
-// The string "clear-resume: loaded handover ..." shows up in a transcript in two
+// The string "cornerman: loaded handover ..." shows up in a transcript in two
 // ways: (1) as genuine SessionStart-hook output, or (2) inside ordinary
 // conversation (someone discussing the plugin, a pasted transcript, tool output
 // that happens to quote it). Only (1) is a real load.
@@ -12,7 +12,7 @@
 // Genuine hook output lands in its own transcript record type, never inside a
 // "user"/"assistant" message:
 //   {"type":"attachment","attachment":{"type":"hook_system_message",
-//    "content":"clear-resume: loaded handover \"...\" (saved Nm ago). ...",
+//    "content":"cornerman: loaded handover \"...\" (saved Nm ago). ...",
 //    "hookName":"SessionStart:clear","hookEvent":"SessionStart", ...}, ...}
 // (There is also a companion "hook_success" record carrying the same text one
 // level deeper inside a JSON-encoded stdout field, emitted by the SAME hook
@@ -132,7 +132,7 @@
 // -------------
 // Separately from the overhead question above: the size of the handover text
 // itself, per load, taken from the SAME record that carries it into context (see
-// HANDOVER_BODY_PREFIX below) - not modelled, read directly off disk. Reported
+// HANDOVER_BODY_PREFIXES below) - not modelled, read directly off disk. Reported
 // in characters (exact) and tokens (chars/4, a crude estimate, always labelled
 // as one), plus its median ratio against that load's own "before" context - how
 // big the note is relative to the conversation it stands in for.
@@ -162,7 +162,7 @@
 //                                             # project whose automated /clear
 //                                             # chain would swamp real use
 //
-// NEVER reads or writes ~/.clear-resume (the live handover store) -
+// NEVER reads or writes ~/.cornerman (the live handover store) -
 // transcripts only.
 
 import fs from "node:fs";
@@ -171,16 +171,18 @@ import path from "node:path";
 import readline from "node:readline";
 
 const DEFAULT_ROOT = path.join(os.homedir(), ".claude", "projects");
-const LOAD_PREFIX = "clear-resume: loaded handover";
+// Transcripts from before the rename, and a window still on an old version, print the old name.
+const LOAD_PREFIXES = ["cornerman: loaded handover", "clear-resume: loaded handover"];
 const GAP_MAX_MS = 120_000; // see PAIRING RULE step 4 above
 // Exact template opener from plugin/scripts/lib/hook.mjs (the `parts.push(...)` line
 // that fires when `load` is truthy and `compact` is false - i.e. every
-// SessionStart:clear load): "clear-resume: this session continues earlier
+// SessionStart:clear load): "cornerman: this session continues earlier
 // work. Handover "<title>", saved <age>[, written on branch <b>]. Its branch,
 // file and status claims are a snapshot: check them before acting.\n\n<body>".
 // This is the literal text the hook injects as additionalContext - the thing
 // task 1 below measures the size of.
-const HANDOVER_BODY_PREFIX = "clear-resume: this session continues earlier work.";
+const HANDOVER_BODY_PREFIXES = ["cornerman: this session continues earlier work.", "clear-resume: this session continues earlier work."];
+const isHandoverBody = (text) => HANDOVER_BODY_PREFIXES.some((p) => text.startsWith(p));
 const CHARS_PER_TOKEN_ESTIMATE = 4; // crude, clearly labelled as an estimate wherever printed
 
 // A hook_additional_context array element over ~8-10KB is not inlined - Claude
@@ -191,15 +193,15 @@ const CHARS_PER_TOKEN_ESTIMATE = 4; // crude, clearly labelled as an estimate wh
 // 10,997-char handover). The wrapper's own path line is read back and the full
 // file used instead of the truncated preview, so a big handover is not silently
 // undercounted - this is a real path under the SAME project directory this
-// script already reads, never ~/.clear-resume.
+// script already reads, never ~/.cornerman.
 const PERSISTED_OUTPUT_PREFIX = "<persisted-output>";
 const PERSISTED_PATH_RE = /Full output saved to: (.+)/;
 
 // Given one element of a hook_additional_context content array, return the
 // handover body's character length if this element (or, if offloaded, the file
-// it points at) is clear-resume's own loaded-handover text, else null.
+// it points at) is cornerman's own loaded-handover text, else null.
 async function resolveHandoverBodyChars(candidate) {
-  if (candidate.startsWith(HANDOVER_BODY_PREFIX)) {
+  if (isHandoverBody(candidate)) {
     return candidate.split("\n\n---\n\n")[0].length;
   }
   if (candidate.startsWith(PERSISTED_OUTPUT_PREFIX)) {
@@ -207,7 +209,7 @@ async function resolveHandoverBodyChars(candidate) {
     if (m) {
       try {
         const full = await fs.promises.readFile(m[1].trim(), "utf8");
-        if (full.startsWith(HANDOVER_BODY_PREFIX)) return full.split("\n\n---\n\n")[0].length;
+        if (isHandoverBody(full)) return full.split("\n\n---\n\n")[0].length;
       } catch {
         // referenced file missing/moved - fall through to null (counted as
         // "no matching handover body found" by the caller)
@@ -246,7 +248,7 @@ async function scanFile(fp) {
   let firstTs = null;
   let lastTs = null;
   let clearLoadTs = null; // first genuine SessionStart:clear load, if any
-  let anyLoad = false; // any genuine clear-resume load, any hookName
+  let anyLoad = false; // any genuine cornerman load, any hookName
   let startupOrCompactLoad = false; // for the side-note count only
   let sessionStartReason = null; // 'clear' | 'startup' | 'compact' | 'resume' | '' (bare) | null (no SessionStart hook record seen)
   let handoverBodyChars = null; // chars in the injected handover body, for a real SessionStart:clear load only
@@ -270,7 +272,7 @@ async function scanFile(fp) {
     if (rec.type === "attachment" && rec.attachment && rec.attachment.hookEvent === "SessionStart") {
       // hookName is EVENT:REASON, shared by every hook registered for SessionStart
       // (a session firing "SessionStart:clear" produces one such record per
-      // installed hook, not just clear-resume's own) - so the first one we see
+      // installed hook, not just cornerman's own) - so the first one we see
       // tells us WHY this session started, independent of which hook it came from.
       // Excludes "hook_additional_context": that record type is the aggregate of
       // ALL hooks' additionalContext for the event and carries a bare "SessionStart"
@@ -287,7 +289,7 @@ async function scanFile(fp) {
       if (
         rec.attachment.type === "hook_system_message" &&
         typeof rec.attachment.content === "string" &&
-        rec.attachment.content.startsWith(LOAD_PREFIX)
+        LOAD_PREFIXES.some((p) => rec.attachment.content.startsWith(p))
       ) {
         anyLoad = true;
         const hookName = rec.attachment.hookName || "";
@@ -299,8 +301,8 @@ async function scanFile(fp) {
       }
 
       // The rendered form of hookSpecificOutput.additionalContext: one array
-      // entry per hook that returned one. clear-resume's own entry (when it
-      // loaded a handover, not-compact) always starts with HANDOVER_BODY_PREFIX
+      // entry per hook that returned one. cornerman's own entry (when it
+      // loaded a handover, not-compact) always starts with HANDOVER_BODY_PREFIXES
       // and is exactly `${frame sentence}\n\n${handover body}`, optionally
       // followed by a `\n\n---\n\n`-joined "N other handovers waiting" notice
       // that is NOT part of the handover - split it off before measuring. A
@@ -551,7 +553,7 @@ async function main() {
 
   const runtimeS = ((Date.now() - startedAt) / 1000).toFixed(1);
 
-  console.log("=== clear-resume context savings (SessionStart:clear loads only) ===");
+  console.log("=== cornerman context savings (SessionStart:clear loads only) ===");
   console.log(`Projects scanned:        ${projectDirs.length}`);
   if (args.exclude.length) console.log(`Projects excluded:       ${excludedCount} (--exclude ${args.exclude.join(", ")})`);
   console.log(`Session files scanned:   ${filesScanned}`);

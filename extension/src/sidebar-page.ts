@@ -193,7 +193,7 @@ function nextEl(n) {
 function empty(m) {
   const box = h("div", { class: "empty" });
   if (m.section === "handovers" && !m.query) {
-    box.append(h("p", {}, "No handovers yet."), h("p", {}, "Write one with the /clear-resume:handover skill."));
+    box.append(h("p", {}, "No handovers yet."), h("p", {}, "Write one with the /cornerman:handover skill."));
     if (m.hasLegacy) box.append(h("button", { class: "link", on: { click: () => post({ type: "migrate" }) } }, "Import existing handovers"));
   }
   return box;

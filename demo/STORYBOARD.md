@@ -8,7 +8,7 @@ duration: 36
 architecture: monolithic
 ---
 
-# Storyboard - clear-resume demo
+# Storyboard - cornerman demo
 
 One composition, `index.html`. The window chrome, the context meter and the background
 decoratives persist across every phase; the phases are internal divs, per
@@ -40,10 +40,10 @@ document order, and an integer-cycle caret - which is the same mechanism as
 - window: 8.5 - 19.0s
 - rules: `discrete-text-sequence` + `context-sensitive-cursor` (typed prompt),
   `waterfall-entry` (the brief's lines arrive), `stat-bars-and-fills`
-- beat: `/clear-resume:handover` types itself behind a blinking caret. The handover
+- beat: `/cornerman:handover` types itself behind a blinking caret. The handover
   cascades in - the README's own example, in the order `skills/handover/SKILL.md`
   specifies: goal, next action, state, decisions. A saved-to line names the real store
-  path, `~/.clear-resume/handovers/`. Ghost word `HANDOVER`.
+  path, `~/.cornerman/handovers/`. Ghost word `HANDOVER`.
 
 ## Frame 3 - clear
 
@@ -61,7 +61,7 @@ document order, and an integer-cycle caret - which is the same mechanism as
 - rules: `spring-pop-entrance` (the status chip), `waterfall-entry` (the restored
   handover), `stat-bars-and-fills`
 - beat: A fresh session. The hook's line prints exactly as `scripts/lib/hook.mjs` writes
-  it: `clear-resume: loaded handover "Cart totals rounding" (saved 2h ago).` The handover
+  it: `cornerman: loaded handover "Cart totals rounding" (saved 2h ago).` The handover
   is already in context, and Claude states the next action without being asked. The meter
   sits at 11 per cent. Ghost word `RESUME`.
 

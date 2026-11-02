@@ -46,18 +46,18 @@ describe("plugin options (userConfig)", () => {
     }
   });
 
-  it("the auto_nudge option counts only when CLEAR_RESUME_AUTO is unset", () => {
+  it("the auto_nudge option counts only when CORNERMAN_AUTO is unset", () => {
     expect(autoEnabled({ [AUTO_OPTION]: "true" })).toBe(true);
     expect(autoEnabled({ [AUTO_OPTION]: "false" })).toBe(false);
-    expect(autoEnabled({ CLEAR_RESUME_AUTO: "0", [AUTO_OPTION]: "true" })).toBe(false);
-    expect(autoEnabled({ CLEAR_RESUME_AUTO: "1", [AUTO_OPTION]: "false" })).toBe(true);
-    expect(autoEnabled({ CLEAR_RESUME_AUTO: "  ", [AUTO_OPTION]: "true" })).toBe(true);
+    expect(autoEnabled({ CORNERMAN_AUTO: "0", [AUTO_OPTION]: "true" })).toBe(false);
+    expect(autoEnabled({ CORNERMAN_AUTO: "1", [AUTO_OPTION]: "false" })).toBe(true);
+    expect(autoEnabled({ CORNERMAN_AUTO: "  ", [AUTO_OPTION]: "true" })).toBe(true);
   });
 
-  it("threshold: a usable CLEAR_RESUME_NUDGE_AT, then the nudge_at option, then the default", () => {
+  it("threshold: a usable CORNERMAN_NUDGE_AT, then the nudge_at option, then the default", () => {
     expect(threshold({ [NUDGE_AT_OPTION]: "150000" })).toBe(150_000);
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "200000", [NUDGE_AT_OPTION]: "150000" })).toBe(200_000);
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "180k", [NUDGE_AT_OPTION]: "150000" })).toBe(150_000);
+    expect(threshold({ CORNERMAN_NUDGE_AT: "200000", [NUDGE_AT_OPTION]: "150000" })).toBe(200_000);
+    expect(threshold({ CORNERMAN_NUDGE_AT: "180k", [NUDGE_AT_OPTION]: "150000" })).toBe(150_000);
     expect(threshold({ [NUDGE_AT_OPTION]: "" })).toBe(DEFAULT_THRESHOLD);
   });
 });

@@ -46,7 +46,7 @@ function saveInSessionOne(title = "Web work", body = "## Next action\nFinish the
   return execFileSync(process.execPath, [SAVE, "--title", title, "--cwd", one], {
     cwd: one,
     input: body,
-    env: { ...process.env, CLEAR_RESUME_HOME: rootOne, CLEAR_RESUME_WEB: "1" },
+    env: { ...process.env, CORNERMAN_HOME: rootOne, CORNERMAN_WEB: "1" },
     encoding: "utf8",
   });
 }
@@ -54,7 +54,7 @@ function freshSessionTwo(branch = "claude/two") {
   execFileSync("git", ["clone", "-q", origin, two], { stdio: "ignore" });
   git(two, "checkout", "-q", "-B", branch, branch === "claude/two" ? "origin/main" : `origin/${branch}`);
 }
-const webEnv = (root) => ({ CLEAR_RESUME_HOME: root, CLEAR_RESUME_WEB: "1" });
+const webEnv = (root) => ({ CORNERMAN_HOME: root, CORNERMAN_WEB: "1" });
 const loaded = (out) => out?.hookSpecificOutput.additionalContext.includes("this session continues earlier work") ?? false;
 // Everything the hook could change: the user's HEAD, branches, index and files,
 // and every ref on the remote. Only remote-tracking refs may move (the fetch).
@@ -72,11 +72,11 @@ describe("save in web mode", () => {
     writeFileSync(join(one, "untracked.txt"), "mine");
     const head = git(one, "rev-parse", "HEAD");
     const out = saveInSessionOne();
-    expect(out).toMatch(/Pushed to clear-resume\/claude\/one/);
+    expect(out).toMatch(/Pushed to cornerman\/claude\/one/);
     expect(git(one, "rev-parse", "HEAD")).toBe(head);
     expect(git(one, "status", "--porcelain")).toBe("A  staged.txt\n?? untracked.txt");
     expect(git(one, "ls-remote", "origin", "claude/one").split("\t")[0]).toBe(head);
-    git(one, "fetch", "-q", "origin", "clear-resume/claude/one");
+    git(one, "fetch", "-q", "origin", "cornerman/claude/one");
     expect(git(one, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe(REPO_FILE);
   });
 
@@ -119,7 +119,7 @@ describe("load in a new cloud session", () => {
     const ctx = out.hookSpecificOutput.additionalContext;
     expect(loaded(out)).toBe(false);
     expect(ctx).not.toContain("Finish the parser.");
-    expect(ctx).toMatch(/"Web work", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
+    expect(ctx).toMatch(/"Web work", branch claude\/one, .*found on remote ref origin\/cornerman\/claude\/one/);
     expect(out.systemMessage).toContain('"Web work"');
   });
 
@@ -127,27 +127,27 @@ describe("load in a new cloud session", () => {
     freshSessionTwo();
     saveInSessionOne();
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    expect(out.hookSpecificOutput.additionalContext).toContain("found on remote ref origin/clear-resume/claude/one");
+    expect(out.hookSpecificOutput.additionalContext).toContain("found on remote ref origin/cornerman/claude/one");
   });
 
   it("fetches first on the same branch too, when the clone predates the push", () => {
     saveInSessionOne("Earlier");
     freshSessionTwo("claude/one");
     run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
-    const stale = git(two, "rev-parse", "origin/clear-resume/claude/one");
+    const stale = git(two, "rev-parse", "origin/cornerman/claude/one");
     saveInSessionOne("Later", "## Next action\nShip the fetch.");
     const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
     // The title alone passed without a fetch too; the ref has to have moved.
-    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Later", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
-    const pushed = git(two, "ls-remote", "origin", "refs/heads/clear-resume/claude/one").split("\t")[0];
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Later", branch claude\/one, .*found on remote ref origin\/cornerman\/claude\/one/);
+    const pushed = git(two, "ls-remote", "origin", "refs/heads/cornerman/claude/one").split("\t")[0];
     expect(pushed).not.toBe(stale);
-    expect(git(two, "rev-parse", "origin/clear-resume/claude/one")).toBe(pushed);
+    expect(git(two, "rev-parse", "origin/cornerman/claude/one")).toBe(pushed);
   });
 
   it("does not scan other branches unless web mode is on", () => {
     saveInSessionOne();
     freshSessionTwo();
-    expect(run({ cwd: two, source: "startup" }, { env: { CLEAR_RESUME_HOME: rootTwo } })).toBeNull();
+    expect(run({ cwd: two, source: "startup" }, { env: { CORNERMAN_HOME: rootTwo } })).toBeNull();
   });
 
   it("never pushes: the handover ref, the user's branch and the tree are left as they were", () => {
@@ -156,7 +156,7 @@ describe("load in a new cloud session", () => {
     const before = repoState(two);
     run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
     expect(repoState(two)).toEqual(before);
-    git(two, "fetch", "-q", "origin", "clear-resume/claude/one");
+    git(two, "fetch", "-q", "origin", "cornerman/claude/one");
     expect(git(two, "ls-tree", "-r", "--name-only", "FETCH_HEAD")).toBe(REPO_FILE);
   });
 
@@ -164,7 +164,7 @@ describe("load in a new cloud session", () => {
     freshSessionTwo("claude/one");
     const { path } = saveHandover({ cwd: one, title: "Legacy", body: "## Next action\nOld style.", root: rootOne });
     const dest = join(two, REPO_FILE);
-    mkdirSync(join(two, ".clear-resume"), { recursive: true });
+    mkdirSync(join(two, ".cornerman"), { recursive: true });
     writeFileSync(dest, handoverMarkdown(path), "utf8"); // the legacy copy in a worktree is markdown, not a record
     git(two, "add", REPO_FILE);
     git(two, "commit", "-q", "-m", "legacy handover");
@@ -189,5 +189,61 @@ describe("load in a new cloud session", () => {
     // Silent again for a real later session. An immediate re-run is the twin of
     // the same /clear, which re-emits rather than loading a second time.
     expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne), now: new Date(Date.now() + 60_000) })).toBeNull();
+  });
+});
+
+describe("copies a version from before the rename left in git", () => {
+  // What the old version pushed: the same handover, under the old ref and the old file name.
+  function moveRefToOldName() {
+    git(one, "fetch", "-q", "origin", "cornerman/claude/one");
+    const text = git(one, "show", `FETCH_HEAD:${REPO_FILE}`);
+    git(one, "checkout", "-q", "--orphan", "clear-resume/claude/one");
+    git(one, "rm", "-rfq", "--ignore-unmatch", ".");
+    mkdirSync(join(one, ".clear-resume"), { recursive: true });
+    writeFileSync(join(one, ".clear-resume/HANDOVER.md"), text, "utf8");
+    git(one, "add", ".clear-resume/HANDOVER.md");
+    git(one, "commit", "-q", "-m", "chore: clear-resume handover");
+    git(one, "push", "-q", "origin", "clear-resume/claude/one", ":cornerman/claude/one");
+    git(one, "checkout", "-q", "claude/one");
+  }
+
+  it("lists a handover on an old ref under its real name, without loading it", () => {
+    saveInSessionOne();
+    moveRefToOldName();
+    freshSessionTwo();
+    const out = run({ cwd: two, source: "startup" }, { env: webEnv(rootTwo) });
+    const ctx = out.hookSpecificOutput.additionalContext;
+    expect(loaded(out)).toBe(false);
+    expect(ctx).not.toContain("Finish the parser.");
+    expect(ctx).toMatch(/"Web work", branch claude\/one, .*found on remote ref origin\/clear-resume\/claude\/one/);
+  });
+
+  it("loads the person's own untracked old copy, then removes it", () => {
+    freshSessionTwo("claude/one");
+    const { path } = saveHandover({ cwd: one, title: "Old copy", body: "## Next action\nCarry on.", root: rootOne });
+    const dest = join(two, ".clear-resume/HANDOVER.md");
+    mkdirSync(join(two, ".clear-resume"), { recursive: true });
+    writeFileSync(dest, handoverMarkdown(path), "utf8");
+    const out = run({ cwd: two, source: "clear" }, { env: webEnv(rootTwo) });
+    expect(loaded(out)).toBe(true);
+    expect(out.hookSpecificOutput.additionalContext).toContain("Carry on.");
+    out.afterOutput?.();
+    expect(existsSync(dest)).toBe(false);
+  });
+
+  it("only lists an old copy committed to the repo, and leaves it there", () => {
+    freshSessionTwo("claude/one");
+    const { path } = saveHandover({ cwd: one, title: "Committed", body: "## Next action\nNot from you.", root: rootOne });
+    const dest = join(two, ".clear-resume/HANDOVER.md");
+    mkdirSync(join(two, ".clear-resume"), { recursive: true });
+    writeFileSync(dest, handoverMarkdown(path), "utf8");
+    git(two, "add", ".clear-resume/HANDOVER.md");
+    git(two, "commit", "-q", "-m", "old handover");
+    const out = run({ cwd: two, source: "clear" }, { env: webEnv(rootTwo) });
+    out.afterOutput?.();
+    expect(loaded(out)).toBe(false);
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("Not from you.");
+    expect(out.hookSpecificOutput.additionalContext).toMatch(/"Committed".*found in a file committed to this repo/);
+    expect(existsSync(dest)).toBe(true);
   });
 });

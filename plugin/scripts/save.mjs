@@ -3,8 +3,8 @@
 //   node save.mjs --title "Short title" <<'EOF'
 //   ...handover markdown...
 //   EOF
-// With CLEAR_RESUME_WEB=1 (or --commit) it is also pushed to its own ref,
-// clear-resume/<branch>, for cloud sessions whose home folder does not survive.
+// With CORNERMAN_WEB=1 (or --commit) it is also pushed to its own ref,
+// cornerman/<branch>, for cloud sessions whose home folder does not survive.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { listWaiting, repoInfo, repoKey, saveHandover, storeRoot } from "./lib/store.mjs";
@@ -30,10 +30,10 @@ try {
 
 // The Recent trail is built from the session's own transcript, not written by the model: the last files
 // written, edited and read, the last commands that succeeded and failed. A kickoff for a session that does
-// not exist yet (--unowned) has no trail to give, and CLEAR_RESUME_TRAIL=0 turns it off. Any failure here
+// not exist yet (--unowned) has no trail to give, and CORNERMAN_TRAIL=0 turns it off. Any failure here
 // leaves the handover exactly as the model wrote it: a save must never depend on the trail.
 // An empty body stays empty so the save still fails on it: a trail alone is not a handover.
-if (body.trim() && !process.argv.includes("--unowned") && process.env.CLEAR_RESUME_TRAIL !== "0") {
+if (body.trim() && !process.argv.includes("--unowned") && process.env.CORNERMAN_TRAIL !== "0") {
   try {
     const transcript = sessionTranscript();
     if (transcript) {
@@ -60,7 +60,7 @@ try {
   const owner = process.argv.includes("--unowned") ? "" : ownerId(process.env, { timeout: PATIENT_TIMEOUT_MS });
   // Under the headless runner every save is an auto one: the store is the
   // runner's own, and the runner sets which segment this is and what is left.
-  const auto = headless() ? { chain: process.env.CLEAR_RESUME_CHAIN, budget: process.env.CLEAR_RESUME_BUDGET } : undefined;
+  const auto = headless() ? { chain: process.env.CORNERMAN_CHAIN, budget: process.env.CORNERMAN_BUDGET } : undefined;
   const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner, auto, sessionId: process.argv.includes("--unowned") ? "" : process.env.CLAUDE_CODE_SESSION_ID });
   // The title and a short id, never the record path: its file name carries the
   // machine name and the path the home folder, and this line reaches the user.
@@ -90,7 +90,7 @@ try {
     console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
   } else {
     console.error(
-      `clear-resume: WARNING - the handover saved but is NOT discoverable from ${tildePath(top)}, ` +
+      `cornerman: WARNING - the handover saved but is NOT discoverable from ${tildePath(top)}, ` +
         `so /clear would start an empty session. Do not tell the user to clear. ` +
         `Load it by hand instead: node ${shellPath(fileURLToPath(new URL("load.mjs", import.meta.url)))} ${short} ` +
         `(the record is ${tildePath(path)}).`,
@@ -98,6 +98,6 @@ try {
     process.exitCode = 1;
   }
 } catch (err) {
-  console.error(`clear-resume: ${err.message}`);
+  console.error(`cornerman: ${err.message}`);
   process.exit(1);
 }

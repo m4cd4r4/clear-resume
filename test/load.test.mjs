@@ -55,7 +55,7 @@ const consumedLines = (key) => {
 function load(args, { owner = ME } = {}) {
   return spawnSync(process.execPath, [LOAD, ...args], {
     cwd: repo,
-    env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: owner },
+    env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: owner },
     encoding: "utf8",
   });
 }
@@ -111,7 +111,7 @@ describe("load.mjs on a pid that a closed window left behind", { timeout: 30_000
       const { path } = saveHandover({ cwd: repo, title: "orphaned", body: "o", root, owner: String(squatter.pid) });
       const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
         cwd: repo,
-        env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+        env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: ME, CORNERMAN_NO_PROCESS_WALK: "" },
         encoding: "utf8",
       });
       // Still alive: a pid that died is a closed window for a simpler reason.
@@ -186,7 +186,7 @@ describe("archivedBy records what archived a handover", () => {
   it("the SessionStart hook stamps via hook, with the loading window", () => {
     const { path } = saveHandover({ cwd: repo, title: "mine", body: "b", root, owner: ME });
 
-    run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME } });
+    run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: ME } });
 
     const after = record(path);
     expect(after.status).toBe("archived");
@@ -211,7 +211,7 @@ describe("SessionStart listing", () => {
     const orphan = saveHandover({ cwd: repo, title: "Orphan work", body: "o", root, owner: deadPid() });
     git("checkout", "-q", "main");
 
-    const ctx = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME } }).hookSpecificOutput.additionalContext;
+    const ctx = run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: ME } }).hookSpecificOutput.additionalContext;
     const rows = ctx.split("\n- ").slice(1);
     const theirRow = rows.find((r) => r.includes("Their work"));
     const orphanRow = rows.find((r) => r.includes("Orphan work"));
@@ -231,7 +231,7 @@ describe("SessionStart listing", () => {
   it("labels nothing as another window's when this window's owner is unknown", () => {
     const h = saveHandover({ cwd: repo, title: "Maybe mine", body: "m", root, owner: OTHER_LIVE });
 
-    const ctx = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "" } }).hookSpecificOutput.additionalContext;
+    const ctx = run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: "" } }).hookSpecificOutput.additionalContext;
 
     expect(ctx).toContain("Maybe mine");
     expect(ctx).not.toContain("belongs to another open window");
@@ -253,7 +253,7 @@ describe("the twin check only echoes a SessionStart load from this window", () =
     saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: A });
 
     expect(load(["--take", fileOf(taken.path)], { owner: ME }).status).toBe(0);
-    const out = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: A } });
+    const out = run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: A } });
 
     expect(out.systemMessage).toMatch(/loaded handover "A's own"/);
     expect(out.hookSpecificOutput.additionalContext).toContain("A body");
@@ -263,7 +263,7 @@ describe("the twin check only echoes a SessionStart load from this window", () =
   // B's handover is on another branch, so it loads only as B's own, which takes
   // B's real start time: two live processes stand in for the windows.
   it("a SessionStart load in window B is not echoed into window A's /clear", { timeout: 30_000 }, () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     const windowB = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
     try {
       const [pidA, pidB] = [String(process.pid), String(windowB.pid)];
@@ -276,10 +276,10 @@ describe("the twin check only echoes a SessionStart load from this window", () =
       saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: ownerA });
 
       startHookClock();
-      const inB = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidB } });
+      const inB = run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: pidB } });
       expect(inB.systemMessage).toMatch(/loaded handover "B's own"/);
       startHookClock();
-      const inA = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pidA } });
+      const inA = run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: pidA } });
 
       expect(inA.systemMessage).toMatch(/loaded handover "A's own"/);
       expect(inA.hookSpecificOutput.additionalContext).not.toContain("B body");
@@ -297,7 +297,7 @@ describe("SessionStart judges owners against the env it runs with", () => {
   it("loads this window's own bare handover on the branch, its CLAUDE_PID being a live process", () => {
     const pid = String(process.pid); // alive on every platform, unlike a made-up pid
     saveHandover({ cwd: repo, title: "A's own", body: "A body", root, owner: pid });
-    const out = run({ cwd: repo, source: "clear" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: pid } });
+    const out = run({ cwd: repo, source: "clear" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: pid } });
     expect(out.systemMessage).toMatch(/loaded handover "A's own"/);
   });
 });
@@ -310,13 +310,13 @@ describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 
   afterEach(() => vi.unstubAllEnvs());
 
   it("loads a handover whose owner pid now belongs to a non-Claude process", async () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     startHookClock(); // the hook runs in this long-lived process; give it a fresh budget
     const squatter = squat();
     try {
       const { path } = saveHandover({ cwd: repo, title: "Yesterday's work", body: "y", root, owner: String(squatter.pid) });
 
-      const out = run({ cwd: repo }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: ME } });
+      const out = run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: ME } });
 
       expect(out.systemMessage).toMatch(/loaded handover "Yesterday's work"/);
       expect(out.hookSpecificOutput.additionalContext).not.toContain("belongs to another open window");
@@ -352,7 +352,7 @@ describe("load.mjs on a window run by a binary named after its version", { timeo
     const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner: String(window.pid) });
     const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
       cwd: repo,
-      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: ME, CORNERMAN_NO_PROCESS_WALK: "" },
       encoding: "utf8",
     });
     expect(out.stdout).toContain("read only");
@@ -360,14 +360,14 @@ describe("load.mjs on a window run by a binary named after its version", { timeo
   });
 
   it("leaves its handover waiting (owner written with its start time)", () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     const owner = ownerId({ CLAUDE_PID: String(window.pid) }, { timeout: 20_000 });
     vi.unstubAllEnvs();
     expect(owner).toMatch(/@/);
     const { path } = saveHandover({ cwd: repo, title: "open window", body: "o", root, owner });
     const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
       cwd: repo,
-      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: ME, CORNERMAN_NO_PROCESS_WALK: "" },
       encoding: "utf8",
     });
     expect(out.stdout).toContain("read only");
@@ -382,7 +382,7 @@ describe("load.mjs on a pid a later Claude-shaped process now holds", { timeout:
     const { path } = saveHandover({ cwd: repo, title: "old window", body: "o", root, owner: `${OTHER_LIVE}@1000` });
     const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
       cwd: repo,
-      env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "" },
+      env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: ME, CORNERMAN_NO_PROCESS_WALK: "" },
       encoding: "utf8",
     });
     expect(out.stdout).not.toContain("read only");
@@ -401,7 +401,7 @@ describe.skipIf(process.platform === "linux")("load.mjs when the process lookup 
       const { path } = saveHandover({ cwd: repo, title: "unknown", body: "u", root, owner: String(squatter.pid) });
       const out = spawnSync(process.execPath, [LOAD, fileOf(path)], {
         cwd: repo,
-        env: { ...process.env, CLEAR_RESUME_HOME: root, CLAUDE_PID: ME, CLEAR_RESUME_NO_PROCESS_WALK: "", CLEAR_RESUME_PROCESS_TIMEOUT_MS: "1" },
+        env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: ME, CORNERMAN_NO_PROCESS_WALK: "", CORNERMAN_PROCESS_TIMEOUT_MS: "1" },
         encoding: "utf8",
       });
       // The owner is still running: had it died, archiving would be right.

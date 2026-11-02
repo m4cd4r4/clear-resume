@@ -47,7 +47,7 @@ const DEFAULT_NUDGE_AT = 250_000;
 const CHUNK = 4 * 1024 * 1024;
 
 const projectsDir = () => join(homedir(), ".claude", "projects");
-// The relay mod writes under CLEAR_RESUME_HOME or ~/.clear-resume, whatever the
+// The relay mod writes under CORNERMAN_HOME or ~/.cornerman, whatever the
 // sidebar's storePath says, so this reads from the same place.
 const relayDir = () => join(storeRoot(), "relay");
 
@@ -82,7 +82,7 @@ function nudgeAt(win?: Pick<RelayFile, "key" | "sessions"> | null): number {
   if (own !== null) return own;
   try {
     const s = JSON.parse(readFileSync(join(homedir(), ".claude", "settings.json"), "utf8"));
-    const n = Number(s?.pluginConfigs?.["clear-resume@clear-resume"]?.options?.nudge_at);
+    const n = Number(s?.pluginConfigs?.["cornerman@cornerman"]?.options?.nudge_at);
     return Number.isFinite(n) && n > 0 ? n : DEFAULT_NUDGE_AT;
   } catch {
     return DEFAULT_NUDGE_AT;
@@ -239,12 +239,12 @@ export function statsStatus(
   loaded: (pid: string | null) => StoredHandover | null,
   openHandover: (record: StoredHandover | null) => void,
 ): void {
-  const pieItem = vscode.window.createStatusBarItem("clearResume.context", vscode.StatusBarAlignment.Left, 1);
-  pieItem.name = "clear-resume: context";
-  const relayItem = vscode.window.createStatusBarItem("clearResume.relay", vscode.StatusBarAlignment.Left, 0.5);
-  relayItem.name = "clear-resume: relay";
-  const idleItem = vscode.window.createStatusBarItem("clearResume.idle", vscode.StatusBarAlignment.Left, 0.42);
-  idleItem.name = "clear-resume: idle handover";
+  const pieItem = vscode.window.createStatusBarItem("cornerman.context", vscode.StatusBarAlignment.Left, 1);
+  pieItem.name = "cornerman: context";
+  const relayItem = vscode.window.createStatusBarItem("cornerman.relay", vscode.StatusBarAlignment.Left, 0.5);
+  relayItem.name = "cornerman: relay";
+  const idleItem = vscode.window.createStatusBarItem("cornerman.idle", vscode.StatusBarAlignment.Left, 0.42);
+  idleItem.name = "cornerman: idle handover";
   context.subscriptions.push(pieItem, relayItem, idleItem);
 
   const transcripts = new Transcripts();
@@ -332,11 +332,11 @@ export function statsStatus(
             relay,
             totals: chainTotals(usages),
             links: {
-              handover: shown ? "command:clearResume.openContextHandover" : undefined,
-              log: window ? "command:clearResume.relayLog" : undefined,
-              nudge: window ? "command:clearResume.pickNudge" : undefined,
-              handNow: window ? "command:clearResume.handoverNow" : undefined,
-              idle: window ? "command:clearResume.pickIdle" : undefined,
+              handover: shown ? "command:cornerman.openContextHandover" : undefined,
+              log: window ? "command:cornerman.relayLog" : undefined,
+              nudge: window ? "command:cornerman.pickNudge" : undefined,
+              handNow: window ? "command:cornerman.handoverNow" : undefined,
+              idle: window ? "command:cornerman.pickIdle" : undefined,
             },
             scope: pick.byTab ? "tab" : "window",
             handover: shown ? statusText(shown, new Date()) : undefined,
@@ -345,15 +345,15 @@ export function statsStatus(
         );
         md.isTrusted = {
           enabledCommands: [
-            "clearResume.openContextHandover",
-            "clearResume.relayLog",
-            "clearResume.pickNudge",
-            "clearResume.handoverNow",
-            "clearResume.pickIdle",
+            "cornerman.openContextHandover",
+            "cornerman.relayLog",
+            "cornerman.pickNudge",
+            "cornerman.handoverNow",
+            "cornerman.pickIdle",
           ],
         };
         pieItem.tooltip = md;
-        pieItem.command = { command: "clearResume.openContextHandover", title: "Open loaded handover" };
+        pieItem.command = { command: "cornerman.openContextHandover", title: "Open loaded handover" };
         pieItem.show();
       }
       if (window) {
@@ -362,14 +362,14 @@ export function statsStatus(
         relayItem.tooltip = relay.pending
           ? `Relay budget for this ${scope} (takes effect after the next reply). Click to change.`
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
-        relayItem.command = "clearResume.pickRelay";
+        relayItem.command = "cornerman.pickRelay";
         relayItem.show();
         if (idleBarVisible(idle)) {
           idleItem.text = idleText(idle);
           idleItem.tooltip = `Idle handover: ${idle}, ${IDLE_DETAIL[idle]}. ${
             ownIdle ? `Picked for this ${scope}` : "From your settings (idle_handover)"
           }; a change reaches the running session within 30 seconds. Click to change.`;
-          idleItem.command = "clearResume.pickIdle";
+          idleItem.command = "cornerman.pickIdle";
           idleItem.show();
         } else {
           idleItem.hide();
@@ -399,7 +399,7 @@ export function statsStatus(
 
   const pickRelay = async () => {
     if (!window) {
-      void vscode.window.showInformationMessage("clear-resume: no relay in this window yet. It starts with the next Claude session here.");
+      void vscode.window.showInformationMessage("cornerman: no relay in this window yet. It starts with the next Claude session here.");
       return;
     }
     const now = effective(window, readJson<RelaySet>(setPath(window.key)));
@@ -435,7 +435,7 @@ export function statsStatus(
 
   const pickNudge = async () => {
     if (!window) {
-      void vscode.window.showInformationMessage("clear-resume: no relay in this window yet. It starts with the next Claude session here.");
+      void vscode.window.showInformationMessage("cornerman: no relay in this window yet. It starts with the next Claude session here.");
       return;
     }
     const target = window;
@@ -489,7 +489,7 @@ export function statsStatus(
 
   const pickIdle = async () => {
     if (!window) {
-      void vscode.window.showInformationMessage("clear-resume: no relay in this window yet. It starts with the next Claude session here.");
+      void vscode.window.showInformationMessage("cornerman: no relay in this window yet. It starts with the next Claude session here.");
       return;
     }
     const target = window;
@@ -515,20 +515,20 @@ export function statsStatus(
   // its `at` is newer than the last one it took.
   const handoverNow = () => {
     if (!window) {
-      void vscode.window.showInformationMessage("clear-resume: no Claude session in this window yet.");
+      void vscode.window.showInformationMessage("cornerman: no Claude session in this window yet.");
       return;
     }
     writeFileSync(join(relayDir(), `${window.key}.handover.json`), JSON.stringify({ at: Date.now() }));
-    void vscode.window.setStatusBarMessage("clear-resume: asked for a handover", 4000);
+    void vscode.window.setStatusBarMessage("cornerman: asked for a handover", 4000);
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("clearResume.handoverNow", handoverNow),
-    vscode.commands.registerCommand("clearResume.openContextHandover", () => openHandover(shown)),
-    vscode.commands.registerCommand("clearResume.pickRelay", pickRelay),
-    vscode.commands.registerCommand("clearResume.pickNudge", pickNudge),
-    vscode.commands.registerCommand("clearResume.pickIdle", pickIdle),
-    vscode.commands.registerCommand("clearResume.relayLog", async () => {
+    vscode.commands.registerCommand("cornerman.handoverNow", handoverNow),
+    vscode.commands.registerCommand("cornerman.openContextHandover", () => openHandover(shown)),
+    vscode.commands.registerCommand("cornerman.pickRelay", pickRelay),
+    vscode.commands.registerCommand("cornerman.pickNudge", pickNudge),
+    vscode.commands.registerCommand("cornerman.pickIdle", pickIdle),
+    vscode.commands.registerCommand("cornerman.relayLog", async () => {
       if (!window) return;
       await vscode.window.showTextDocument(vscode.Uri.file(join(relayDir(), `${window.key}.json`)), { preview: true });
     }),

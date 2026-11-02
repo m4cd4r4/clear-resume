@@ -5,7 +5,7 @@ The 36-second demo: a session fills up, Claude writes a handover,
 
 | File | What it is |
 |---|---|
-| `renders/clear-resume-loop.mp4` | the rendered demo, 1920x1080 at 30fps |
+| `renders/cornerman-loop.mp4` | the rendered demo, 1920x1080 at 30fps |
 | `index.html` | the whole composition: one terminal window, four phases, one timeline |
 | `frame.md` | the design spec: palette, type, structure, and what it bans |
 | `STORYBOARD.md` | the five beats, with the motion rules each one uses |
@@ -22,7 +22,7 @@ Built with [HyperFrames](https://hyperframes.heygen.com), which renders video fr
 ```bash
 cd demo
 npm run check                                   # lint, layout, motion, contrast
-npx hyperframes render --output renders/clear-resume-loop.mp4 --crf 23
+npx hyperframes render --output renders/cornerman-loop.mp4 --crf 23
 ```
 
 `--crf 23` is deliberate. The default quality setting produces a 9.5 MB file for the same

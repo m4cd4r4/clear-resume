@@ -1,6 +1,6 @@
 name: pages
 
-# The project site in site/, served at https://m4cd4r4.github.io/clear-resume.
+# The project site in site/, served at https://m4cd4r4.github.io/cornerman.
 # It deploys when a release is published, or by hand. A merge to main never deploys it,
 # so the live site always describes a released version.
 on:

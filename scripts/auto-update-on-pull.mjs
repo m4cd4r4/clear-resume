@@ -10,6 +10,6 @@ import { runHook } from "./lib/auto-update-hook.mjs";
 try {
   runHook();
 } catch (err) {
-  console.log(`clear-resume auto-update: skipped (unexpected error: ${err && err.message ? err.message : err})`);
+  console.log(`cornerman auto-update: skipped (unexpected error: ${err && err.message ? err.message : err})`);
 }
 process.exit(0);

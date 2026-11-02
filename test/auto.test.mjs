@@ -17,9 +17,9 @@ const call = (ctx, extra = {}) =>
   });
 
 // What the transcript holds after a nudge: the ask itself, then Claude's turns.
-const askLine = () => JSON.stringify({ type: "attachment", text: "clear-resume auto mode: this session's context is about 185k tokens (threshold 180k)." });
+const askLine = () => JSON.stringify({ type: "attachment", text: "cornerman auto mode: this session's context is about 185k tokens (threshold 180k)." });
 const assistantText = (text) => JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "text", text }] } });
-const saveCall = (name = "Skill", input = { skill: "clear-resume:handover" }) =>
+const saveCall = (name = "Skill", input = { skill: "cornerman:handover" }) =>
   JSON.stringify({ type: "assistant", message: { model: "claude-x", content: [{ type: "tool_use", name, input }] } });
 
 let dir, root, transcript;
@@ -51,12 +51,12 @@ describe("lastContextTokens", () => {
 });
 
 describe("Stop nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
+  const env = () => ({ CORNERMAN_AUTO: "1", CORNERMAN_HOME: root, CORNERMAN_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {
     write(call(300_000));
-    expect(runStop(input(), { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+    expect(runStop(input(), { env: { CORNERMAN_HOME: root } })).toBeNull();
   });
 
   it("stays quiet below the threshold", () => {
@@ -66,14 +66,14 @@ describe("Stop nudge", () => {
 
   it("under the headless runner, asks for a commit and a save.mjs handover, never a /clear", () => {
     write(call(200_000));
-    const out = runStop(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
+    const out = runStop(input(), { env: { ...env(), CORNERMAN_HEADLESS: "1" } });
     const text = out.hookSpecificOutput.additionalContext;
     expect(text).toMatch(/finished.*do not save/i);
     expect(text).toMatch(/commit/i);
     expect(text).toMatch(/save\.mjs" --title/);
     expect(text).toMatch(/STOP question/);
     expect(text).toMatch(/end your turn/i);
-    // The command, not the plugin's own path (".../clear-resume/...").
+    // The command, not the plugin's own path (".../cornerman/...").
     expect(text).not.toMatch(/\/clear(?!-)/);
     expect(out.systemMessage).not.toMatch(/\/clear(?!-)/);
   });
@@ -116,7 +116,7 @@ describe("Stop nudge", () => {
     runStop(input(), { env: env() }); // the first ask
     expect(runStop(input(), { env: env() })).toBeNull();
     write(call(200_000));
-    const headless = { ...env(), CLEAR_RESUME_HEADLESS: "1" };
+    const headless = { ...env(), CORNERMAN_HEADLESS: "1" };
     expect(runStop(input({ session_id: "h" }), { env: headless })).not.toBeNull();
     expect(runStop(input({ session_id: "h" }), { env: headless })).toBeNull();
   });
@@ -133,7 +133,7 @@ describe("Stop nudge", () => {
     const out = runStop(input(), { env: env() });
     expect(out.hookSpecificOutput.hookEventName).toBe("Stop");
     expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
-    expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
+    expect(out.hookSpecificOutput.additionalContext).toContain("/cornerman:handover");
     expect(runStop(input({ session_id: "s2" }), { env: env() }).hookSpecificOutput.hookEventName).toBe("Stop");
   });
 
@@ -147,7 +147,7 @@ describe("Stop nudge", () => {
     expect(out.decision).toBeUndefined();
     expect(out.reason).toBeUndefined();
     expect(out.continue).toBeUndefined();
-    expect(out.systemMessage).toMatch(/^clear-resume: /);
+    expect(out.systemMessage).toMatch(/^cornerman: /);
     expect(out.systemMessage).toMatch(/185k/);
     expect(out.systemMessage).toContain("/clear");
     expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
@@ -189,15 +189,15 @@ describe("Stop nudge", () => {
 
   it("honours a custom threshold and ignores a bad one", () => {
     write(call(160_000));
-    expect(runStop(input(), { env: { ...env(), CLEAR_RESUME_NUDGE_AT: "150000" } })).not.toBeNull();
-    expect(threshold({ CLEAR_RESUME_NUDGE_AT: "abc" })).toBe(250_000);
+    expect(runStop(input(), { env: { ...env(), CORNERMAN_NUDGE_AT: "150000" } })).not.toBeNull();
+    expect(threshold({ CORNERMAN_NUDGE_AT: "abc" })).toBe(250_000);
   });
 
   it("the footer's per-window nudge size beats the env, for any session in that window's chain", () => {
     mkdirSync(join(root, "relay"), { recursive: true });
     writeFileSync(join(root, "relay", "w1.json"), JSON.stringify({ key: "w1", sessions: ["s0", "s1"] }));
     writeFileSync(join(root, "relay", "w1.nudge.json"), JSON.stringify({ limit: 120_000, at: 1 }));
-    const e = { ...env(), CLEAR_RESUME_NUDGE_AT: "170000" };
+    const e = { ...env(), CORNERMAN_NUDGE_AT: "170000" };
     expect(threshold(e, "s1")).toBe(120_000);
     expect(threshold(e, "other")).toBe(170_000);
     write(call(125_000));
@@ -211,7 +211,7 @@ describe("Stop nudge", () => {
     writeFileSync(join(root, "relay", "old.json"), JSON.stringify({ key: "old", sessions: ["s1"] }));
     writeFileSync(join(root, "relay", "old.nudge.json"), JSON.stringify({ limit: 250_000, at: 1 }));
     writeFileSync(join(root, "relay", "new.json"), JSON.stringify({ key: "new", sessions: ["s1"] }));
-    const e = { ...env(), CLEAR_RESUME_NUDGE_AT: "130000" };
+    const e = { ...env(), CORNERMAN_NUDGE_AT: "130000" };
     expect(threshold(e, "s1")).toBe(250_000);
     expect(threshold(e, "fresh")).toBe(130_000);
     writeFileSync(join(root, "relay", "new.nudge.json"), JSON.stringify({ limit: 200_000, at: 2 }));
@@ -220,15 +220,15 @@ describe("Stop nudge", () => {
 
   it("turns on and takes its threshold from the plugin options set in /config", () => {
     write(call(160_000));
-    const opts = { CLEAR_RESUME_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    const opts = { CORNERMAN_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
     expect(runStop(input(), { env: opts }).systemMessage).toMatch(/nudge at 150k/);
   });
 
-  it("CLEAR_RESUME_ env vars still win over the plugin options, for the switch and the size", () => {
+  it("CORNERMAN_ env vars still win over the plugin options, for the switch and the size", () => {
     write(call(160_000));
-    const off = { CLEAR_RESUME_HOME: root, CLEAR_RESUME_AUTO: "0", CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    const off = { CORNERMAN_HOME: root, CORNERMAN_AUTO: "0", CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
     expect(runStop(input(), { env: off })).toBeNull();
-    const higher = { CLEAR_RESUME_HOME: root, CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_NUDGE_AT: "170000", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
+    const higher = { CORNERMAN_HOME: root, CORNERMAN_AUTO: "1", CORNERMAN_NUDGE_AT: "170000", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" };
     expect(runStop(input(), { env: higher })).toBeNull();
   });
 
@@ -238,7 +238,7 @@ describe("Stop nudge", () => {
     write(call(160_000));
     const stdout = execFileSync(process.execPath, [join(import.meta.dirname, "../plugin/scripts/stop.mjs")], {
       input: JSON.stringify(input()),
-      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_NUDGE_AT: "", CLEAR_RESUME_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" },
+      env: { ...process.env, CORNERMAN_AUTO: "", CORNERMAN_NUDGE_AT: "", CORNERMAN_HOME: root, CLAUDE_PLUGIN_OPTION_AUTO_NUDGE: "true", CLAUDE_PLUGIN_OPTION_NUDGE_AT: "150000" },
       encoding: "utf8",
     });
     expect(JSON.parse(stdout).systemMessage).toMatch(/nudge at 150k/);
@@ -288,12 +288,12 @@ describe("lastContextTokens past a huge line", () => {
 // turn to end - which is exactly how session 83cc6aa6 was compacted on
 // 2026-09-20 after climbing 136k to 216k with no turn-end in between.
 describe("mid-turn nudge", () => {
-  const env = () => ({ CLEAR_RESUME_AUTO: "1", CLEAR_RESUME_HOME: root, CLEAR_RESUME_NUDGE_AT: "180000" });
+  const env = () => ({ CORNERMAN_AUTO: "1", CORNERMAN_HOME: root, CORNERMAN_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
   it("does nothing unless auto mode is on", () => {
     write(call(300_000));
-    expect(runMidTurn(input(), { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+    expect(runMidTurn(input(), { env: { CORNERMAN_HOME: root } })).toBeNull();
   });
 
   it("stays quiet below the threshold", () => {
@@ -303,7 +303,7 @@ describe("mid-turn nudge", () => {
 
   it("under the headless runner, asks to finish the step, commit and save, never a /clear", () => {
     write(call(200_000));
-    const out = runMidTurn(input(), { env: { ...env(), CLEAR_RESUME_HEADLESS: "1" } });
+    const out = runMidTurn(input(), { env: { ...env(), CORNERMAN_HEADLESS: "1" } });
     const text = out.hookSpecificOutput.additionalContext;
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
     expect(text).toMatch(/finish the current step/i);
@@ -318,9 +318,9 @@ describe("mid-turn nudge", () => {
     expect(out.decision).toBeUndefined();
     expect(out.hookSpecificOutput.hookEventName).toBe("PostToolUse");
     expect(out.hookSpecificOutput.additionalContext).toMatch(/185k.*threshold 180k/);
-    expect(out.hookSpecificOutput.additionalContext).toContain("/clear-resume:handover");
+    expect(out.hookSpecificOutput.additionalContext).toContain("/cornerman:handover");
     expect(out.continue).toBeUndefined();
-    expect(out.systemMessage).toMatch(/^clear-resume: .*185k/);
+    expect(out.systemMessage).toMatch(/^cornerman: .*185k/);
     expect(out.systemMessage).not.toMatch(/error|fail|—|–|…/i);
   });
 
@@ -371,21 +371,21 @@ describe("SessionStart after compaction", () => {
   afterEach(() => rmSync(repo, { recursive: true, force: true }));
 
   it("tells the new context to re-check state even with nothing waiting", () => {
-    const out = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root } });
+    const out = run({ cwd: repo, source: "compact" }, { env: { CORNERMAN_HOME: root } });
     expect(out.hookSpecificOutput.additionalContext).toMatch(/just compacted.*re-check git status/);
   });
 
   // Proving a handover is this window's own takes the window's start time, so this
   // one looks up the real process: this test process stands in for the window.
   it("injects this window's own waiting handover after the note", { timeout: 30_000 }, () => {
-    vi.stubEnv("CLEAR_RESUME_NO_PROCESS_WALK", "");
+    vi.stubEnv("CORNERMAN_NO_PROCESS_WALK", "");
     try {
       startHookClock();
       const owner = ownerId({ CLAUDE_PID: String(process.pid) });
       expect(owner).toMatch(/@/);
       saveHandover({ cwd: repo, title: "t", body: "handover body", root, owner });
       startHookClock();
-      const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: String(process.pid) } }).hookSpecificOutput.additionalContext;
+      const ctx = run({ cwd: repo, source: "compact" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: String(process.pid) } }).hookSpecificOutput.additionalContext;
       expect(ctx.indexOf("just compacted")).toBeLessThan(ctx.indexOf("handover body"));
     } finally {
       vi.unstubAllEnvs();
@@ -394,14 +394,14 @@ describe("SessionStart after compaction", () => {
 
   it("lists, never loads, a handover this window did not write", () => {
     saveHandover({ cwd: repo, title: "someone else's", body: "not this window's body", root, owner: "" });
-    const ctx = run({ cwd: repo, source: "compact" }, { env: { CLEAR_RESUME_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
+    const ctx = run({ cwd: repo, source: "compact" }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: "4242" } }).hookSpecificOutput.additionalContext;
     expect(ctx).toMatch(/just compacted/);
     expect(ctx).toContain("someone else's");
     expect(ctx).not.toContain("not this window's body");
   });
 
   it("adds no note on a normal startup", () => {
-    expect(run({ cwd: repo, source: "startup" }, { env: { CLEAR_RESUME_HOME: root } })).toBeNull();
+    expect(run({ cwd: repo, source: "startup" }, { env: { CORNERMAN_HOME: root } })).toBeNull();
   });
 });
 
@@ -412,7 +412,7 @@ describe("SessionStart after compaction", () => {
 describe("hook scripts with auto mode off", () => {
   it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
     const child = spawn(process.execPath, [join(import.meta.dirname, "../plugin/scripts", script)], {
-      env: { ...process.env, CLEAR_RESUME_AUTO: "", CLEAR_RESUME_HOME: root },
+      env: { ...process.env, CORNERMAN_AUTO: "", CORNERMAN_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "";

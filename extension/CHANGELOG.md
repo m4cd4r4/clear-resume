@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- **clear-resume is now cornerman.** New extension ID `macdara.cornerman`. Settings saved as
+  `clearResume.*` are copied to `cornerman.*` the first time it starts, and it warns while the old
+  extension is still installed.
+
 ## Unreleased
 
 - **No more extension-host freezes from a large handover store.** The tree, lanes and status

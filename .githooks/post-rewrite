@@ -13,7 +13,7 @@ repo_root=$(CDPATH= cd -- "$hook_dir/.." && pwd)
 if command -v node >/dev/null 2>&1; then
   node "$repo_root/scripts/auto-update-on-pull.mjs" post-rewrite "$1"
 else
-  echo "clear-resume auto-update: skipped (node not found on PATH)"
+  echo "cornerman auto-update: skipped (node not found on PATH)"
 fi
 
 exit 0

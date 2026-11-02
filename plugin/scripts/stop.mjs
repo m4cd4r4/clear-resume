@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Stop hook (opt-in auto mode, CLEAR_RESUME_AUTO=1): nudges once per session to
-// write a handover and /clear when the context passes CLEAR_RESUME_NUDGE_AT.
+// Stop hook (opt-in auto mode, CORNERMAN_AUTO=1): nudges once per session to
+// write a handover and /clear when the context passes CORNERMAN_NUDGE_AT.
 // Any failure exits 0 with no output: a broken plugin must never block a session.
 //
 // This hook runs whether auto mode is on or not, so the switch is checked before

@@ -3,14 +3,14 @@
 // and check this before importing anything else, so with it off they cost no
 // more than starting node.
 //
-// Two places can turn it on. CLEAR_RESUME_AUTO, when set, wins. Otherwise the
+// Two places can turn it on. CORNERMAN_AUTO, when set, wins. Otherwise the
 // plugin option auto_nudge (set in /config or /plugin configure), which Claude
 // Code passes to hooks as this variable only once the user has set it.
 export const AUTO_OPTION = "CLAUDE_PLUGIN_OPTION_AUTO_NUDGE";
 const ON = /^(1|true|on|yes)$/i;
 
 export function autoEnabled(env = process.env) {
-  const own = String(env.CLEAR_RESUME_AUTO ?? "").trim();
+  const own = String(env.CORNERMAN_AUTO ?? "").trim();
   if (own) return ON.test(own);
   return ON.test(String(env[AUTO_OPTION] ?? "").trim());
 }
@@ -29,5 +29,5 @@ export function relayOn(env = process.env) {
 
 // Set by the headless runner (run.mjs) for every segment it starts.
 export function headless(env = process.env) {
-  return ON.test(String(env.CLEAR_RESUME_HEADLESS ?? "").trim());
+  return ON.test(String(env.CORNERMAN_HEADLESS ?? "").trim());
 }

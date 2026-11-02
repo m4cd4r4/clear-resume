@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clear-resume: earlier demo</title>
+<title>cornerman: earlier demo</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="media/results/results.css">
 </head>
@@ -11,7 +11,7 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="wrap">
-    <a class="brand" href="index.html">clear-resume</a>
+    <a class="brand" href="index.html">cornerman</a>
     <nav aria-label="Site">
       <ul class="nav">
         <li><a href="index.html">Results</a></li>
@@ -39,7 +39,7 @@
           <button class="mbtn" id="mbtn" type="button" aria-label="Pause replay" data-paused="false"><span class="mbtn-icon" aria-hidden="true"></span></button>
           <button class="mbtn mbtn-big" id="mbig" type="button" aria-label="Expand replay, with sound"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
           <div class="feed" id="feed" hidden>
-            <pre><span class="ln note" data-fact="F62"># with the relay on, context passes the nudge size</span><span class="ln bar" aria-hidden="true" data-bar="24"></span><span class="ln out" data-fact="F63">clear-resume: context is about 182k tokens (nudge at 180k).</span><span class="ln note" data-fact="F64"># Claude is asked to save a handover</span><span class="ln out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="ln out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="ln note" data-fact="F65"># the plugin runs /clear when the turn ends</span><span class="ln bar" aria-hidden="true" data-bar="3"></span><span class="ln out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="ln note" data-fact="F17"># Claude carries on from the handover.</span></pre>
+            <pre><span class="ln note" data-fact="F62"># with the relay on, context passes the nudge size</span><span class="ln bar" aria-hidden="true" data-bar="24"></span><span class="ln out" data-fact="F63">cornerman: context is about 182k tokens (nudge at 180k).</span><span class="ln note" data-fact="F64"># Claude is asked to save a handover</span><span class="ln out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="ln out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="ln note" data-fact="F65"># the plugin runs /clear when the turn ends</span><span class="ln bar" aria-hidden="true" data-bar="3"></span><span class="ln out" data-fact="F14">cornerman: loaded handover "Cart totals rounding" (saved just now).</span><span class="ln note" data-fact="F17"># Claude carries on from the handover.</span></pre>
           </div>
         </div>
         <figcaption class="media-cap" id="media-cap" data-fact="F60" hidden>Replay of the run that built this page.</figcaption>
@@ -49,8 +49,8 @@
         <video id="replay-full" playsinline controls preload="none" aria-label="Replay of the run that built this page." data-fact="F60"></video>
       </dialog>
       <div class="cmds">
-        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
-        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">cornerman</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">cornerman@cornerman</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
       </div>
     </div>
   </section>
@@ -59,7 +59,7 @@
     <div class="wrap">
       <h2 id="h-what">What it does</h2>
       <div class="term transcript lines">
-        <pre><span class="note" data-fact="F16"># the README's example, in a widget-shop repo</span><span class="in" data-fact="F19">/clear-resume:handover</span><span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="in step" data-fact="F6">/clear</span><span class="out" data-fact="F14">clear-resume: loaded handover "Cart totals rounding" (saved just now).</span><span class="out" data-fact="F15">A copy to read or share: ~/.clear-resume/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span><span class="in step" data-fact="F7">go</span><span class="note" data-fact="F17"># Claude carries on from the handover.</span></pre>
+        <pre><span class="note" data-fact="F16"># the README's example, in a widget-shop repo</span><span class="in" data-fact="F19">/cornerman:handover</span><span class="out" data-fact="F11">Saved handover "Cart totals rounding" (id 31c9af7).</span><span class="out" data-fact="F12">After /clear, the next session in ~/code/widget-shop loads it automatically.</span><span class="in step" data-fact="F6">/clear</span><span class="out" data-fact="F14">cornerman: loaded handover "Cart totals rounding" (saved just now).</span><span class="out" data-fact="F15">A copy to read or share: ~/.cornerman/<wbr>loaded/<wbr>widget-shop-cart-totals-rounding-31c9af7.md</span><span class="in step" data-fact="F7">go</span><span class="note" data-fact="F17"># Claude carries on from the handover.</span></pre>
       </div>
     </div>
   </section>
@@ -115,24 +115,24 @@
       <h2 id="h-install">Install</h2>
       <p class="label" data-fact="F5">Relay on, in your terminal:</p>
       <div class="cmds">
-        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
-        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">clear-resume@clear-resume</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">cornerman</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F2">claude plugin install <span class="nw">cornerman@cornerman</span> <span class="nw">--config auto_nudge=true</span> <span class="nw">--config relay=10</span></code><button class="copy" type="button">Copy</button></div>
       </div>
-      <p class="label" data-fact="F42">Manual (the default): install, then /clear-resume:handover, /clear, go.</p>
+      <p class="label" data-fact="F42">Manual (the default): install, then /cornerman:handover, /clear, go.</p>
       <div class="cmds">
-        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">clear-resume</span></code><button class="copy" type="button">Copy</button></div>
-        <div class="cmd"><code data-fact="F3">claude plugin install <span class="nw">clear-resume@clear-resume</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F1">claude plugin marketplace add https://github.com/<wbr>m4cd4r4/<wbr><span class="nw">cornerman</span></code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F3">claude plugin install <span class="nw">cornerman@cornerman</span></code><button class="copy" type="button">Copy</button></div>
       </div>
       <p class="label" data-fact="F43">Optional: VS Code extension; needs the plugin.</p>
       <div class="cmds">
-        <div class="cmd"><code data-fact="F44">code --install-extension macdara.clear-resume</code><button class="copy" type="button">Copy</button></div>
+        <div class="cmd"><code data-fact="F44">code --install-extension macdara.cornerman</code><button class="copy" type="button">Copy</button></div>
       </div>
-      <p class="src" data-fact="F256"><a href="https://marketplace.visualstudio.com/items?itemName=macdara.clear-resume">Marketplace</a>, <a href="https://open-vsx.org/extension/macdara/clear-resume">Open VSX</a>, <a href="https://github.com/m4cd4r4/clear-resume/releases/latest">releases</a>.</p>
+      <p class="src" data-fact="F256"><a href="https://marketplace.visualstudio.com/items?itemName=macdara.cornerman">Marketplace</a>, <a href="https://open-vsx.org/extension/macdara/cornerman">Open VSX</a>, <a href="https://github.com/m4cd4r4/cornerman/releases/latest">releases</a>.</p>
 
       <div class="faq">
         <details>
           <summary>Does anything leave my machine?</summary>
-          <p data-fact="F46">Handovers are plain text files on your disk, in ~/.clear-resume. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
+          <p data-fact="F46">Handovers are plain text files on your disk, in ~/.cornerman. Nothing is sent anywhere unless you turn on sync (to your own private git remote) or web mode (for Claude Code on the web). Keep secrets out of them.</p>
         </details>
         <details>
           <summary>What does it need?</summary>
@@ -159,7 +159,7 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="how-it-works.html">How it works</a></li>
       <li><a href="changelog.html">Changelog</a></li>
-      <li><a href="https://github.com/m4cd4r4/clear-resume">GitHub</a></li>
+      <li><a href="https://github.com/m4cd4r4/cornerman">GitHub</a></li>
     </ul>
   </div>
 </footer>
