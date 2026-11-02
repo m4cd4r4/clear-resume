@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const SITE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(SITE);
 const FIRST = "Read TASK.md and do it.";
-const NEXT = "Continue from the cornerman handover";
+const NEXT = "Continue from the clear-resume handover";
 const DONE = "RELAY-SITE-DONE";
 
 const git = (...args) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
