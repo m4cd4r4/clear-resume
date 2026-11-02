@@ -9,7 +9,7 @@
 // Everything here fails soft. A SessionStart hook runs this, so being offline, on a
 // flaky VPN, or mid-rebase must return a reason, never throw and never block.
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { handoversDir, storeRoot } from "./store.mjs";
@@ -32,7 +32,10 @@ const GITATTRIBUTES = "* text=auto eol=lf\n";
 // and ephemeral: syncing it would add a commit per session and tell the other
 // machine nothing. The consumed.txt marks under each repo key are NOT here - a
 // handover loaded on one machine must not be offered again on the other.
-const GITIGNORE = ".nudged/\n";
+//
+// relay/ is per-window state too, and a secret scanner in a pre-commit hook reads its
+// key as a credential: that stopped every commit on one store for 29 days (2026-10-04).
+const IGNORED = [".nudged/", "relay/"];
 
 // Called from a detached, console-less node on Windows. windowsHide alone is not enough:
 // it sets CREATE_NO_WINDOW, and the Git\cmd\git.exe shim then launches mingw64\bin\git.exe
@@ -78,6 +81,24 @@ function ensureIdentity(root) {
 }
 
 /**
+ * A store made by an older version has an older .gitignore, and may already have these
+ * paths staged or committed, where an ignore line alone does nothing. The files stay on
+ * disk. The line goes in last, so a locked index means another try at the next commit.
+ */
+function ensureIgnored(root) {
+  const ignore = join(root, ".gitignore");
+  const text = existsSync(ignore) ? readFileSync(ignore, "utf8") : "";
+  const lines = text.split(/\r?\n/);
+  const missing = IGNORED.filter((line) => !lines.includes(line));
+  if (!missing.length) return;
+  for (const line of missing) {
+    if (!tryGit(root, ["rm", "-r", "-f", "-q", "--cached", "--ignore-unmatch", "--", line]).ok) return;
+  }
+  const lead = text && !text.endsWith("\n") ? "\n" : "";
+  writeFileSync(ignore, `${text}${lead}${missing.join("\n")}\n`, "utf8");
+}
+
+/**
  * Make the store root a git repo pointed at `remote`, and get the two in step.
  *
  * Idempotent, and symmetric: the first machine pushes what it has, and a second
@@ -99,9 +120,6 @@ export function initSync(root = storeRoot(), remote, { now = new Date() } = {}) 
 
   const attributes = join(root, ".gitattributes");
   if (!existsSync(attributes)) writeFileSync(attributes, GITATTRIBUTES, "utf8");
-
-  const ignore = join(root, ".gitignore");
-  if (!existsSync(ignore)) writeFileSync(ignore, GITIGNORE, "utf8");
 
   const current = tryGit(root, ["remote", "get-url", "origin"]).out;
   if (!current) tryGit(root, ["remote", "add", "origin", remote]);
@@ -130,6 +148,7 @@ export function initSync(root = storeRoot(), remote, { now = new Date() } = {}) 
 export function commitLocal(root = storeRoot(), { now = new Date() } = {}) {
   if (!isSynced(root)) return { ok: false, committed: false, reason: "not synced" };
   ensureIdentity(root);
+  ensureIgnored(root);
 
   // Half-finished writes and what an interrupted move left: a carried .git config can hold a token in its remote URL.
   const add = tryGit(root, ["add", "-A", "--", ".", ":(exclude)*.tmp", ":(exclude).git.carry.tmp"]);

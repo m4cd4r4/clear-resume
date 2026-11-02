@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- **Sync no longer stops behind a secret scanner.** The store's per-window `relay/` files now stay out
+  of git and stay on disk, and an existing store fixes itself at its next sync.
+
 ## 0.6.0
 
 - **clear-resume is now cornerman.** New extension ID `macdara.cornerman`. Settings saved as
