@@ -222,9 +222,9 @@ It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of
 as before. It works in a terminal and in the VS Code chat panel.
 
 `/relay off|on|unlimited|<n>` overrides the option for the current window only and starts its
-count over; a bare `/relay` reports the count. The status line shows the clears left. The VS Code
-panel draws no plugin status line, so there a toast shows the count after each continue, and the
-extension's status bar can show and change the window's relay (below).
+count over; a bare `/relay` reports the count. The status line shows the clears left; in the VS
+Code panel it shows above the prompt box, and a toast also shows the count after each continue.
+The extension's status bar can show and change the window's relay (below).
 
 ### Headless runs: no clear at all
 
