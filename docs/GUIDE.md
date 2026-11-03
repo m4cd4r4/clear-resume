@@ -38,7 +38,7 @@ claude plugin install cornerman@cornerman
 >
 > On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
 
-Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default.
+Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default.
 
 Then, when a chat has grown long, type `/cornerman:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
 
@@ -123,7 +123,7 @@ The relay stops, and says why, when it uses up its clears for that Claude Code w
 
 To change it for one window only, type `/relay 5`, `/relay unlimited` or `/relay off`; a bare `/relay` says where the count is. The status line counts down the clears left. The VS Code panel has no status line, so there a short message shows the count after each clear.
 
-**Idle handover (optional, off by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context; a handover written while the cache is still warm costs about a tenth of that ([the measurements](RESEARCH.md#idle-handover-against-a-cold-return)). With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
+**Idle handover (optional, on by default).** Coming back to a long chat after the prompt cache has expired costs one full rewrite of the context; a handover written while the cache is still warm costs about a tenth of that ([the measurements](RESEARCH.md#idle-handover-against-a-cold-return)). With `idle_handover` set to `toast`, a message appears in the status line (and as a short toast) about 5 minutes before the cache expires and stays until your next turn starts. With `auto`, Claude is asked to write the handover, the session is cleared, and the new session waits for you: it does not continue the work while you are away. It works with the relay off. It acts once per session, only in an interactive session, only when the context is at least `idle_min_tokens`, and never after the cache has already expired.
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -238,7 +238,7 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
   <img src="media/nudge.png" width="560" alt="A long chat with the context bar almost full. After Claude's reply the plugin prints: cornerman: context is about 182k tokens (nudge at 180k). Claude is asked to save a handover, then you can type /clear.">
 </p>
 
-**The nudge** (auto mode) is off by default. Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
+**The nudge** (auto mode) is on by default. Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
 
 <details>
 <summary><b>Turn the nudge on</b></summary>
@@ -256,7 +256,7 @@ The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If 
 claude plugin install cornerman@cornerman --config auto_nudge=true
 ```
 
-If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CORNERMAN_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](HOW-IT-WORKS.md#auto-mode-opt-in)
+If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CORNERMAN_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](HOW-IT-WORKS.md#auto-mode-on-by-default)
 
 </details>
 
