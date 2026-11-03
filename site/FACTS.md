@@ -218,8 +218,8 @@ F205 | page: "Source: the author's own sessions." | source: "The author's sessio
 
 ## how-it-works.html: settings (option names only as the sources write them)
 
-F206 | page: "Settings" | source: "six options that are not set yet" | docs/GUIDE.md:41
-F207 | page: "After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | source: "Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | docs/GUIDE.md:41
+F206 | page: "Settings" | source: "seven options that are not set yet" | docs/GUIDE.md:41
+F207 | page: "After install, Claude Code says, or asks about, seven options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | source: "Claude Code then says, or asks about, seven options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | docs/GUIDE.md:41
 F208 | page: "Nudge to save a handover" | source: "switch off **Nudge to save a handover**" | docs/GUIDE.md:248
 F209 | page: "Default: on" | source: "**The nudge** (auto mode) is on by default." | docs/GUIDE.md:242
 F210 | page: "Turns the nudge on. Past the Nudge at size, the plugin asks Claude to save a handover, and prints a status line saying so." | source: "To turn it off, run this in Claude Code in a terminal and switch off **Nudge to save a handover**" | docs/GUIDE.md:248 | source: "Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so." | docs/GUIDE.md:242

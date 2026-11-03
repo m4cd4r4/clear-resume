@@ -38,7 +38,7 @@ claude plugin install cornerman@cornerman
 >
 > On Windows, Claude Code runs plugin hooks through **Git Bash**, which comes with Git for Windows.
 
-Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default.
+Claude Code then says, or asks about, seven options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default.
 
 That is all the setup. When a chat grows long, Cornerman saves a handover, clears the chat and carries on by itself, up to 3 clears per window. [Change the number or turn it off](#pick-how-it-runs).
 
