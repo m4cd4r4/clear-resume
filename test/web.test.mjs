@@ -186,6 +186,7 @@ describe("load in a new cloud session", () => {
     // The same handover on the ref is not listed a second time as found in git.
     expect(out.hookSpecificOutput.additionalContext).not.toContain("found on remote ref");
     expect(repoState(one)).toEqual(before);
+    out.afterOutput();
     // Silent again for a real later session. An immediate re-run is the twin of
     // the same /clear, which re-emits rather than loading a second time.
     expect(run({ cwd: one, source: "clear" }, { env: webEnv(rootOne), now: new Date(Date.now() + 60_000) })).toBeNull();
