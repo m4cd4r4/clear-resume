@@ -3,21 +3,21 @@
 import fs from "node:fs";
 import { fails, parseFacts, checkSources, checkPage, checkGit, parseHtml } from "./factcheck.mjs";
 
-const OFF = "They belong to the nudge, the relay and the idle handover, which are all off by default.";
+const OFF = "They belong to the nudge, the relay and the idle handover, which are all on by default.";
 const RELAY = "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel.";
-// Line numbers are read from the README, so a README edit cannot break the known-good cases.
-const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8").split("\n");
-const lineOf = (s) => readme.findIndex((l) => l.includes(s)) + 1;
+// Line numbers are read from the guide, so a guide edit cannot break the known-good cases.
+const guide = fs.readFileSync(new URL("../docs/GUIDE.md", import.meta.url), "utf8").split("\n");
+const lineOf = (s) => guide.findIndex((l) => l.includes(s)) + 1;
 const OFF_AT = lineOf(OFF), RELAY_AT = lineOf(RELAY), WRONG_AT = OFF_AT + 10;
 const ledger = [
-  `F1 | page: "Off by default." | source: "${OFF}" | README.md:${OFF_AT}`,
-  `F2 | page: "Needs 2.1.300 or later." | source: "${RELAY}" | README.md:${RELAY_AT}`,
-  `F3 | page: "The relay always works." | source: "${RELAY}" | README.md:${RELAY_AT}`,
+  `F1 | page: "On by default." | source: "${OFF}" | docs/GUIDE.md:${OFF_AT}`,
+  `F2 | page: "Needs 2.1.300 or later." | source: "${RELAY}" | docs/GUIDE.md:${RELAY_AT}`,
+  `F3 | page: "The relay always works." | source: "${RELAY}" | docs/GUIDE.md:${RELAY_AT}`,
   `F4 | page: "x" | source: "This sentence is not in the README at all" | README.md:5`,
-  `F5 | page: "Off by default." | source: "${OFF}" | README.md:${WRONG_AT}`,
+  `F5 | page: "On by default." | source: "${OFF}" | docs/GUIDE.md:${WRONG_AT}`,
   `F6 | page: "y" | source: "Monochrome terminal" | TASK.md: Look`,
   `F8 | page: "{sessions} sessions" | source: "const sessions = out.length;" | site/buildstats.mjs:127 | value: 9 (x, buildstats.mjs)`,
-  `F9 | page: "A \\"quoted\\" 2.1.275" | source: "${RELAY}" | README.md:${RELAY_AT}`,
+  `F9 | page: "A \\"quoted\\" 2.1.275" | source: "${RELAY}" | docs/GUIDE.md:${RELAY_AT}`,
 ].join("\n");
 
 let bad = 0;
@@ -40,16 +40,16 @@ expect("escaped quotes parse and pass", one("F9"), null);
 expect("page number missing from source", one("F2"), "page shows 2.1.300");
 expect("strong word missing from source", one("F3"), "page says \"always\"");
 expect("quote not in the cited file", one("F4"), "quote not in README.md:5");
-expect("quote at the wrong line", one("F5"), `not at README.md:${WRONG_AT}`);
+expect("quote at the wrong line", one("F5"), `not at docs/GUIDE.md:${WRONG_AT}`);
 expect("TASK.md outside the Media box", one("F6"), "TASK.md is a source only for the Media box");
 
 const page = (body) => () => checkPage("probe.html", facts, "<html><body>" + body + "</body></html>");
 expect("good page passes", page(
-  `<p data-fact="F1"><span aria-hidden="true">123</span>Off by default.</p>` +
+  `<p data-fact="F1"><span aria-hidden="true">123</span>On by default.</p>` +
   `<p data-fact="F8"><span data-stat="sessions">9</span> sessions</p>` +
-  `<video aria-label="Off by default." data-fact="F1"></video><button aria-label="Pause replay">x</button>`), null);
+  `<video aria-label="On by default." data-fact="F1"></video><button aria-label="Pause replay">x</button>`), null);
 expect("number outside data-fact", page(`<p>Needs 2.1.275 or later.</p>`), "number outside data-fact");
-expect("text does not match its line", page(`<p data-fact="F1">Off by default!</p>`), "text does not match");
+expect("text does not match its line", page(`<p data-fact="F1">On by default!</p>`), "text does not match");
 expect("id missing from FACTS.md", page(`<p data-fact="F77">x</p>`), "F77 is not in FACTS.md");
 expect("aria-label without data-fact", page(`<video aria-label="A replay"></video>`), "aria-label without data-fact");
 expect("aria-label does not match", page(`<video aria-label="A replay" data-fact="F1"></video>`), "aria-label does not match");

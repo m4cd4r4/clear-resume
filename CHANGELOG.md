@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+- **Cornerman now clears and carries on by itself.** New installs and upgrades get the relay at 3
+  clears per window, the nudge on and the idle handover on `smart`. Set any of them to off to stop it.
+- **It says so once.** The first session after install tells you it is on, the limit, and how to stop
+  it.
+- **A slow start no longer loses your handover.** If Claude Code stopped the session-start step part
+  way, the handover it was loading had already been filed away and never reached the new session. It
+  now stays waiting until the new session has it.
+
 ## 0.6.1
 
 - **Sync no longer stops behind a secret scanner.** A pre-commit scanner read the key in the store's

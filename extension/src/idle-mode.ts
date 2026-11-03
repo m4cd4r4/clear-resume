@@ -20,17 +20,17 @@ const windowPath = (relayDir: string, key: string) => join(relayDir, `${key}.idl
 
 // The same reading the relay applies: anything but toast, smart or auto is off.
 export function parseIdleMode(raw: unknown): IdleMode {
-  const s = String(raw ?? "off").trim().toLowerCase();
+  const s = String(raw ?? "").trim().toLowerCase() || "smart";
   return s === "toast" || s === "smart" || s === "auto" ? s : "off";
 }
 
-/** idle_handover from the plugin's options in settings.json; off when unset or unreadable. */
+/** idle_handover from the plugin's options in settings.json; smart, the default, when unset or unreadable. */
 export function settingsIdleMode(path = settingsPath()): IdleMode {
   try {
-    if (!existsSync(path)) return "off";
+    if (!existsSync(path)) return "smart";
     return parseIdleMode(JSON.parse(readFileSync(path, "utf8"))?.pluginConfigs?.[PLUGIN]?.options?.idle_handover);
   } catch {
-    return "off";
+    return "smart";
   }
 }
 

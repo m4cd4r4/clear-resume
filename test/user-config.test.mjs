@@ -22,18 +22,19 @@ describe("plugin options (userConfig)", () => {
   });
 
   it("gives the same defaults as the code, which applies them itself", () => {
-    expect(manifest.userConfig.auto_nudge.default).toBe(false);
+    expect(manifest.userConfig.auto_nudge.default).toBe(true);
     expect(manifest.userConfig.nudge_at.default).toBe(DEFAULT_THRESHOLD);
     expect(threshold({})).toBe(DEFAULT_THRESHOLD);
-    expect(autoEnabled({})).toBe(false);
-    expect(manifest.userConfig.relay.default).toBe("off");
+    expect(autoEnabled({})).toBe(true);
+    expect(manifest.userConfig.relay.default).toBe("3");
+    expect(manifest.userConfig.idle_handover.default).toBe("smart");
     expect(manifest.userConfig.status_line.default).toBe(true);
-    expect(relayOn({})).toBe(false);
+    expect(relayOn({})).toBe(true);
   });
 
-  it("relay: on for a positive whole number or unlimited, off for anything else", () => {
-    for (const v of ["1", "3", "10", "unlimited", " Unlimited "]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(true);
-    for (const v of ["", "off", "0", "-1", "2.5", "on", "yes"]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(false);
+  it("relay: on when unset, for a positive whole number or unlimited, off for anything else", () => {
+    for (const v of ["", "  ", "1", "3", "10", "unlimited", " Unlimited "]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(true);
+    for (const v of ["off", "0", "-1", "2.5", "on", "yes"]) expect(relayOn({ [RELAY_OPTION]: v }), v).toBe(false);
   });
 
   // Each option is validated strictly: an unknown field stops the plugin loading,
@@ -49,6 +50,7 @@ describe("plugin options (userConfig)", () => {
   it("the auto_nudge option counts only when CORNERMAN_AUTO is unset", () => {
     expect(autoEnabled({ [AUTO_OPTION]: "true" })).toBe(true);
     expect(autoEnabled({ [AUTO_OPTION]: "false" })).toBe(false);
+    expect(autoEnabled({ [AUTO_OPTION]: "" })).toBe(true);
     expect(autoEnabled({ CORNERMAN_AUTO: "0", [AUTO_OPTION]: "true" })).toBe(false);
     expect(autoEnabled({ CORNERMAN_AUTO: "1", [AUTO_OPTION]: "false" })).toBe(true);
     expect(autoEnabled({ CORNERMAN_AUTO: "  ", [AUTO_OPTION]: "true" })).toBe(true);

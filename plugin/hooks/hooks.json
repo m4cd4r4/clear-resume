@@ -1,5 +1,5 @@
 {
-  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in opt-in auto mode, nudge once to hand over and clear when context grows large - mid-turn as well as at a turn end, because compaction does not wait for a turn to end. Claude Code runs each command with /bin/sh, or Git Bash on Windows, so they are POSIX sh. PreToolUse on the Skill tool allows the handover skill once, only right after the idle handover asked for it, because nobody is at the keyboard to answer its permission prompt. Each checks for node first: without it, SessionStart prints one line saying so and the others exit quietly.",
+  "description": "Load the waiting handover for this repo when a session starts, is cleared or is compacted; in auto mode, nudge once to hand over and clear when context grows large - mid-turn as well as at a turn end, because compaction does not wait for a turn to end. Claude Code runs each command with /bin/sh, or Git Bash on Windows, so they are POSIX sh. PreToolUse on the Skill tool allows the handover skill once, only right after the idle handover asked for it, because nobody is at the keyboard to answer its permission prompt. Each checks for node first: without it, SessionStart prints one line saying so and the others exit quietly.",
   "modules": [
     "./relay.ts"
   ],

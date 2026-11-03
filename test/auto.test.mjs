@@ -54,9 +54,9 @@ describe("Stop nudge", () => {
   const env = () => ({ CORNERMAN_AUTO: "1", CORNERMAN_HOME: root, CORNERMAN_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
-  it("does nothing unless auto mode is on", () => {
+  it("does nothing when auto mode is off", () => {
     write(call(300_000));
-    expect(runStop(input(), { env: { CORNERMAN_HOME: root } })).toBeNull();
+    expect(runStop(input(), { env: { CORNERMAN_AUTO: "0", CORNERMAN_HOME: root } })).toBeNull();
   });
 
   it("stays quiet below the threshold", () => {
@@ -141,9 +141,16 @@ describe("Stop nudge", () => {
   // which reads as a crash. additionalContext still makes Claude continue, but
   // is labelled "Stop hook feedback", and systemMessage gives the user a line
   // written for them.
+  it("on a new install, with no option set, it nudges and says the relay clears by itself", () => {
+    write(call(300_000));
+    const out = runStop(input(), { env: { CORNERMAN_HOME: root } });
+    expect(out.systemMessage).toContain("the relay then clears and continues by itself");
+    expect(out.systemMessage).not.toContain("/clear");
+  });
+
   it("does not block, so the user never sees it as a hook error", () => {
     write(call(185_000));
-    const out = runStop(input(), { env: env() });
+    const out = runStop(input(), { env: { ...env(), CLAUDE_PLUGIN_OPTION_RELAY: "off" } });
     expect(out.decision).toBeUndefined();
     expect(out.reason).toBeUndefined();
     expect(out.continue).toBeUndefined();
@@ -291,9 +298,9 @@ describe("mid-turn nudge", () => {
   const env = () => ({ CORNERMAN_AUTO: "1", CORNERMAN_HOME: root, CORNERMAN_NUDGE_AT: "180000" });
   const input = (over = {}) => ({ session_id: "s1", transcript_path: transcript, ...over });
 
-  it("does nothing unless auto mode is on", () => {
+  it("does nothing when auto mode is off", () => {
     write(call(300_000));
-    expect(runMidTurn(input(), { env: { CORNERMAN_HOME: root } })).toBeNull();
+    expect(runMidTurn(input(), { env: { CORNERMAN_AUTO: "0", CORNERMAN_HOME: root } })).toBeNull();
   });
 
   it("stays quiet below the threshold", () => {
@@ -412,7 +419,7 @@ describe("SessionStart after compaction", () => {
 describe("hook scripts with auto mode off", () => {
   it.each(["post-tool.mjs", "stop.mjs"])("%s exits at once, before reading its input", async (script) => {
     const child = spawn(process.execPath, [join(import.meta.dirname, "../plugin/scripts", script)], {
-      env: { ...process.env, CORNERMAN_AUTO: "", CORNERMAN_HOME: root },
+      env: { ...process.env, CORNERMAN_AUTO: "0", CORNERMAN_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "";

@@ -150,7 +150,7 @@ All optional. Set them as environment variables, for example in the `env` block 
 
 | Variable | Default | What it does |
 |---|---|---|
-| `CORNERMAN_AUTO` | off | `1` turns on the context-size nudge. |
+| `CORNERMAN_AUTO` | on | `0` turns off the context-size nudge. |
 | `CORNERMAN_NUDGE_AT` | `250000` | Context size, in tokens, that triggers the nudge. |
 | `CORNERMAN_WEB` | off | `1` also carries handovers in git, for Claude Code on the web. |
 | `CORNERMAN_MAX_AGE_DAYS` | `7` | Older handovers are listed, not loaded. |
@@ -162,31 +162,31 @@ All optional. Set them as environment variables, for example in the `env` block 
 The nudge's two settings are also plugin options, `auto_nudge` and `nudge_at`, so you can set them
 without editing `settings.json`: with `/plugin configure cornerman@cornerman`, in `/config`
 (Claude Code 2.1.269 or later), or from a terminal with
-`claude plugin install cornerman@cornerman --config auto_nudge=true --config nudge_at=150000`.
+`claude plugin install cornerman@cornerman --config auto_nudge=false --config nudge_at=150000`.
 Sessions started after that use the new values. Claude Code keeps `nudge_at` between 50000 and
 1000000. `CORNERMAN_AUTO` wins over `auto_nudge` whenever it is set. `CORNERMAN_NUDGE_AT` wins
 over `nudge_at` when it is a positive number; any other value falls back to `nudge_at`, then to 250000.
 
-The third plugin option, `relay`, is `off` (the default), a number of clears per Claude Code
-window, or `unlimited`. Set it the same way, for example `--config relay=10`. See
+The third plugin option, `relay`, is `off`, a number of clears per Claude Code window (3 is the
+default), or `unlimited`. Set it the same way, for example `--config relay=10`. See
 [The relay](#the-relay-clear-and-continue-with-no-keypress) below.
 
-Three more plugin options belong to the idle handover, which is off by default. `idle_handover` is
-`off`, `toast`, `smart` or `auto` (anything else is off); `cache_ttl_minutes` is your prompt cache lifetime
+Three more plugin options belong to the idle handover. `idle_handover` is `off`, `toast`, `smart`
+(the default) or `auto` (anything else is off); `cache_ttl_minutes` is your prompt cache lifetime
 (default 60; 5 is the default with an API key); `idle_min_tokens` is the smallest context size
 (default 100000) at which it acts. See [Idle handover](#idle-handover-before-the-cache-expires).
 
 The VS Code sidebar does not read Claude Code's settings. If you move the store, set the
 sidebar's `cornerman.storePath` to the same folder.
 
-## Auto mode (opt-in)
+## Auto mode (on by default)
 
 The nudge gets Claude to save a handover. The relay, below, then runs `/clear` and continues, so
 with both on the session carries itself. With the relay off, you type `/clear`.
 
-With the nudge on (`auto_nudge`, or `CORNERMAN_AUTO=1`), once the session's context passes the
+With the nudge on (the default; `auto_nudge` or `CORNERMAN_AUTO` turns it off), once the session's context passes the
 threshold (`nudge_at`, or `CORNERMAN_NUDGE_AT`), Claude
-is asked to write a handover and tell you to type `/clear`. The size is read
+is asked to write a handover, then the relay clears (with the relay off, it tells you to type `/clear`). The size is read
 from the tail of the session transcript on disk. Set the threshold well above your
 session-start size (rules, CLAUDE.md and tool schemas) or it fires on almost every session.
 
@@ -211,7 +211,7 @@ is always on.
 
 ### The relay: clear and continue with no keypress
 
-Set `relay` to a number of clears per Claude Code window, or `unlimited`. After Claude saves a
+`relay` is a number of clears per Claude Code window (3 by default), or `unlimited`. After Claude saves a
 handover, cornerman runs `/clear` when the turn ends and submits the prompt that continues from
 it. It stays out of the way for a subagent's save, a failed save, an interrupted turn and headless
 runs. It stops, and says so, at its count, or when two continued sessions in a row make no new
@@ -222,9 +222,9 @@ It needs Claude Code 2.1.275 or later; an older build ignores it and the rest of
 as before. It works in a terminal and in the VS Code chat panel.
 
 `/relay off|on|unlimited|<n>` overrides the option for the current window only and starts its
-count over; a bare `/relay` reports the count. The status line shows the clears left. The VS Code
-panel draws no plugin status line, so there a toast shows the count after each continue, and the
-extension's status bar can show and change the window's relay (below).
+count over; a bare `/relay` reports the count. The status line shows the clears left; in the VS
+Code panel it shows above the prompt box, and a toast also shows the count after each continue.
+The extension's status bar can show and change the window's relay (below).
 
 ### Headless runs: no clear at all
 
@@ -249,7 +249,7 @@ As a fallback, set auto-compaction to fire well before the context window is ful
 
 ### Idle handover: before the cache expires
 
-Off by default. Claude Code keeps your prompt in a cache that lasts `cache_ttl_minutes` after the
+`smart` by default. Claude Code keeps your prompt in a cache that lasts `cache_ttl_minutes` after the
 last reply. Only the 60 minute subscription cache was measured; 5 minutes is the documented default
 with an API key and was not measured. Come back after it lapses and the first message pays for a
 full rewrite of the context. A handover written while the cache is still warm is read from the
@@ -529,7 +529,7 @@ with no output, because a broken plugin must never block a session.
 ### The Claude Code mod
 
 A mod is a function-hooks module that runs inside Claude Code, listed under `modules` in
-`hooks.json`. cornerman has one, the relay. It does nothing until Relay is on. Then, after
+`hooks.json`. cornerman has one, the relay. It does nothing while Relay is off. With Relay on, the default, after
 Claude saves a handover, it runs `/clear` when the turn ends and submits "Continue from the
 cornerman handover that was just loaded." The one program it starts is `git rev-parse HEAD`,
 for the stall guard. It writes one status file, `~/.cornerman/relay/<key>.json`, which the
