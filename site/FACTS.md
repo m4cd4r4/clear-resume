@@ -58,7 +58,7 @@ F60 | page: "Replay of the run that built this page." | source: "Caption under t
 ## index.html: the relay
 
 F20 | page: "Past a size you choose, Claude saves a handover and the plugin runs /clear when the turn ends." | source: "Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on." | docs/GUIDE.md:116
-F21 | page: "Off by default. Needs Claude Code 2.1.275 or later; works in a terminal and in the VS Code chat panel." | source: "They belong to the nudge, the relay and the idle handover, which are all off by default." | docs/GUIDE.md:41 | source: "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel." | docs/GUIDE.md:118
+F21 | page: "On by default. Needs Claude Code 2.1.275 or later; works in a terminal and in the VS Code chat panel." | source: "They belong to the nudge, the relay and the idle handover, which are all on by default." | docs/GUIDE.md:41 | source: "It needs Claude Code 2.1.275 or later, and works in a terminal and in the VS Code chat panel." | docs/GUIDE.md:118
 F23 | page: "plugin default, 180k (this run's setting is not recorded)" | source: "The default nudge size is now 250k tokens (was 180k)." | CHANGELOG.md:51
 F25 | page: "{sessions} sessions. Peaks: {peakLo} to {peakHi} tokens." | source: "var vals = { sessions: String(run.sessions.length), peakLo: kTok(Math.min.apply(null, peaks)), peakHi: kTok(Math.max.apply(null, peaks)) };" | site/app.js:185
 F26 | page: "nudge at {nudge} (this run's setting)" | source: "const m = nudgeText.match(/threshold (\d+)k/);" | site/buildstats.mjs:113
@@ -90,7 +90,7 @@ F45 | page: "It stays out of the way for a subagent's save, a failed save, an in
 
 ## Nudge default and settings
 
-F24 | page: "The nudge is off by default. Past 250k tokens of context (the default; Nudge at changes it), the plugin asks Claude to save a handover." | source: "**The nudge** (auto mode) is off by default." | docs/GUIDE.md:241 | source: "Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover" | docs/GUIDE.md:241
+F24 | page: "The nudge is on by default. Past 250k tokens of context (the default; Nudge at changes it), the plugin asks Claude to save a handover." | source: "**The nudge** (auto mode) is on by default." | docs/GUIDE.md:241 | source: "Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover" | docs/GUIDE.md:241
 
 ## Comparison (README.md:115 to 122)
 
@@ -125,7 +125,7 @@ F126 | page: "What it holds" | source: "Then it writes a short note about the wo
 
 F130 | page: "work" | source: "Claude carries on from the handover." | docs/GUIDE.md:153
 F131 | page: "the chat grows" | source: "when a chat has grown long" | docs/GUIDE.md:43
-F132 | page: "nudge" | source: "**The nudge** (auto mode) is off by default." | docs/GUIDE.md:241
+F132 | page: "nudge" | source: "**The nudge** (auto mode) is on by default." | docs/GUIDE.md:241
 F133 | page: "with the nudge on" | source: "To turn it on" | docs/GUIDE.md:247
 F134 | page: "asks Claude to save" | source: "the plugin asks Claude to save a handover" | docs/GUIDE.md:241
 F135 | page: "save" | source: "**Save a handover.**" | docs/GUIDE.md:151
@@ -218,22 +218,22 @@ F205 | page: "Source: the author's own sessions." | source: "The author's sessio
 ## how-it-works.html: settings (option names only as the sources write them)
 
 F206 | page: "Settings" | source: "six options that are not set yet" | docs/GUIDE.md:41
-F207 | page: "After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default." | source: "Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default." | docs/GUIDE.md:41
+F207 | page: "After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | source: "Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default." | docs/GUIDE.md:41
 F208 | page: "Nudge to save a handover" | source: "switch on **Nudge to save a handover**" | docs/GUIDE.md:247
-F209 | page: "Default: off" | source: "**The nudge** (auto mode) is off by default." | docs/GUIDE.md:241
+F209 | page: "Default: on" | source: "**The nudge** (auto mode) is on by default." | docs/GUIDE.md:241
 F210 | page: "Turns the nudge on. Past the Nudge at size, the plugin asks Claude to save a handover, and prints a status line saying so." | source: "To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**" | docs/GUIDE.md:247 | source: "Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so." | docs/GUIDE.md:241
-F211 | page: "Source: the README." | source: "**The nudge** (auto mode) is off by default." | docs/GUIDE.md:241
+F211 | page: "Source: the README." | source: "**The nudge** (auto mode) is on by default." | docs/GUIDE.md:241
 F212 | page: "Nudge at" | source: "(the default; **Nudge at** changes it)" | docs/GUIDE.md:241
 F213 | page: "Default: 250k tokens" | source: "Past 250k tokens of context (the default;" | docs/GUIDE.md:241
 F214 | page: "The context size the nudge waits for. Claude Code keeps it between 50000 and 1000000 tokens." | source: "Past 250k tokens of context (the default; **Nudge at** changes it)" | docs/GUIDE.md:241 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:174
 F215 | page: "Source: the README (default), the CHANGELOG (range)." | source: "Past 250k tokens of context (the default;" | docs/GUIDE.md:241 | source: "Claude Code keeps the Nudge at setting between 50000 and 1000000 tokens." | CHANGELOG.md:174
 F216 | page: "relay" | source: "Set the `relay` option" | CHANGELOG.md:148
-F217 | page: "Default: off" | source: "Off by default." | CHANGELOG.md:152
+F217 | page: "Default: 3 clears" | source: "`relay` is a number of clears per Claude Code window (3 by default)" | docs/HOW-IT-WORKS.md:214
 F218 | page: "A number of clears per Claude Code window, or unlimited. After Claude saves a handover, cornerman runs /clear when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it." | source: "to a number of clears per Claude Code window, or `unlimited`. After Claude saves a handover, clear-resume runs `/clear` when the turn ends and submits the prompt that continues from it." | CHANGELOG.md:151 | source: "Needs Claude Code 2.1.275 or later; an older build ignores it" | CHANGELOG.md:153
 F219 | page: "Source: the CHANGELOG." | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:149
 F220 | page: "Set them with /plugin configure cornerman@cornerman, or in /config: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with claude plugin install cornerman@cornerman --config." | source: "Turn it on and set its size with `/plugin configure clear-resume@clear-resume`, or in `/config` in Claude Code 2.1.269 or later." | CHANGELOG.md:173 | source: "In the Claude Code panel in VS Code, set them from a terminal with `claude plugin install clear-resume@clear-resume --config`." | CHANGELOG.md:175 | source: "Set the `relay` option (in `/config` or `/plugin configure`)" | CHANGELOG.md:149
 F221 | page: "The environment variables still work: CORNERMAN_AUTO wins whenever it is set, and CORNERMAN_NUDGE_AT wins when it is a positive number." | source: "The environment variables still work: `CLEAR_RESUME_AUTO` wins whenever it is set, and `CLEAR_RESUME_NUDGE_AT` wins when it is a positive number." | CHANGELOG.md:177
-F222 | page: "Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web)." | source: "Nothing is sent anywhere unless you turn on [sync](HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web)." | docs/GUIDE.md:182
+F222 | page: "Opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web)." | source: "Nothing is sent anywhere unless you turn on [sync](HOW-IT-WORKS.md#syncing-two-machines-optional) (to your own private git remote) or [web mode](HOW-IT-WORKS.md#claude-code-on-the-web-opt-in) (for Claude Code on the web)." | docs/GUIDE.md:182
 F223 | page: "Source: the README." | source: "Nothing is sent anywhere unless you turn on" | docs/GUIDE.md:182
 
 ## changelog.html: releases

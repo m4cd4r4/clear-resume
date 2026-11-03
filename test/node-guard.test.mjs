@@ -105,7 +105,7 @@ describe("hook commands with node on PATH", { skip: !SHELL, timeout: 30_000 }, (
 describe("hook-entry.cjs with auto mode off", () => {
   it.each(["post-tool", "stop"])("%s exits at once, before reading its input", async (name) => {
     const child = spawn(process.execPath, [ENTRY, name], {
-      env: { ...process.env, CORNERMAN_AUTO: "", CORNERMAN_HOME: root },
+      env: { ...process.env, CORNERMAN_AUTO: "0", CORNERMAN_HOME: root },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "";

@@ -20,6 +20,7 @@ import {
   idleDue,
   idleEffective,
   idleFireAfterMs,
+  budget,
   idleMode,
   idleOverride,
   idleToast,
@@ -207,7 +208,16 @@ const turn = { answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', re
 const cleared = { reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as const
 
 describe('relay', () => {
-  test('off by default: a save clears nothing', async ($, on) => {
+  test('unset: the default of 3 clears after a save', async ($, on) => {
+    const { w, clock, state } = world(on)
+    await $.tool.call({ tool: 'Bash', command: SAVE })
+    await $.turn.complete(turn)
+    await clock.advance(300)
+    expect(w.commands).toEqual(['clear'])
+    expect(state().file).toMatchObject({ limit: 3, configured: 3, used: 1 })
+  })
+
+  test('off by option: a save clears nothing', { options: { relay: 'off' } }, async ($, on) => {
     const { w, clock } = world(on)
     await $.tool.call({ tool: 'Bash', command: SAVE })
     await $.turn.complete(turn)
@@ -295,7 +305,7 @@ describe('relay', () => {
     expect(w.toasts).toEqual([])
   })
 
-  test('relay off: a nudged turn with no save stays quiet', async ($, on) => {
+  test('relay off: a nudged turn with no save stays quiet', { options: { relay: 'off' } }, async ($, on) => {
     const { w, nudge } = world(on)
     nudge('s1')
     await $.turn.complete(turn)
@@ -389,13 +399,13 @@ describe('relay', () => {
     expect(state().path.replace(/\\/g, '/')).toMatch(/\/home\/me\/\.clear-resume\/relay\/[^/]+\.json$/)
   })
 
-  test('off still publishes, so the status bar can turn it on', async ($, on) => {
+  test('off still publishes, so the status bar can turn it on', { options: { relay: 'off' } }, async ($, on) => {
     const { state } = world(on)
     await $.turn.complete(turn)
     expect(state().file).toMatchObject({ limit: 0, configured: 0, used: 0 })
   })
 
-  test('a budget set from the status bar turns the relay on for this window', async ($, on) => {
+  test('a budget set from the status bar turns the relay on for this window', { options: { relay: 'off' } }, async ($, on) => {
     const { w, clock, state } = world(on)
     await $.turn.complete(turn)
     const { path } = state()
@@ -445,7 +455,7 @@ describe('/relay and the status line', () => {
     expect(w.status.every(t => t === undefined)).toBe(true)
   })
 
-  test('off by option: no status entry, and bare /relay says off', async ($, on) => {
+  test('off by option: no status entry, and bare /relay says off', { options: { relay: 'off' } }, async ($, on) => {
     const { w } = world(on)
     await $.session.start(start)
     expect(w.status.at(-1)).toBeUndefined()
@@ -642,7 +652,7 @@ describe('idle handover', () => {
   // The 60 minute default is checked as arithmetic below.
   const S = 1000
   const opts = (mode: string, more: Record<string, string | number> = {}) => ({
-    options: { idle_handover: mode, cache_ttl_minutes: 2, ...more },
+    options: { relay: 'off', idle_handover: mode, cache_ttl_minutes: 2, ...more },
   })
   const auto = (more: Record<string, string | number> = {}) => ({
     options: { idle_handover: 'auto', cache_ttl_minutes: 10, ...more },
@@ -658,7 +668,7 @@ describe('idle handover', () => {
   })
 
   test('options: modes and numbers fall back to the defaults', () => {
-    expect(['toast', 'AUTO', ' off ', 'on', '', undefined].map(idleMode)).toEqual(['toast', 'auto', 'off', 'off', 'off', 'off'])
+    expect(['toast', 'AUTO', ' off ', 'on', '', undefined].map(idleMode)).toEqual(['toast', 'auto', 'off', 'off', 'smart', 'smart'])
     expect(positive('90', 60)).toBe(90)
     expect([positive('', 60), positive('x', 60), positive(-1, 60), positive(undefined, 60)]).toEqual([60, 60, 60, 60])
   })
@@ -1042,6 +1052,10 @@ describe('idle handover', () => {
 
   test('smart: is a mode, and with a TTL under 10 minutes behaves as toast like auto', () => {
     expect(idleMode(' Smart ')).toBe('smart')
+    expect(idleMode(undefined)).toBe('smart')
+    expect(idleMode('off')).toBe('off')
+    expect(budget(undefined)).toBe(3)
+    expect(budget('off')).toBe(0)
     expect(idleEffective('smart', 9)).toBe('toast')
     expect(idleEffective('smart', 10)).toBe('smart')
   })

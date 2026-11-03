@@ -16,11 +16,11 @@ import {
 const dir = () => mkdtempSync(join(tmpdir(), "idle-mode-"));
 
 describe("idle mode from the plugin option", () => {
-  it("reads off when the file is missing or unreadable", () => {
+  it("reads smart, the default, when the file is missing or unreadable", () => {
     const p = join(dir(), "settings.json");
-    expect(settingsIdleMode(p)).toBe("off");
+    expect(settingsIdleMode(p)).toBe("smart");
     writeFileSync(p, "{ not json");
-    expect(settingsIdleMode(p)).toBe("off");
+    expect(settingsIdleMode(p)).toBe("smart");
   });
 
   it("reads the plugin option and treats anything unknown as off", () => {
@@ -28,7 +28,8 @@ describe("idle mode from the plugin option", () => {
     writeFileSync(p, JSON.stringify({ pluginConfigs: { "cornerman@cornerman": { options: { idle_handover: "Smart" } } } }));
     expect(settingsIdleMode(p)).toBe("smart");
     expect(parseIdleMode("sometimes")).toBe("off");
-    expect(parseIdleMode(undefined)).toBe("off");
+    expect(parseIdleMode(undefined)).toBe("smart");
+    expect(parseIdleMode("off")).toBe("off");
   });
 });
 

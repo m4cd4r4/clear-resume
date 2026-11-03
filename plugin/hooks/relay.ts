@@ -61,7 +61,7 @@ export const IDLE_SMART_TEXT =
 
 // "toast", "smart" or "auto"; anything else, or unset, is off.
 export function idleMode(raw: unknown): IdleMode {
-  const s = String(raw ?? 'off').trim().toLowerCase()
+  const s = String(raw ?? '').trim().toLowerCase() || 'smart'
   return s === 'toast' || s === 'smart' || s === 'auto' ? s : 'off'
 }
 
@@ -125,9 +125,9 @@ export const idleToast = (leftMin: number): string =>
   `The prompt cache expires in about ${Math.max(1, Math.round(leftMin))} min. ` +
   'Measured once: a handover now was about 5x cheaper than resuming cold. Run /cornerman:handover, then /clear.'
 
-// "off" or unset is 0, "unlimited" has no cap, a number is that many clears.
+// Unset is the default of 3, "unlimited" has no cap, a number is that many clears, anything else is 0.
 export function budget(raw: unknown): number {
-  const s = String(raw ?? 'off').trim().toLowerCase()
+  const s = String(raw ?? '').trim().toLowerCase() || '3'
   if (s === 'unlimited') return Infinity
   const n = Number(s)
   return Number.isInteger(n) && n > 0 ? n : 0

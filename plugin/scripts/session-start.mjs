@@ -8,13 +8,21 @@
 // so the copy stays and loads next time (security review 2, 2026-09-27).
 import { readFileSync } from "node:fs";
 import { run } from "./lib/hook.mjs";
+import { withWelcome } from "./lib/welcome.mjs";
 
 let out = null;
+let ran = false;
 try {
   const input = JSON.parse(readFileSync(0, "utf8") || "{}");
   out = run(input);
+  ran = true;
 } catch {
   // never block a session
+}
+try {
+  if (ran) out = withWelcome(out);
+} catch {
+  // a handover still loads without the notice
 }
 if (!out) process.exit(0);
 // The failure is reported to the write callback below; without a listener the

@@ -287,14 +287,14 @@
     <div class="wrap">
       <h2 id="h-settings" data-fact="F206">Settings</h2>
       <div class="prose">
-        <p data-fact="F207">After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all off by default.</p>
+        <p data-fact="F207">After install, Claude Code says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default.</p>
       </div>
       <div class="ss set">
         <div class="ss-row">
           <div>
             <p class="set-name" data-fact="F208">Nudge to save a handover</p>
             <p class="set-key"><code>auto_nudge</code></p>
-            <p class="set-def" data-fact="F209">Default: off</p>
+            <p class="set-def" data-fact="F209">Default: on</p>
           </div>
           <div class="ss-body">
             <p data-fact="F210">Turns the nudge on. Past the Nudge at size, the plugin asks Claude to save a handover, and prints a status line saying so.</p>
@@ -314,7 +314,7 @@
         <div class="ss-row">
           <div>
             <p class="set-name"><code data-fact="F216">relay</code></p>
-            <p class="set-def" data-fact="F217">Default: off</p>
+            <p class="set-def" data-fact="F217">Default: 3 clears</p>
           </div>
           <div class="ss-body">
             <p data-fact="F218">A number of clears per Claude Code window, or unlimited. After Claude saves a handover, cornerman runs <code>/clear</code> when the turn ends and submits the prompt that continues from it. Needs Claude Code 2.1.275 or later; an older build ignores it.</p>
@@ -326,7 +326,7 @@
         <p data-fact="F220">Set them with <code>/plugin configure <span class="nw">cornerman@cornerman</span></code>, or in <code>/config</code>: the nudge settings need Claude Code 2.1.269 or later there. In the Claude Code panel in VS Code, set them from a terminal with <code>claude plugin install <span class="nw">cornerman@cornerman --config</span></code>.</p>
         <p data-fact="F221">The environment variables still work: <code>CORNERMAN_AUTO</code> wins whenever it is set, and <code>CORNERMAN_NUDGE_AT</code> wins when it is a positive number.</p>
         <p class="src" data-fact="F219">Source: the CHANGELOG.</p>
-        <p data-fact="F222">Also opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web).</p>
+        <p data-fact="F222">Opt-in: sync (to your own private git remote) and web mode (for Claude Code on the web).</p>
         <p class="src" data-fact="F223">Source: the README.</p>
       </div>
     </div>

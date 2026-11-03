@@ -66,7 +66,7 @@ This plugin used to be called clear-resume. Install it under the new name, then 
 ```bash
 claude plugin marketplace add https://github.com/m4cd4r4/cornerman
 claude plugin install cornerman@cornerman
-node ~/.claude/plugins/cache/cornerman/cornerman/0.6.1/scripts/upgrade.mjs
+node ~/.claude/plugins/cache/cornerman/cornerman/0.7.0/scripts/upgrade.mjs
 claude plugin uninstall clear-resume@clear-resume
 claude plugin marketplace remove clear-resume
 ```

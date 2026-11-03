@@ -1,6 +1,6 @@
 {
   "name": "cornerman",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
   "author": {
     "name": "Macdara Ó Murchú"
@@ -16,7 +16,7 @@
       "type": "boolean",
       "title": "Nudge to save a handover",
       "description": "When the chat's context passes the size in Nudge at, Claude is asked once per session to save a handover. With Relay off, you type /clear yourself. A CORNERMAN_AUTO line in settings.json wins over this.",
-      "default": false
+      "default": true
     },
     "nudge_at": {
       "type": "number",
@@ -29,14 +29,14 @@
     "relay": {
       "type": "string",
       "title": "Relay: clear and continue by itself",
-      "description": "After Claude saves a handover, cornerman runs /clear and submits the prompt that continues from it, with no keypress. off (the default), a number of clears per Claude Code window (1, 3, 10), or unlimited. Anything else is off. This is the default for every window: type /relay off, on, unlimited or a number to change it for one window, and the status line shows the clears left (unless Status line is off). Needs Claude Code 2.1.275 or later; an older build ignores it and the rest of cornerman works as before.",
-      "default": "off"
+      "description": "After Claude saves a handover, cornerman runs /clear and submits the prompt that continues from it, with no keypress. A number of clears per Claude Code window (3 is the default), unlimited, or off. Anything else is off. This is the default for every window: type /relay off, on, unlimited or a number to change it for one window, and the status line shows the clears left (unless Status line is off). Needs Claude Code 2.1.275 or later; an older build ignores it and the rest of cornerman works as before.",
+      "default": "3"
     },
     "idle_handover": {
       "type": "string",
       "title": "Idle handover: act before the prompt cache expires",
-      "description": "When you have been away until the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it. Measured on Sonnet 5.5 with a 390k-token session and the 60 minute cache (10 Oct 2026, n=3 each): US$1.56 cold, US$0.15 to US$0.17 with a handover written while warm, and only if you come back. off (the default), toast (a status message that stays until your next turn), auto (asks Claude for the handover, clears, and waits for you; it does not continue the work) or smart (like auto, but Claude may answer 'Nothing to hand over.' when the work is finished, and then nothing is saved or cleared). auto and smart need cache_ttl_minutes of 10 or more, else they act as toast; they act as toast too while a tool call runs. Anything else is off. Needs Claude Code 2.1.275 or later.",
-      "default": "off"
+      "description": "When you have been away until the prompt cache is about to expire and the context is large, resuming cold pays for a full rewrite of it. Measured on Sonnet 5.5 with a 390k-token session and the 60 minute cache (10 Oct 2026, n=3 each): US$1.56 cold, US$0.15 to US$0.17 with a handover written while warm, and only if you come back. off, toast (a status message that stays until your next turn), auto (asks Claude for the handover, clears, and waits for you; it does not continue the work) or smart (like auto, but Claude may answer 'Nothing to hand over.' when the work is finished, and then nothing is saved or cleared). auto and smart need cache_ttl_minutes of 10 or more, else they act as toast; they act as toast too while a tool call runs. Anything else is off. Needs Claude Code 2.1.275 or later.",
+      "default": "smart"
     },
     "cache_ttl_minutes": {
       "type": "number",
