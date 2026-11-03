@@ -6,7 +6,7 @@
 
 When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away.
 
-<img src="docs/img/real-view.webp" alt="The whole run playing on a loop in VS Code: the chat fills, the nudge appears, the handover is saved, /clear runs, the fresh session resumes, and the loaded handover opens onto what was left on screen." width="900">
+<img src="docs/img/real-view.webp" alt="The whole run playing on a loop in VS Code: the chat fills, the handover is saved, Cornerman clears the chat, the fresh chat carries on, and the loaded handover opens onto what was left on screen." width="900">
 
 ## Install
 
@@ -33,29 +33,25 @@ It is also on [Open VSX](https://open-vsx.org/extension/macdara/cornerman) for V
 
 The context fills, Claude saves a handover, and the fresh session carries on from it.
 
-**1. Context fills**
+**1. The chat fills**
 
-<img src="docs/img/step-1.webp" alt="VS Code with a long Claude Code chat. Outlined in the status bar: the context pie at 231k of 250k, on amber." width="900">
+<img src="docs/img/step-1.webp" alt="VS Code with a long Claude Code chat. Outlined in the status bar: the context pie at 231k of 250k, on amber. Beside it: relay 0/3 and idle smart." width="900">
 
-**2. Nudge (off by default)**
+**2. Claude saves a handover**
 
-<img src="docs/img/step-2.webp" alt="Past 250k, the pie is red. Outlined in the chat: cornerman: context is about 252k tokens (nudge at 250k). Claude is asked to save a handover, then you can type /clear." width="900">
+<img src="docs/img/step-2.webp" alt="Past 250k, the pie is red. Claude has run the cornerman:handover skill. Outlined in the sidebar: a new handover row, Build the README and webpage, saved now." width="900">
 
-**3. Handover**
+**3. Cornerman clears the chat**
 
-<img src="docs/img/step-3.webp" alt="Claude has run the cornerman:handover skill. Outlined in the sidebar: a new handover row, Add checkout flow, saved now." width="900">
+<img src="docs/img/step-3.webp" alt="The chat is empty and the pie is back to 31k. Outlined in the status bar: relay 1/3." width="900">
 
-**4. Clear**
+**4. The fresh chat carries on**
 
-<img src="docs/img/step-4.webp" alt="Outlined: the prompt box, with /clear typed into it." width="900">
+<img src="docs/img/step-4.webp" alt="Outlined: the message Continue from the cornerman handover that was just loaded, sent by Cornerman, and the reply Resuming handover Build the README and webpage. Claude is editing again." width="900">
 
-**5. Resume**
+**5. Open what was on screen**
 
-<img src="docs/img/step-5.webp" alt="The chat is empty and the pie is back to 31k. Outlined: the message go, and the reply Resuming handover Add checkout flow." width="900">
-
-**6. Left on screen**
-
-<img src="docs/img/step-6.webp" alt="The sidebar, outlined: the loaded handover is open, listing a table, a list, two links, a path and the last screen before the clear." width="900">
+<img src="docs/img/step-5.webp" alt="The sidebar, outlined: the loaded handover is open, listing a table, a list, two links, a path and the last screen before the clear." width="900">
 
 ## Get back what was on screen
 
@@ -83,13 +79,13 @@ The window's clears left. Click to change them.
 
 Opens a Claude Code tab with the handover typed into the prompt box.
 
-<img src="docs/img/resume.webp" alt="The Handovers view. The row Add checkout flow, outlined, shows its buttons on hover, and the play button shows the tooltip Resume." width="700">
+<img src="docs/img/resume.webp" alt="The Handovers view. The row Build the README and webpage, outlined, shows its buttons on hover, and the play button shows the tooltip Resume." width="700">
 
 ## Worktrees
 
 Lists the repo's git worktrees and opens each in its own window.
 
-<img src="docs/img/worktrees.webp" alt="The Worktrees view lists feat/checkout, fix/receipt-email and main. The first row, outlined, shows its buttons on hover, with the tooltip Open worktree window." width="700">
+<img src="docs/img/worktrees.webp" alt="The Worktrees view lists docs/readme-rebuild, feat/hide-research and main. The first row, outlined, shows its buttons on hover, with the tooltip Open worktree window." width="700">
 
 ---
 
@@ -113,8 +109,8 @@ Lists the repo's git worktrees and opens each in its own window.
 
 - `/cornerman:handover` saves a short note: the goal, the next action, where things stand, the decisions made and what already failed.
 - The fresh session loads the note after `/clear`.
-- **Nudge** (off by default): past a size you choose, Claude is asked to save a handover.
-- **Relay** (off by default): it saves, clears and carries on, up to the number of clears you allow.
+- **Nudge**: past a size you choose, Claude is asked to save a handover.
+- **Relay**: it saves, clears and carries on, up to the number of clears you allow.
 - Each handover belongs to the Claude Code window that wrote it.
 - Handovers are plain text in `~/.cornerman`. Open them, change them or paste them into another chat.
 
