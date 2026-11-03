@@ -4,7 +4,7 @@
 
 [Product page](https://macdaraomurchu.com/products/cornerman/) · [Install](#install) · [Features](#features) · [Full guide](docs/GUIDE.md) · [Changelog](CHANGELOG.md)
 
-Cornerman shows how full each Claude Code chat is, saves a handover before you clear it, and keeps the tables, lists, links and paths from the cleared chat one click away.
+When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away.
 
 <img src="docs/img/real-view.webp" alt="The whole run playing on a loop in VS Code: the chat fills, the nudge appears, the handover is saved, /clear runs, the fresh session resumes, and the loaded handover opens onto what was left on screen." width="900">
 
