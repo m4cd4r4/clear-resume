@@ -1,6 +1,6 @@
 {
   "name": "cornerman",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away.",
   "author": {
     "name": "Macdara Ó Murchú"

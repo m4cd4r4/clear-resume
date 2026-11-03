@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+- **The footer shows again for new Claude tabs.** Questlog 1.0.0 (formerly Session Compass) moved
+  its tab records to `~/.claude/questlog/`. Cornerman read only the old folder, so a tab started after
+  the rename went unrecognised and the context and relay items hid. It now reads both, the new one
+  first. Questlog is still optional.
+
 ## 0.7.0
 
 - **Cornerman now clears and carries on by itself.** New installs and upgrades get the relay at 3
