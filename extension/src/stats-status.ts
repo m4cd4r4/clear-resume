@@ -20,10 +20,12 @@ import { storeRoot, type StoredHandover } from "../../plugin/packages/store/stor
 import { statusText } from "../../plugin/packages/store/view.mjs";
 import {
   chainTotals,
+  compassDirs,
   effective,
   feedUsage,
   hoverText,
   liveSessions,
+  mergeCompassRows,
   newUsage,
   pickSession,
   pickWindow,
@@ -119,21 +121,23 @@ function pidAlive(pid: number): boolean {
 }
 
 /**
- * Session Compass (optional, a separate extension) records the title it gave each
- * session's tab in <config dir>/session-compass/<session id>.json. Matching the
- * active tab's label to a title tells which session has focus. Nothing here when
- * compass is not installed.
+ * Questlog (optional, a separate extension; Session Compass before 1.0.0) records
+ * the title it gave each session's tab in <config dir>/questlog/<session id>.json.
+ * Matching the active tab's label to a title tells which session has focus.
+ * Nothing here when Questlog is not installed.
  */
 function compassRows(): CompassRow[] {
-  const dir = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "session-compass");
-  try {
-    return readdirSync(dir)
-      .filter((n) => n.endsWith(".json"))
-      .map((n) => readJson<CompassRow>(join(dir, n)))
-      .filter((r): r is CompassRow => !!r && typeof r.id === "string" && typeof r.title === "string" && r.title !== "");
-  } catch {
-    return [];
-  }
+  const read = (dir: string) => {
+    try {
+      return readdirSync(dir)
+        .filter((n) => n.endsWith(".json"))
+        .map((n) => readJson<CompassRow>(join(dir, n)))
+        .filter((r): r is CompassRow => !!r && typeof r.id === "string" && typeof r.title === "string" && r.title !== "");
+    } catch {
+      return [];
+    }
+  };
+  return mergeCompassRows(compassDirs(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude")).map(read));
 }
 
 /**
