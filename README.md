@@ -6,6 +6,8 @@
 
 Cornerman shows how full each Claude Code chat is, saves a handover before you clear it, and keeps the tables, lists, links and paths from the cleared chat one click away.
 
+<img src="docs/img/real-view.webp" alt="The whole run playing on a loop in VS Code: the chat fills, the nudge appears, the handover is saved, /clear runs, the fresh session resumes, and the loaded handover opens onto what was left on screen." width="900">
+
 ## Install
 
 Plugin (in your terminal):
@@ -58,8 +60,6 @@ The context fills, Claude saves a handover, and the fresh session carries on fro
 ## Get back what was on screen
 
 Tables, lists, links and paths from the cleared chat sit under each handover, one click away.
-
-<img src="docs/img/real-view.webp" alt="The whole run playing on a loop in VS Code: the chat fills, the nudge appears, the handover is saved, /clear runs, the fresh session resumes, and the loaded handover opens onto what was left on screen." width="900">
 
 ## Context counter
 
