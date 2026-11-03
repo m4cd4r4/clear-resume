@@ -22,7 +22,7 @@ Settings, all on by default for a new install. Set any of them to off to stop it
 
 - **Hooks.** `SessionStart` (startup, clear and compact) loads a waiting handover. `PostToolUse` and `Stop` check the context size for the nudge and the relay. Each hook runs `node` on a script in this plugin, and exits quietly if Node 18 or later is missing.
 - **Git, read-only by default.** The plugin runs `git` in your repo to read the branch, status and recent commits. It never switches your branch or touches your index or files, and outside web mode (below) it never commits or pushes.
-- **Storage.** Handovers are plain text files on your disk, in `~/.cornerman`. Each loaded handover is also copied to `~/.cornerman/loaded/` for 30 days. Keep secrets out of them.
+- **Storage.** Handovers are plain text files on your disk, in `~/.cornerman`. Each loaded handover is also copied to `~/.cornerman/loaded/` for 30 days. An empty `~/.cornerman/.welcomed` file records that the first-session notice was shown. Keep secrets out of them.
 - **Network: nothing by default.** No telemetry, no analytics, no web requests. Two opt-in modes use git and nothing else:
   - **Sync** pushes and pulls the store to a private git remote that you set up.
   - **Web mode** (`CORNERMAN_WEB=1`, for Claude Code on the web) pushes each handover to its own `cornerman/<branch>` branch on your repo's `origin`, and runs one `git fetch origin` at session start. Handovers found in git are listed as untrusted and never loaded on their own.
