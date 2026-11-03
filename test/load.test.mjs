@@ -186,7 +186,7 @@ describe("archivedBy records what archived a handover", () => {
   it("the SessionStart hook stamps via hook, with the loading window", () => {
     const { path } = saveHandover({ cwd: repo, title: "mine", body: "b", root, owner: ME });
 
-    run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: ME } });
+    run({ cwd: repo }, { env: { CORNERMAN_HOME: root, CLAUDE_PID: ME } }).afterOutput();
 
     const after = record(path);
     expect(after.status).toBe("archived");
@@ -320,6 +320,7 @@ describe("SessionStart on a pid a closed window left behind", { timeout: 30_000 
 
       expect(out.systemMessage).toMatch(/loaded handover "Yesterday's work"/);
       expect(out.hookSpecificOutput.additionalContext).not.toContain("belongs to another open window");
+      out.afterOutput();
       expect(record(path).status).toBe("archived");
     } finally {
       await unsquat(squatter);

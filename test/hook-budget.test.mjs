@@ -39,7 +39,8 @@ describe("SessionStart owner lookup on the echo path", () => {
     saveHandover({ cwd: repo, title: "Mine", body: "m", root, owner: "" });
     const env = { CORNERMAN_HOME: root };
 
-    run({ cwd: repo, source: "startup" }, { env });
+    // The first window's output was written, so its load is settled.
+    run({ cwd: repo, source: "startup" }, { env }).afterOutput();
     ownerId.mockClear();
     const twin = run({ cwd: repo, source: "clear" }, { env });
 
