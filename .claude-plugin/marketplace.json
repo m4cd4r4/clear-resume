@@ -2,14 +2,14 @@
   "name": "cornerman",
   "owner": { "name": "Macdara Ó Murchú" },
   "metadata": {
-    "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
+    "description": "When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away.",
     "version": "0.7.0"
   },
   "plugins": [
     {
       "name": "cornerman",
       "source": "./plugin",
-      "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste. Shares its store with the cornerman VS Code extension.",
+      "description": "When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away. Shares its store with the cornerman VS Code extension.",
       "category": "workflow"
     }
   ]

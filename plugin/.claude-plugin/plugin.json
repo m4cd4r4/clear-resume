@@ -1,7 +1,7 @@
 {
   "name": "cornerman",
   "version": "0.7.0",
-  "description": "Write a handover when a Claude Code session gets long, type /clear, and the next session picks up where you left off with nothing to paste.",
+  "description": "When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set. Tables, lists, links and paths from the cleared chat stay one click away.",
   "author": {
     "name": "Macdara Ó Murchú"
   },

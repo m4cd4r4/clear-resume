@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- **Cornerman now clears and carries on by itself.** New installs and upgrades get the relay at 3
+  clears per window, the nudge on and the idle handover on `smart`. Set any of them to off to stop it.
+- **It says so once.** The first session after install tells you it is on, the limit, and how to stop
+  it.
+
 ## 0.6.1
 
 - **Sync no longer stops behind a secret scanner.** The store's per-window `relay/` files now stay out

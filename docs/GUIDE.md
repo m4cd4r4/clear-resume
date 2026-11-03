@@ -22,7 +22,7 @@
 ## What it does
 
 - **Keeps your place across `/clear`.** One command saves a short note: the goal, the next action, where things stand, the decisions made and what already failed. The fresh session loads it and carries on.
-- **Can run with nobody typing.** Turn on the relay and, after your first prompt, it saves, clears and continues for you, up to the number of clears you allow.
+- **Runs with nobody typing.** After your first prompt, it saves, clears and continues for you, up to the number of clears you allow.
 - **A note you can read and edit.** It is a plain text file in `~/.cornerman`: open it, change it, paste it into another chat, or load it on a second machine with [sync](HOW-IT-WORKS.md#syncing-two-machines-optional).
 - **Optional extras.** A [VS Code sidebar](#optional-a-vs-code-sidebar-and-a-nudge-when-the-chat-gets-long) lists your handovers by repo, and a footer shows how full the chat is.
 
@@ -40,7 +40,7 @@ claude plugin install cornerman@cornerman
 
 Claude Code then says, or asks about, six options that are not set yet. They belong to the nudge, the relay and the idle handover, which are all on by default.
 
-Then, when a chat has grown long, type `/cornerman:handover`, then `/clear`. Or turn on the [relay](#pick-how-it-runs) and let it do both.
+That is all the setup. When a chat grows long, Cornerman saves a handover, clears the chat and carries on by itself, up to 3 clears per window. [Change the number or turn it off](#pick-how-it-runs).
 
 The author built it on Windows 11 and uses it there every day. On Linux, a clean install from GitHub was tested by hand on 5 Oct 2026: a session saved a handover and the next one loaded it and carried on. CI runs the tests on Windows, macOS and Linux; macOS has not been tested by hand yet.
 
@@ -99,19 +99,20 @@ Your handovers stay in `~/.cornerman` until you delete that folder. If you added
 ## Pick how it runs
 
 > [!TIP]
-> **Turn on the relay, and after your first prompt nobody types anything.**
+> **Choose how many clears, or none.**
 >
 > ```bash
-> claude plugin install cornerman@cornerman --config auto_nudge=true --config relay=10
+> claude plugin install cornerman@cornerman --config relay=10
+> claude plugin install cornerman@cornerman --config relay=off
 > ```
 >
 > The relay is a **Claude Code mod**: a small module, [plugin/hooks/relay.ts](../plugin/hooks/relay.ts), that runs inside Claude Code and types `/clear` and the next prompt for you.
 
 | How you run it | What you do | Settings |
 |:--|:--|:--|
-| **Relay (recommended)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
-| Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true` |
-| Manual | `/cornerman:handover`, `/clear`, `go` | None. This is the default |
+| **Relay (the default)** | Nothing. It saves, clears and carries on, up to the number of clears you allow | `auto_nudge=true`, and `relay` set to a number or `unlimited` |
+| Nudge | Claude saves a handover at the size you set. You type `/clear`, then `go` | `auto_nudge=true`, `relay=off` |
+| Manual | `/cornerman:handover`, `/clear`, `go` | `auto_nudge=false`, `relay=off` |
 
 With the relay on, Claude saves a handover when the chat passes a size you choose, the plugin runs `/clear` when the turn ends, and the fresh session carries on.
 
@@ -241,10 +242,10 @@ It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 **The nudge** (auto mode) is on by default. Past 250k tokens of context (the default; **Nudge at** changes it), the plugin asks Claude to save a handover, and prints a status line saying so. If a turn ends and Claude neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...", it is asked again at that turn end, up to 3 asks in all. With the [relay](#pick-how-it-runs) off, you type `/clear` yourself.
 
 <details>
-<summary><b>Turn the nudge on</b></summary>
+<summary><b>Turn the nudge off</b></summary>
 <br>
 
-To turn it on, run this in Claude Code in a terminal and switch on **Nudge to save a handover**:
+To turn it off, run this in Claude Code in a terminal and switch off **Nudge to save a handover**:
 
 ```
 /plugin configure cornerman@cornerman
@@ -253,7 +254,7 @@ To turn it on, run this in Claude Code in a terminal and switch on **Nudge to sa
 The same two settings are rows in `/config` in Claude Code 2.1.269 or later. If you use the Claude Code panel in VS Code, set them from a terminal instead:
 
 ```bash
-claude plugin install cornerman@cornerman --config auto_nudge=true
+claude plugin install cornerman@cornerman --config auto_nudge=false
 ```
 
 If your model's context window is 200k tokens, set **Nudge at** below the size where Claude Code compacts on its own, or compaction comes first. If you turned the nudge on earlier with `CORNERMAN_AUTO` in `~/.claude/settings.json`, that line wins over these settings: delete it to use them. [Auto mode details](HOW-IT-WORKS.md#auto-mode-on-by-default)
@@ -285,7 +286,7 @@ Claude rereads the whole context for every reply. In a long chat, the goal and t
 
 Everything is in [docs/RESEARCH.md](RESEARCH.md), with each number's n, model and date. The short version:
 
-- **Coming back to an idle chat costs less.** Claude Code's prompt cache lasts 60 minutes on a subscription (5 minutes by default on an API key). After that, the first message back rewrites the whole context: US$1.56 on a 390k-token Sonnet 5.5 session, in each of 3 runs. A handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 in all (n=3, 10 Oct 2026). The saving exists only if you come back, and the fresh session continues from the note, not the full chat. Turn on the [idle handover](#pick-how-it-runs) to use it.
+- **Coming back to an idle chat costs less.** Claude Code's prompt cache lasts 60 minutes on a subscription (5 minutes by default on an API key). After that, the first message back rewrites the whole context: US$1.56 on a 390k-token Sonnet 5.5 session, in each of 3 runs. A handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 in all (n=3, 10 Oct 2026). The saving exists only if you come back, and the fresh session continues from the note, not the full chat. The idle handover is on by default, so this needs no setting.
 - **It does not make a whole build cheaper.** On a 30-item site build with Sonnet 5.5, the relay and Claude Code's own auto-compaction cost the same (US$9.08 against US$9.19, n=5 each) and each finished 5 of 6 runs. Use the plugin for the convenience, idle returns and switching models, not to cut the bill on one long session.
 - **Switching models mid-task costs less.** Moving a 390k-token Sonnet 5.5 session to Opus cost US$3.13; a handover first, then a fresh Opus session, cost US$0.24, about 13x less (n=1, 8 Oct 2026).
 - **A fresh session did not remember more than the full chat.** In recall tests the plugin's note never overtook the full context at any size from 50k to 450k tokens. The saved note keeps the plan and the rules; the recent-activity trail added to it recovers the last commands and files (17 of 17 questions on 6 sessions, tuned on those questions).
