@@ -58,7 +58,7 @@ export interface WindowSessions {
 }
 
 export function liveSessions(records: LiveSession[], owned: (record: LiveSession) => boolean | null): WindowSessions;
-/** A Session Compass row (~/.claude/session-compass/<id>.json), the fields read here. */
+/** A Questlog row (~/.claude/questlog/<id>.json; session-compass/ before 1.0.0), the fields read here. */
 export interface CompassRow {
   id: string;
   title?: string;
@@ -66,6 +66,10 @@ export interface CompassRow {
   ended?: boolean;
 }
 
+/** The folders Questlog rows are read from, newest name first. */
+export function compassDirs(configDir: string): string[];
+/** Every folder's rows, the first folder's row winning for a session in two. */
+export function mergeCompassRows<R extends CompassRow>(lists: R[][]): R[];
 export function rowForTab<R extends CompassRow>(rows: R[], label: string, nowMs: number): R | undefined;
 export function withFocus(sessions: Partial<WindowSessions>, focused: string | null | undefined): WindowSessions;
 export function pickSession(opts: {

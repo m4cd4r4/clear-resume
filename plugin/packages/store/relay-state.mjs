@@ -1,6 +1,7 @@
 // What the VS Code status bar shows about a window's relay and context, worked
 // out from the relay mod's state file (plugin/hooks/relay.ts) and the session
 // transcripts. Pure: the extension does the reading and passes the data in.
+import { join } from "node:path";
 import { normalisePath } from "./schema.mjs";
 
 // The trailing separator is what stops "acme-two" counting as inside "acme".
@@ -25,10 +26,25 @@ export function liveSessions(records, owned) {
   return { mine, theirs };
 }
 
-// Session Compass (an optional extension) writes ~/.claude/session-compass/<id>.json
-// per session, with `title` the tab title it set. The logic below is copied from
-// its rows.ts so cornerman works with compass absent; it is never imported.
+// Questlog (an optional extension, called Session Compass before 1.0.0) writes
+// ~/.claude/questlog/<id>.json per session, with `title` the tab title it set.
+// The logic below is copied from its rows.ts so cornerman works with it absent;
+// it is never imported.
 const COMPASS_GONE_MS = 24 * 60 * 60 * 1000;
+
+// Rows read from each folder, the first folder's row winning for a session in
+// two. Questlog 1.0.0 stopped writing the session-compass folder, so reading
+// only that one found no row for a newer session's tab and hid the footer
+// (2026-11-03).
+export function compassDirs(configDir) {
+  return [join(configDir, "questlog"), join(configDir, "session-compass")];
+}
+
+export function mergeCompassRows(lists) {
+  const byId = new Map();
+  for (const rows of lists) for (const r of rows) if (r && typeof r.id === "string" && !byId.has(r.id)) byId.set(r.id, r);
+  return [...byId.values()];
+}
 
 // The row whose recorded title is this tab's label; newest wins when two sessions
 // share a title. VS Code cuts a long tab label to about 24 characters plus "…",

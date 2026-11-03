@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainTotals, effective, feedUsage, liveSessions, rowForTab, pickSession, withFocus, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
+import { chainTotals, compassDirs, mergeCompassRows, effective, feedUsage, liveSessions, rowForTab, pickSession, withFocus, newUsage, pickWindow, picks, pie, projectDirName, relayText, hoverText } from "../../plugin/packages/store/relay-state.mjs";
 
 const state = (over) => ({
   v: 1,
@@ -214,6 +214,20 @@ describe("hoverText scope", () => {
     expect(head({ ...base, scope: "tab" })).toBe("`▰▰▰▰▱` 144k of 180k nudge · this tab");
     expect(head({ ...base, scope: "window" })).toBe("`▰▰▰▰▱` 144k of 180k nudge · this window");
     expect(head(base)).toBe("`▰▰▰▰▱` 144k of 180k nudge");
+  });
+});
+
+describe("mergeCompassRows", () => {
+  it("finds a session only Questlog has written, so its tab is not taken for an unknown one", () => {
+    const NOW = 1_000_000_000;
+    const old = [{ id: "a3fea4a5", title: "[a3fea4] Continue from the handover", updatedAt: NOW - 1000, ended: true }];
+    const quest = [{ id: "f2e64b5f", title: "1/3 PortPilot 4.2.5 restart check", updatedAt: NOW - 1000 }];
+    const rows = mergeCompassRows([quest, old]);
+    expect(rowForTab(rows, "1/3 PortPilot 4.2.5 restart check", NOW)?.id).toBe("f2e64b5f");
+  });
+
+  it("reads Questlog's folder before the one it had as Session Compass", () => {
+    expect(compassDirs("C:/cfg").map((d) => d.replace(/\\/g, "/"))).toEqual(["C:/cfg/questlog", "C:/cfg/session-compass"]);
   });
 });
 
