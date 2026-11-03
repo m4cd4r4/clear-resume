@@ -2,15 +2,19 @@
 
 Clear the chat. Keep the goal, the next step and the decisions.
 
-Before you `/clear` a long Claude Code chat, type `/cornerman:handover`. Claude writes a short note about the work, called a handover: the goal, the next action, where things stand, the decisions made and what already failed. The plugin saves it. After `/clear`, the fresh session starts with the handover already loaded, so you type `go` and Claude carries on. Nothing to paste.
+When a Claude Code chat gets long, Cornerman saves a handover, clears the chat and carries on by itself, up to the number of clears you set (3 per window by default). A handover is a short note about the work: the goal, the next action, where things stand, the decisions made and what already failed.
 
 Coming back to a 390k-token session after the prompt cache expired cost US$1.56; a handover written while the cache was warm, plus a fresh session reading it, cost US$0.15 to US$0.17 (Sonnet 5.5, n=3 each, 10 Oct 2026). The handover is a plain text file you can read and edit. On a 30-item build, the relay and Claude Code's auto-compaction each finished 5 of 6 runs at about the same tokens.
 
 ## Use it
 
-1. `/cornerman:handover`: Claude reads your branch, your changes and your last few commits, then writes and saves the handover.
-2. `/clear`: the fresh session loads it.
-3. `go`: Claude carries on from it.
+Install it and work as usual. When a chat passes 250k tokens (the default; change it with **Nudge at** in `/plugin configure`, or for one window from the VS Code footer):
+
+1. Claude reads your branch, your changes and your last few commits, then writes and saves the handover.
+2. Cornerman runs `/clear`.
+3. The fresh chat loads the handover and carries on.
+
+By hand, with the relay off: `/cornerman:handover`, `/clear`, `go`.
 
 Settings, all on by default for a new install. Set any of them to off to stop it:
 
