@@ -79,6 +79,7 @@ F40 | page: "Source: STATUS.md. As of 2026-10-05, scripts/measure.mjs is on the 
 ## index.html: install and FAQ
 
 F42 | page: "Manual, relay and nudge off: /cornerman:handover, /clear, go." | source: "| Manual | `/cornerman:handover`, `/clear`, `go` | `auto_nudge=false`, `relay=off` |" | docs/GUIDE.md:115
+F413 | page: "claude plugin install cornerman@cornerman --config auto_nudge=false --config relay=off" | source: "`auto_nudge=false`, `relay=off`" | docs/GUIDE.md:115
 F43 | page: "Optional: VS Code extension; needs the plugin." | source: "**The VS Code sidebar** is a separate extension that needs the plugin." | docs/GUIDE.md:226
 F44 | page: "code --install-extension macdara.cornerman" | source: "code --install-extension macdara.cornerman" | docs/GUIDE.md:233
 F256 | page: "Marketplace, Open VSX, releases." | source: "It is on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=macdara.cornerman), and on [Open VSX](https://open-vsx.org/extension/macdara/cornerman)" | docs/GUIDE.md:236 | source: "# Changelog" | CHANGELOG.md:1
