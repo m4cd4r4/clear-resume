@@ -10,6 +10,7 @@ import {
   handoverSections,
   lanesModel,
   matches,
+  pageJson,
   peekOf,
   rowOf,
 } from "../extension/src/sidebar-model.ts";
@@ -266,5 +267,24 @@ describe("assets under a handover row", () => {
     const { items: shown } = rowOf(rec({ sessionId: "s1" }), NOW, { captures: new Map([["s1", capture(items)]]) }).assets;
     expect(shown.filter((a) => a.kind === "link")).toHaveLength(6);
     expect(shown).toContainEqual({ n: -2, kind: "all", label: "3 more links in artifacts.md" });
+  });
+});
+
+describe("pageJson", () => {
+  it("is the model as JSON, with a repo-split section's rows sent once, under its groups", () => {
+    const records = [
+      rec({ id: "w" }),
+      rec({ id: "s1", repoPath: "I:/Scratch/alpha", createdAt: ago(20 * D) }),
+      rec({ id: "s2", repoPath: "I:/Scratch/beta", createdAt: ago(30 * D) }),
+    ];
+    const sections = handoverSections(records, { repoPath: "I:/Scratch/cornerman", roots: [], now: NOW, showArchived: false });
+    const sent = JSON.parse(pageJson({ section: "handovers", query: "", sections }));
+    expect(sent.sections.map((s) => [s.id, s.rows?.map((r) => r.id), s.groups?.map((g) => g.rows.map((r) => r.id))])).toEqual([
+      ["current", ["w"], undefined],
+      ["stale", undefined, [["s1"], ["s2"]]],
+    ]);
+    // Everything else arrives as the model had it.
+    expect(sent.sections[1].groups).toEqual(JSON.parse(JSON.stringify(sections[1].groups)));
+    expect(sent.sections[0]).toEqual(JSON.parse(JSON.stringify(sections[0])));
   });
 });

@@ -16,7 +16,7 @@ export const IDLE_DETAIL: Record<IdleMode, string> = {
 
 export const settingsPath = () => join(homedir(), ".claude", "settings.json");
 
-const windowPath = (relayDir: string, key: string) => join(relayDir, `${key}.idle.json`);
+export const windowPath = (relayDir: string, key: string) => join(relayDir, `${key}.idle.json`);
 
 // The same reading the relay applies: anything but toast, smart or auto is off.
 export function parseIdleMode(raw: unknown): IdleMode {
@@ -28,17 +28,25 @@ export function parseIdleMode(raw: unknown): IdleMode {
 export function settingsIdleMode(path = settingsPath()): IdleMode {
   try {
     if (!existsSync(path)) return "smart";
-    return parseIdleMode(JSON.parse(readFileSync(path, "utf8"))?.pluginConfigs?.[PLUGIN]?.options?.idle_handover);
+    return idleFromSettings(JSON.parse(readFileSync(path, "utf8")));
   } catch {
     return "smart";
   }
 }
 
+/** idle_handover from parsed settings.json; smart when it is missing. */
+export const idleFromSettings = (settings: any): IdleMode => parseIdleMode(settings?.pluginConfigs?.[PLUGIN]?.options?.idle_handover);
+
+/** The mode a parsed <key>.idle.json picks, or null for none. */
+export function idleFromWindow(json: any): IdleMode | null {
+  const m = json?.mode;
+  return (IDLE_MODES as readonly string[]).includes(m) ? (m as IdleMode) : null;
+}
+
 /** The mode picked for this window (<key>.idle.json beside the relay's state file), or null for none. */
 export function windowIdleMode(relayDir: string, key: string): IdleMode | null {
   try {
-    const m = JSON.parse(readFileSync(windowPath(relayDir, key), "utf8"))?.mode;
-    return (IDLE_MODES as readonly string[]).includes(m) ? (m as IdleMode) : null;
+    return idleFromWindow(JSON.parse(readFileSync(windowPath(relayDir, key), "utf8")));
   } catch {
     return null;
   }

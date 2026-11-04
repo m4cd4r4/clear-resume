@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { archiveRecord, listAll, prune, read, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { archiveRecord, prune, read, remove, setPinned, storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
 import { archiveMerged } from "../../plugin/packages/store/merged.mjs";
 import { migrate } from "../../plugin/packages/store/migrate.mjs";
 import { migrateOnStart } from "../../plugin/packages/store/rename.mjs";
@@ -14,6 +14,7 @@ import { LAST_SCREEN, ALL_ASSETS } from "./sidebar-model";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { SidebarProvider } from "./sidebar";
+import { StoreSource } from "./store-source";
 import { spareStatus } from "./spare-status";
 import { statsStatus } from "./stats-status";
 import { ownedByThisWindow } from "./window-owner";
@@ -48,7 +49,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const config = () => vscode.workspace.getConfiguration("cornerman");
   // The old name is read too: the copy below is not there yet on the first activation.
   const storePath = () => config().get<string>("storePath")?.trim() || vscode.workspace.getConfiguration("clearResume").get<string>("storePath")?.trim();
-  const root = () => storePath() || storeRoot();
+  // Worked out once, not on every read: resolveStore stats two folders, and the status
+  // bar and the sidebar asked for it thousands of times a minute (2026-11-04). The
+  // setting and a watcher on the two store folders say when to work it out again.
+  let rootNow: string | undefined;
+  const root = () => (rootNow ??= storePath() || storeRoot());
+  const reroot = () => (rootNow = undefined);
   const showArchived = () => config().get<boolean>("showArchived") === true;
 
   void copyLegacySettings(vscode.workspace.getConfiguration).catch(() => {
@@ -72,7 +78,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Only the owner's original setup has anything to import. Everyone else gets no
   // welcome link and no command-palette entry for a migration that would find
   // nothing - the context key drives both `when` clauses in package.json.
-  void vscode.commands.executeCommand("setContext", "cornerman.hasLegacy", hasLegacyNotes());
+  // Read once: the page asks on every refresh, and only an import changes the answer.
+  let legacy = hasLegacyNotes();
+  const hasLegacy = () => legacy;
+  void vscode.commands.executeCommand("setContext", "cornerman.hasLegacy", legacy);
 
   const registry = () => config().get<string>("registryPath")?.trim() ?? "";
   // The page asks; each ask runs the command the tree row's button used to run.
@@ -81,8 +90,10 @@ export function activate(context: vscode.ExtensionContext): void {
     else if (m.type === "openLane") void vscode.commands.executeCommand("cornerman.openLane", m.target);
     else if (m.id) void vscode.commands.executeCommand(`cornerman.${m.type}`, { id: m.id, n: m.n });
   };
-  const provider = new SidebarProvider("handovers", root, showArchived, registry, hasLegacyNotes, act);
-  const lanesProvider = new SidebarProvider("lanes", root, showArchived, registry, hasLegacyNotes, act);
+  // One copy of the store in memory for both views and the status bar, reread only where the watcher says.
+  const source = new StoreSource(root);
+  const provider = new SidebarProvider("handovers", source, showArchived, registry, hasLegacy, act);
+  const lanesProvider = new SidebarProvider("lanes", source, showArchived, registry, hasLegacy, act);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW, provider),
     vscode.window.registerWebviewViewProvider(LANES_VIEW, lanesProvider),
@@ -106,14 +117,24 @@ export function activate(context: vscode.ExtensionContext): void {
     })
     .catch(() => undefined);
 
-  statsStatus(context, loadedLookup(root), (record) => {
+  const stats = statsStatus(context, root, loadedLookup(source), (record) => {
     if (record) void openLoaded(record, root());
     else void vscode.window.showInformationMessage("cornerman: no handover loaded in this tab in the last day.");
   });
   spareStatus(context);
-  watchStore(context, root, () => {
-    provider.refresh();
-    lanesProvider.refresh();
+  // A hook's save is several writes, and a sync pull is hundreds: one refresh per burst.
+  let burst: NodeJS.Timeout | undefined;
+  const refreshSoon = () => {
+    clearTimeout(burst);
+    burst = setTimeout(() => {
+      provider.refresh();
+      lanesProvider.refresh();
+    }, 150);
+  };
+  context.subscriptions.push({ dispose: () => clearTimeout(burst) });
+  watchStore(context, root, () => (reroot(), stats.rewatch()), (path) => {
+    source.changed(path);
+    refreshSoon();
   });
   const minute = setInterval(() => {
     if (provider.visible) provider.refresh();
@@ -124,6 +145,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("cornerman.refresh", () => {
+      source.changed();
       provider.refresh();
       lanesProvider.refresh();
     }),
@@ -182,7 +204,13 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.refresh();
     }),
 
-    vscode.commands.registerCommand("cornerman.migrate", () => runMigration(root(), () => provider.refresh())),
+    vscode.commands.registerCommand("cornerman.migrate", () =>
+      runMigration(root(), () => {
+        legacy = hasLegacyNotes();
+        source.changed();
+        provider.refresh();
+      }),
+    ),
   );
 }
 
@@ -262,10 +290,10 @@ async function openLoaded(record: StoredHandover | undefined, root: string): Pro
  * so each names its own load; a handover loaded by a parallel session never shows.
  * The store and git are read at most every 30 seconds per pid, not on every poll.
  */
-function loadedLookup(root: () => string): (pid: string | null) => StoredHandover | null {
+function loadedLookup(source: StoreSource): (pid: string | null) => Promise<StoredHandover | null> {
   const windowOwned = ownedByThisWindow(() => {});
   const cache = new Map<string, { at: number; record: StoredHandover | null }>();
-  return (pid) => {
+  return async (pid) => {
     const key = pid ?? "";
     const hit = cache.get(key);
     if (hit && Date.now() - hit.at < 30_000) return hit.record;
@@ -276,7 +304,7 @@ function loadedLookup(root: () => string): (pid: string | null) => StoredHandove
       const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
       const owned = pid ? (r: StoredHandover) => String(r.archivedBy?.owner ?? "").split("@")[0] === pid : windowOwned;
       record = folders.length
-        ? loadedInFolders(listAll(root()), folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now: new Date(), owned })
+        ? loadedInFolders((await source.snapshot()).records, folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now: new Date(), owned })
         : null;
     } catch {
       // The hover card must never break the extension.
@@ -317,25 +345,35 @@ async function resume(record: StoredHandover, root: string): Promise<void> {
  * future sync. A plain string glob does NOT fire for paths outside the workspace,
  * so the pattern must be built from a Uri.
  */
-function watchStore(context: vscode.ExtensionContext, root: () => string, onChange: () => void): void {
+function watchStore(context: vscode.ExtensionContext, root: () => string, reroot: () => void, onChange: (path?: string) => void): void {
   let watcher: vscode.FileSystemWatcher | undefined;
+  const changed = (uri: vscode.Uri) => onChange(uri.fsPath);
 
   const attach = () => {
     watcher?.dispose();
     const dir = vscode.Uri.file(join(root(), "handovers"));
     watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(dir, "*.json"));
-    watcher.onDidCreate(onChange);
-    watcher.onDidChange(onChange);
-    watcher.onDidDelete(onChange);
-    context.subscriptions.push(watcher);
+    watcher.onDidCreate(changed);
+    watcher.onDidChange(changed);
+    watcher.onDidDelete(changed);
   };
+  // Where the store is: ~/.cornerman, or ~/.clear-resume before the rename. A hook can
+  // move it while the window is open, and then the store root is worked out again.
+  const moved = () => {
+    reroot();
+    attach();
+    onChange();
+  };
+  const home = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(homedir()), "{.cornerman,.clear-resume}"));
+  home.onDidCreate(moved);
+  home.onDidDelete(moved);
 
   attach();
   context.subscriptions.push(
+    home,
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration("cornerman.storePath")) return;
-      attach();
-      onChange();
+      if (!e.affectsConfiguration("cornerman.storePath") && !e.affectsConfiguration("clearResume.storePath")) return;
+      moved();
     }),
     { dispose: () => watcher?.dispose() },
   );

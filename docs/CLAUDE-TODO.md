@@ -180,3 +180,29 @@ this order of cost:
 Archive with `archivedBy.via` of a new value (the five done by hand used "manual"), and keep it out of
 `LOADED_VIA` so it never shows as Loaded. Tests: a record per rule, one that must stay waiting, and a check
 that a kickoff in a live worktree with no session yet is left alone.
+
+## 17. Follow-ups from the extension-host freeze fix (2026-11-04)
+
+Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of blocked host, now 25 ms and
+0.2 ms; `test/exthost-block.test.mjs`, `scripts/perf/refresh-profile.mjs`). Captured, not built:
+
+1. **Questlog has the same pattern** (separate extension, not changed here). `pollLive` runs every 5 s
+   (`MIN_LIVE_S`) and `readRows` does `readdirSync` plus a `readFileSync` per file over `~/.claude/questlog`
+   (1,053 files on 2026-11-04). VS Code's profiler blamed `macdara.questlog` twice that day; across 40 saved
+   profiles its `update` holds 5.4 s inclusive, `readRows` 3.9 s. Same fix: a watcher-fed in-memory copy.
+2. **The relay folder is never cleaned up**: 1,366 `<key>.json` files, one per window ever opened. The
+   status bar now reads them from memory, but the folder still grows. Prune window files older than 30 days
+   with no live session, in the relay mod or `prune()`.
+3. **The sidebar still posts ~1.3 MB per store change** with showArchived on (1,933 archived rows). Rows
+   are cached and serialised once, so the host cost is ~25 ms, but rows of a closed section could be left
+   out until the page opens it.
+4. **`worktreePaths` spawns git synchronously** the first time each folder is asked about (cached for the
+   life of the host after that). Once per folder per window; make it async if it shows in a profile.
+5. **`claudeProcesses` signals every `<pid>.json` in `~/.claude/sessions`** with `process.kill(pid, 0)` on
+   each 5 s poll; the folder is never cleaned (47,800 files on one machine). The reads are async now, the
+   signals are not.
+6. **`test/web.test.mjs` flakes in the full suite.** On 2026-11-04 two full runs failed 32 and 6 tests
+   (5 files, then this file only), and the suite ran 1,591 s against 835 s earlier the same day. Alone it
+   passes 14/14 in about 100 s but still reports vitest's `Timeout calling "onTaskUpdate"`: its sync git
+   calls block the worker long enough to miss vitest's RPC. Make those calls async, or give the file
+   its own pool (`poolMatchGlobs`) with a longer `teardownTimeout`.
