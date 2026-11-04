@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { open } from "node:fs/promises";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { open, readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
@@ -9,14 +9,19 @@ import {
   IDLE_MODES,
   clearWindowIdleMode,
   idleBarVisible,
+  idleFromSettings,
+  idleFromWindow,
   idleText,
   setWindowIdleMode,
   settingsIdleMode,
+  settingsPath,
   windowIdleMode,
+  windowPath,
   type IdleMode,
 } from "./idle-mode";
 import { ownedProcess } from "./window-owner";
-import { storeRoot, type StoredHandover } from "../../plugin/packages/store/store.mjs";
+import type { StoredHandover } from "../../plugin/packages/store/store.mjs";
+import { RelaySource } from "./relay-source";
 import { statusText } from "../../plugin/packages/store/view.mjs";
 import {
   chainTotals,
@@ -50,45 +55,44 @@ const CHUNK = 4 * 1024 * 1024;
 
 const projectsDir = () => join(homedir(), ".claude", "projects");
 // The relay mod writes under CORNERMAN_HOME or ~/.cornerman, whatever the
-// sidebar's storePath says, so this reads from the same place.
-const relayDir = () => join(storeRoot(), "relay");
+// sidebar's storePath says, so this reads from the same place. The extension hands
+// over its store root, worked out once: resolveStore stats two folders, and this
+// was asked for once per relay file on every poll (2026-11-04).
+let storeDir: () => string = () => "";
+const relayDir = () => join(storeDir(), "relay");
 
 const NUDGE_MIN = 50_000;
 const NUDGE_MAX = 1_000_000;
 const NUDGE_PICKS = [60_000, 100_000, 130_000, 150_000, 180_000, 250_000, 400_000, 600_000];
 
 /** The window's nudge size from the footer picker (<key>.nudge.json), which the nudge hooks read too. */
-function windowNudge(win: Pick<RelayFile, "key" | "sessions"> | null | undefined): number | null {
+async function windowNudge(win: Pick<RelayFile, "key" | "sessions"> | null | undefined, relay: RelaySource): Promise<number | null> {
   if (!win?.key) return null;
-  const read = (key: string) => {
-    const j = readJson<{ limit?: number; at?: number }>(join(relayDir(), `${key}.nudge.json`));
+  const read = async (key: string) => {
+    const j = await readJsonAsync<{ limit?: number; at?: number }>(join(relayDir(), `${key}.nudge.json`));
     const n = Number(j?.limit);
     return Number.isFinite(n) && n >= NUDGE_MIN && n <= NUDGE_MAX ? { n, at: Number(j?.at) || 0 } : null;
   };
-  const own = read(win.key);
+  const own = await read(win.key);
   if (own) return own.n;
   // A reload writes a new relay file for the same session, with no choice of its own:
   // take the newest choice made on any relay file that holds one of this window's sessions.
   let best: { n: number; at: number } | null = null;
-  for (const f of relayFiles()) {
+  for (const f of await relay.files()) {
     if (f.key === win.key || !f.sessions?.some((id) => win.sessions?.includes(id))) continue;
-    const c = read(f.key);
+    const c = await read(f.key);
     if (c && (!best || c.at > best.at)) best = c;
   }
   return best ? best.n : null;
 }
 
 /** nudge_at from the plugin's options in ~/.claude/settings.json, else the default. */
-function nudgeAt(win?: Pick<RelayFile, "key" | "sessions"> | null): number {
-  const own = windowNudge(win);
+async function nudgeAt(win: Pick<RelayFile, "key" | "sessions"> | null | undefined, relay: RelaySource): Promise<number> {
+  const own = await windowNudge(win, relay);
   if (own !== null) return own;
-  try {
-    const s = JSON.parse(readFileSync(join(homedir(), ".claude", "settings.json"), "utf8"));
-    const n = Number(s?.pluginConfigs?.["cornerman@cornerman"]?.options?.nudge_at);
-    return Number.isFinite(n) && n > 0 ? n : DEFAULT_NUDGE_AT;
-  } catch {
-    return DEFAULT_NUDGE_AT;
-  }
+  const s = await readJsonAsync<any>(join(homedir(), ".claude", "settings.json"));
+  const n = Number(s?.pluginConfigs?.["cornerman@cornerman"]?.options?.nudge_at);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_NUDGE_AT;
 }
 
 function readJson<T>(path: string): T | null {
@@ -99,14 +103,13 @@ function readJson<T>(path: string): T | null {
   }
 }
 
-function relayFiles(): RelayFile[] {
+// Everything the 5 s poll reads goes through here: a read that blocked held every
+// extension in the window (2026-11-04).
+async function readJsonAsync<T>(path: string): Promise<T | null> {
   try {
-    return readdirSync(relayDir())
-      .filter((n) => n.endsWith(".json") && !n.endsWith(".set.json") && !n.endsWith(".handover.json"))
-      .map((n) => readJson<RelayFile>(join(relayDir(), n)))
-      .filter((f): f is RelayFile => f !== null);
+    return JSON.parse(await readFile(path, "utf8")) as T;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -126,18 +129,13 @@ function pidAlive(pid: number): boolean {
  * Matching the active tab's label to a title tells which session has focus.
  * Nothing here when Questlog is not installed.
  */
-function compassRows(): CompassRow[] {
-  const read = (dir: string) => {
-    try {
-      return readdirSync(dir)
-        .filter((n) => n.endsWith(".json"))
-        .map((n) => readJson<CompassRow>(join(dir, n)))
-        .filter((r): r is CompassRow => !!r && typeof r.id === "string" && typeof r.title === "string" && r.title !== "");
-    } catch {
-      return [];
-    }
+async function compassRows(): Promise<CompassRow[]> {
+  const read = async (dir: string) => {
+    const names = (await readdir(dir).catch(() => [] as string[])).filter((n) => n.endsWith(".json"));
+    const rows = await Promise.all(names.map((n) => readJsonAsync<CompassRow>(join(dir, n))));
+    return rows.filter((r): r is CompassRow => !!r && typeof r.id === "string" && typeof r.title === "string" && r.title !== "");
   };
-  return mergeCompassRows(compassDirs(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude")).map(read));
+  return mergeCompassRows(await Promise.all(compassDirs(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude")).map(read)));
 }
 
 /**
@@ -146,36 +144,37 @@ function compassRows(): CompassRow[] {
  * when it is missing or changes shape, nothing here is known and the pie falls
  * back to the newest relay file and transcript, as before.
  */
-function claudeProcesses(): LiveSession[] {
+async function claudeProcesses(): Promise<LiveSession[]> {
   const dir = join(homedir(), ".claude", "sessions");
   try {
     // The folder is never cleaned up (47,800 files on one machine): read only the
     // records whose process is still running, so a dead session is never named
     // and the poll is not a read of every file ever written.
-    return readdirSync(dir)
-      .filter((n) => /^\d+\.json$/.test(n) && pidAlive(Number.parseInt(n, 10)))
-      .map((n) => readJson<LiveSession>(join(dir, n)))
-      .filter((r): r is LiveSession => !!r && Number.isInteger(r.pid) && typeof r.sessionId === "string");
+    const live = (await readdir(dir)).filter((n) => /^\d+\.json$/.test(n) && pidAlive(Number.parseInt(n, 10)));
+    const records = await Promise.all(live.map((n) => readJsonAsync<LiveSession>(join(dir, n))));
+    return records.filter((r): r is LiveSession => !!r && Number.isInteger(r.pid) && typeof r.sessionId === "string");
   } catch {
     return [];
   }
 }
 
 /** The newest transcript in a folder's project directory: the window's session when the relay mod has written nothing. */
-function newestSession(folder: string): string | null {
+async function newestSession(folder: string): Promise<string | null> {
   const dir = join(projectsDir(), projectDirName(folder));
   try {
-    let best: { id: string; t: number } | null = null;
-    for (const n of readdirSync(dir)) {
-      if (!n.endsWith(".jsonl")) continue;
-      const t = statSync(join(dir, n)).mtimeMs;
-      if (!best || t > best.t) best = { id: n.slice(0, -6), t };
-    }
-    return best?.id ?? null;
+    const names = (await readdir(dir)).filter((n) => n.endsWith(".jsonl"));
+    const times = await Promise.all(names.map((n) => stat(join(dir, n)).then((s) => s.mtimeMs, () => -1)));
+    let best = -1;
+    times.forEach((t, i) => {
+      if (t >= 0 && (best < 0 || t > times[best])) best = i;
+    });
+    return best >= 0 ? names[best].slice(0, -6) : null;
   } catch {
     return null;
   }
 }
+
+const exists = (path: string) => stat(path).then(() => true, () => false);
 
 type Tail = { path: string; offset: number; decoder: StringDecoder; usage: Usage };
 
@@ -183,16 +182,16 @@ type Tail = { path: string; offset: number; decoder: StringDecoder; usage: Usage
 class Transcripts {
   private tails = new Map<string, Tail>();
 
-  private find(id: string, cwd: string | undefined): string | null {
+  private async find(id: string, cwd: string | undefined): Promise<string | null> {
     const name = `${id}.jsonl`;
     if (cwd) {
       const p = join(projectsDir(), projectDirName(cwd), name);
-      if (existsSync(p)) return p;
+      if (await exists(p)) return p;
     }
     try {
-      for (const d of readdirSync(projectsDir())) {
+      for (const d of await readdir(projectsDir())) {
         const p = join(projectsDir(), d, name);
-        if (existsSync(p)) return p;
+        if (await exists(p)) return p;
       }
     } catch {
       // No ~/.claude/projects: nothing to read.
@@ -203,7 +202,7 @@ class Transcripts {
   async usage(id: string, cwd: string | undefined): Promise<Usage | null> {
     let t = this.tails.get(id);
     if (!t) {
-      const path = this.find(id, cwd);
+      const path = await this.find(id, cwd);
       if (!path) return null;
       t = { path, offset: 0, decoder: new StringDecoder("utf8"), usage: newUsage() };
       this.tails.set(id, t);
@@ -240,9 +239,27 @@ class Transcripts {
  */
 export function statsStatus(
   context: vscode.ExtensionContext,
-  loaded: (pid: string | null) => StoredHandover | null,
+  root: () => string,
+  loaded: (pid: string | null) => Promise<StoredHandover | null>,
   openHandover: (record: StoredHandover | null) => void,
-): void {
+): { rewatch: () => void } {
+  storeDir = root;
+  // The relay files in memory, reread where the watcher says. Once a minute the whole
+  // folder is listed again, without blocking, in case the watcher missed a write.
+  const relay = new RelaySource(relayDir);
+  let relayWatch: vscode.FileSystemWatcher | undefined;
+  const rewatch = () => {
+    relayWatch?.dispose();
+    relay.changed();
+    relayWatch = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(relayDir()), "*.json"));
+    const changed = (uri: vscode.Uri) => relay.changed(uri.fsPath);
+    relayWatch.onDidCreate(changed);
+    relayWatch.onDidChange(changed);
+    relayWatch.onDidDelete(changed);
+  };
+  rewatch();
+  const rescan = setInterval(() => relay.changed(), 60_000);
+  context.subscriptions.push({ dispose: () => (clearInterval(rescan), relayWatch?.dispose()) });
   const pieItem = vscode.window.createStatusBarItem("cornerman.context", vscode.StatusBarAlignment.Left, 1);
   pieItem.name = "cornerman: context";
   const relayItem = vscode.window.createStatusBarItem("cornerman.relay", vscode.StatusBarAlignment.Left, 0.5);
@@ -278,7 +295,7 @@ export function statsStatus(
       const roots = folders();
       // The focused tab's session, when compass has named it; sticky while a file tab has focus.
       const active = vscode.window.tabGroups.activeTabGroup.activeTab;
-      const rows = compassRows();
+      const rows = await compassRows();
       const tab = rowForTab(rows, active?.label ?? "", Date.now());
       if (tab) focused = tab.id;
       // A Claude tab compass has no row for yet (a fresh one) is not the tab we
@@ -290,38 +307,38 @@ export function statsStatus(
         relayItem.hide();
         return;
       }
-      const procs = claudeProcesses();
+      const procs = await claudeProcesses();
       const live = withFocus(
         liveSessions(procs, (r) => owned(String(r.pid), `${r.pid}@${r.procStart ?? ""}`)),
         focused,
       );
-      window = roots.length ? pickWindow(relayFiles(), roots, { ...live, focused }) : null;
+      window = roots.length ? pickWindow(await relay.files(), roots, { ...live, focused }) : null;
       const pick = pickSession({
         focused,
         chain: window?.sessions ?? [],
         mine: live.mine,
-        newest: live.mine.length ? null : newestSession(roots[0] ?? ""),
+        newest: live.mine.length ? null : await newestSession(roots[0] ?? ""),
       });
       const sessions = pick.sessions;
       scope = pick.byTab ? "tab" : "window";
       // The handover is the shown tab's own: the one its Claude process loaded.
       // With no tab to go by, the window's.
       const shownPid = pick.byTab ? procs.find((p) => p.sessionId === sessions.at(-1))?.pid : undefined;
-      shown = loaded(shownPid === undefined ? null : String(shownPid));
+      shown = await loaded(shownPid === undefined ? null : String(shownPid));
       const usages: Usage[] = [];
       for (const id of sessions) {
         const u = await transcripts.usage(id, window?.cwd ?? roots[0]);
         if (u) usages.push(u);
       }
-      const ownIdle = window ? windowIdleMode(relayDir(), window.key) : null;
-      const idle = ownIdle ?? settingsIdleMode();
+      const ownIdle = window ? idleFromWindow(await readJsonAsync(windowPath(relayDir(), window.key))) : null;
+      const idle = ownIdle ?? idleFromSettings(await readJsonAsync(settingsPath()));
       const current = usages.at(-1);
       if (!current || current.last === null) {
         pieItem.hide();
       } else {
-        const threshold = nudgeAt(window);
+        const threshold = await nudgeAt(window, relay);
         const p = pie(current.last, threshold);
-        const relay = window ? effective(window, readJson<RelaySet>(setPath(window.key))) : null;
+        const relaySet = window ? effective(window, await readJsonAsync<RelaySet>(setPath(window.key))) : null;
         pieItem.text = p.text;
         pieItem.backgroundColor =
           p.level === "over"
@@ -333,7 +350,7 @@ export function statsStatus(
           hoverText({
             context: current.last,
             threshold,
-            relay,
+            relay: relaySet,
             totals: chainTotals(usages),
             links: {
               handover: shown ? "command:cornerman.openContextHandover" : undefined,
@@ -361,9 +378,9 @@ export function statsStatus(
         pieItem.show();
       }
       if (window) {
-        const relay = effective(window, readJson<RelaySet>(setPath(window.key)));
-        relayItem.text = relayText(relay);
-        relayItem.tooltip = relay.pending
+        const set = effective(window, await readJsonAsync<RelaySet>(setPath(window.key)));
+        relayItem.text = relayText(set);
+        relayItem.tooltip = set.pending
           ? `Relay budget for this ${scope} (takes effect after the next reply). Click to change.`
           : `Relay budget for this ${scope}: clears used of the limit. Click to change.`;
         relayItem.command = "cornerman.pickRelay";
@@ -443,7 +460,7 @@ export function statsStatus(
       return;
     }
     const target = window;
-    const now = nudgeAt(target);
+    const now = await nudgeAt(target, relay);
     const sizes = NUDGE_PICKS.includes(now) ? NUDGE_PICKS : [...NUDGE_PICKS, now].sort((a, b) => a - b);
     const items = sizes.map((n) => ({
       label: `${n === now ? "$(check)" : "$(blank)"} ${Math.round(n / 1000)}k`,
@@ -546,4 +563,5 @@ export function statsStatus(
   const timer = setInterval(() => void update(), POLL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
   void update();
+  return { rewatch };
 }

@@ -159,27 +159,83 @@ export function assetsOf(capture: Capture | undefined): AssetsModel | undefined 
   return { summary: what, items };
 }
 
+// A refresh with ~2,000 rows rebuilt and re-serialised every one of them, and the
+// peek's regex over every body led the cost (2026-11-04). The store source hands back
+// the same record object until its file changes, so a row is kept per record and
+// rebuilt only when what it shows changes: its age, fade or capture.
+const rowCache = new WeakMap<StoredHandover, Map<string, RowModel>>();
+// Rows from the cache, each serialised once: see modelJson.
+const cachedRows = new WeakSet<RowModel>();
+const rowJson = new WeakMap<RowModel, string>();
+
+// One session's capture serves every row that session wrote.
+const assetsByCapture = new WeakMap<Capture, AssetsModel | undefined>();
+
+function assetsFor(capture: Capture | undefined): AssetsModel | undefined {
+  if (!capture) return undefined;
+  if (!assetsByCapture.has(capture)) assetsByCapture.set(capture, assetsOf(capture));
+  return assetsByCapture.get(capture);
+}
+
 export function rowOf(
   r: StoredHandover,
   now: Date,
   opts: { loaded?: boolean; prefix?: string; compact?: boolean; captures?: Map<string, Capture> } = {},
 ): RowModel {
   const loaded = opts.loaded === true;
-  return {
-    key: `${opts.prefix ?? (loaded ? "loaded" : "h")}:${r.id}`,
+  const key = `${opts.prefix ?? (loaded ? "loaded" : "h")}:${r.id}`;
+  const compact = opts.compact === true;
+  const age = loaded ? loadedAge(r, now) : shortAge(r, now);
+  // Two places are as fine as a fade can be seen, and let a row's fade hold still between refreshes.
+  const fade = loaded ? 1 : Math.round(fadeOf(r.createdAt, now) * 100) / 100;
+  const assets = assetsFor(typeof r.sessionId === "string" ? opts.captures?.get(r.sessionId) : undefined);
+  let mine = rowCache.get(r);
+  if (!mine) rowCache.set(r, (mine = new Map()));
+  const slot = `${key}|${compact}`;
+  const hit = mine.get(slot);
+  if (hit && hit.age === age && hit.fade === fade && hit.assets === assets) return hit;
+  const row: RowModel = {
+    key,
     id: r.id,
     title: r.title,
-    meta: where(r),
-    compact: opts.compact === true,
+    meta: hit?.meta ?? where(r),
+    compact,
     tag: loaded ? r.repo ?? "" : "",
-    age: loaded ? loadedAge(r, now) : shortAge(r, now),
-    fade: loaded ? 1 : fadeOf(r.createdAt, now),
+    age,
+    fade,
     kind: loaded ? "loaded" : r.status === "archived" ? "archived" : "waiting",
     pinned: r.pinned === true,
-    peek: peekOf(r.body),
-    assets: assetsOf(typeof r.sessionId === "string" ? opts.captures?.get(r.sessionId) : undefined),
-    search: [r.title, r.repo, r.branch].filter(Boolean).join(" "),
+    peek: hit?.peek ?? peekOf(r.body),
+    assets,
+    search: hit?.search ?? [r.title, r.repo, r.branch].filter(Boolean).join(" "),
   };
+  mine.set(slot, row);
+  cachedRows.add(row);
+  return row;
+}
+
+/**
+ * JSON.stringify for a model, with each cached row serialised once. postMessage
+ * serialised the whole ~2.5 MB model on the host at every refresh; this string is
+ * what the page is sent instead, and only rows that changed are serialised again.
+ */
+export function modelJson(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v) ?? "null";
+  if (cachedRows.has(v as RowModel)) {
+    let s = rowJson.get(v as RowModel);
+    if (s === undefined) rowJson.set(v as RowModel, (s = JSON.stringify(v)));
+    return s;
+  }
+  if (Array.isArray(v)) return `[${v.map((x) => (x === undefined || typeof x === "function" ? "null" : modelJson(x))).join(",")}]`;
+  const parts: string[] = [];
+  for (const [k, x] of Object.entries(v)) if (x !== undefined && typeof x !== "function") parts.push(`${JSON.stringify(k)}:${modelJson(x)}`);
+  return `{${parts.join(",")}}`;
+}
+
+/** The JSON text the page is sent: a section split by repo goes without its flat rows, which the page rebuilds from the groups. */
+export function pageJson(model: { sections?: SectionModel[] } & Record<string, unknown>): string {
+  if (!model.sections) return modelJson(model);
+  return modelJson({ ...model, sections: model.sections.map((s) => (s.groups ? { ...s, rows: undefined } : s)) });
 }
 
 /** Top to bottom: what is waiting for a person, then what a session loaded, then the rest. */

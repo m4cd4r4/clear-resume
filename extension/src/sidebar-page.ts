@@ -281,7 +281,13 @@ tree.addEventListener("keydown", (e) => {
   if (handled) e.preventDefault();
 });
 tree.addEventListener("focusin", (e) => { const el = e.target.closest("[role=treeitem]"); if (el) st.focus = el.dataset.key; });
-window.addEventListener("message", (e) => { if (e.data && e.data.type === "model") { st.model = e.data.model; draw(); } });
+// The host sends the model as JSON text, and a section split by repo without its flat
+// rows: they are the same rows as its groups, and sending both doubled a 2.5 MB message.
+function received(m) {
+  if (m && m.sections) for (const s of m.sections) if (s.groups && !s.rows) s.rows = s.groups.flatMap((g) => g.rows);
+  return m;
+}
+window.addEventListener("message", (e) => { if (e.data && e.data.type === "model") { st.model = received(typeof e.data.json === "string" ? JSON.parse(e.data.json) : e.data.model); draw(); } });
 post({ type: "ready", q: st.q });
 `;
 

@@ -1,15 +1,14 @@
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
-import { listAll } from "../../plugin/packages/store/store.mjs";
-import { listCaptures } from "../../plugin/packages/store/artifacts.mjs";
 import { lanes, parseWorktreeList } from "../../plugin/packages/store/lanes.mjs";
 import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
 import { currentRepoPath } from "./tree";
 import { pageHtml } from "./sidebar-page";
-import { filterSections, handoverSections, lanesModel } from "./sidebar-model";
+import { filterSections, handoverSections, lanesModel, pageJson } from "./sidebar-model";
+import type { StoreSource } from "./store-source";
 
 export type Section = "handovers" | "lanes";
 
@@ -42,10 +41,15 @@ export function parseMessage(v: unknown): Message | undefined {
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
   private query = "";
+  // One refresh at a time; asks that land during one run it once more when it ends.
+  private running = false;
+  private again = false;
+  // The last model sent: an unchanged one is not sent again.
+  private sent = "";
 
   constructor(
     private readonly section: Section,
-    private readonly storeRootPath: () => string,
+    private readonly source: StoreSource,
     private readonly showArchived: () => boolean,
     private readonly registryPath: () => string,
     private readonly hasLegacy: () => boolean,
@@ -64,55 +68,86 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage((v: unknown) => {
       const m = parseMessage(v);
       if (!m) return;
-      if (m.type === "ready") this.query = "";
+      if (m.type === "ready") {
+        // A page that just loaded has nothing drawn: it gets a model even if this one was sent before.
+        this.query = "";
+        this.sent = "";
+      }
       if (m.type === "search" || m.type === "ready") {
         if (m.type === "search") this.query = m.q;
         this.refresh();
       } else this.run(m);
     });
-    view.onDidDispose(() => (this.view = undefined));
+    view.onDidDispose(() => {
+      this.view = undefined;
+      this.sent = "";
+    });
     view.onDidChangeVisibility(() => view.visible && this.refresh());
   }
 
+  /**
+   * Send the page a fresh model. Nothing here reads the disk synchronously: the
+   * extension host is shared, and a refresh that held it froze every extension in the
+   * window (2026-11-04).
+   */
   refresh(): void {
     if (!this.view) return;
-    void this.view.webview.postMessage({ type: "model", model: this.model() });
+    if (this.running) {
+      this.again = true;
+      return;
+    }
+    this.running = true;
+    void this.model()
+      .then((model) => {
+        const json = pageJson(model);
+        if (!this.view || json === this.sent) return;
+        this.sent = json;
+        return this.view.webview.postMessage({ type: "model", json });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.running = false;
+        if (this.again) {
+          this.again = false;
+          this.refresh();
+        }
+      });
   }
 
-  private model() {
+  private async model(): Promise<Record<string, unknown>> {
     const now = new Date();
     const here = currentRepoPath();
-    const records = listAll(this.storeRootPath());
+    const { records, captures } = await this.source.snapshot();
     if (this.section === "handovers") {
       // Worktrees of the open repo are the same repo; without them a project driven
       // through worktrees files most of its own handovers under "Other repos".
-      const captures = new Map(listCaptures(this.storeRootPath()).map((c) => [c.sessionId, c]));
       const sections = handoverSections(records, { repoPath: here, roots: worktreePaths(here), now, showArchived: this.showArchived(), captures });
       return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: filterSections(sections, this.query) };
     }
     if (!here) return { section: "lanes", query: this.query, lanes: { lanes: [], next: [] } };
     const registry = this.registryPath();
-    const data = lanes({ worktrees: readWorktrees(here), entries: readEntries(registry), records, now });
-    const model = lanesModel(data, { now, targetOf: (l) => (l.entry && workspaceFile(registry, l.entry.slug)) || l.path });
+    const [worktrees, entries, files] = await Promise.all([readWorktrees(here), readEntries(registry), workspaceFiles(registry)]);
+    const data = lanes({ worktrees, entries, records, now });
+    const model = lanesModel(data, { now, targetOf: (l) => (l.entry && workspaceFile(registry, files, l.entry.slug)) || l.path });
     return { section: "lanes", query: this.query, lanes: model };
   }
 }
 
 /** `git worktree list` for the repo at `dir`, each with the time its checkout was made. */
-function readWorktrees(dir: string) {
-  try {
-    const out = execFileSync("git", ["-C", dir, "worktree", "list", "--porcelain"], { timeout: 3000, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    return parseWorktreeList(out).map((w) => ({ ...w, startedAt: createdAt(w.path) }));
-  } catch {
-    return [];
-  }
+async function readWorktrees(dir: string) {
+  const out = await new Promise<string>((resolve) =>
+    execFile("git", ["-C", dir, "worktree", "list", "--porcelain"], { timeout: 3000, encoding: "utf8", windowsHide: true }, (err, stdout) => resolve(err ? "" : stdout)),
+  );
+  if (!out) return [];
+  const list = parseWorktreeList(out);
+  return Promise.all(list.map(async (w) => ({ ...w, startedAt: await createdAt(w.path) })));
 }
 
 // A linked worktree's `.git` is a file written by `git worktree add`, so its birth
 // time is when the worktree began. Where the filesystem has no birth time, mtime.
-function createdAt(path: string): string {
+async function createdAt(path: string): Promise<string> {
   try {
-    const s = statSync(join(path, ".git"));
+    const s = await stat(join(path, ".git"));
     const t = s.birthtimeMs || s.mtimeMs;
     return t ? new Date(t).toISOString() : "";
   } catch {
@@ -120,25 +155,25 @@ function createdAt(path: string): string {
   }
 }
 
-function readEntries(path: string): any[] {
-  if (!path || !existsSync(path)) return [];
+async function readEntries(path: string): Promise<any[]> {
+  if (!path) return [];
   try {
-    return JSON.parse(readFileSync(path, "utf8")).entries ?? [];
+    return JSON.parse(await readFile(path, "utf8")).entries ?? [];
   } catch {
     return [];
   }
 }
 
+/** The names in the registry's folder, read once per refresh for workspaceFile. */
+async function workspaceFiles(registryPath: string): Promise<string[]> {
+  if (!registryPath) return [];
+  return readdir(dirname(registryPath)).catch(() => []);
+}
+
 // A minting script may keep a .code-workspace per worktree beside the registry,
 // named "<project>-<slug>.code-workspace". Opening that rather than the bare folder
 // keeps the window's title and colour.
-function workspaceFile(registryPath: string, slug: string): string {
-  if (!registryPath) return "";
-  try {
-    const dir = dirname(registryPath);
-    const f = readdirSync(dir).find((n) => n.endsWith(`-${slug}.code-workspace`));
-    return f ? join(dir, f) : "";
-  } catch {
-    return "";
-  }
+function workspaceFile(registryPath: string, files: string[], slug: string): string {
+  const f = files.find((n) => n.endsWith(`-${slug}.code-workspace`));
+  return f ? join(dirname(registryPath), f) : "";
 }
