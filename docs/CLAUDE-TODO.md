@@ -201,3 +201,8 @@ Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of b
 5. **`claudeProcesses` signals every `<pid>.json` in `~/.claude/sessions`** with `process.kill(pid, 0)` on
    each 5 s poll; the folder is never cleaned (47,800 files on one machine). The reads are async now, the
    signals are not.
+6. **`test/web.test.mjs` flakes in the full suite.** On 2026-11-04 two full runs failed 32 and 6 tests
+   (5 files, then this file only), and the suite ran 1,591 s against 835 s earlier the same day. Alone it
+   passes 14/14 in about 100 s but still reports vitest's `Timeout calling "onTaskUpdate"`: its sync git
+   calls block the worker long enough to miss vitest's RPC. Make those calls async, or give the file
+   its own pool (`poolMatchGlobs`) with a longer `teardownTimeout`.
