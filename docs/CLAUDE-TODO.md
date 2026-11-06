@@ -24,13 +24,25 @@ measured that day:
   `CORNERMAN_TEST_GIT_SLACK` (`plugin/packages/store/git-slack.mjs`) multiplies the fixed limits in
   `web.mjs` (8s, 5s fetch) and `sync.mjs` (30s); vitest sets 4. Unset in real use. Explicit budgets
   and the merge budgets are not scaled, so the budget tests still test budgets.
-- **`exthost-block` read 64.6ms against 50ms** in that run. It now takes the best of three passes;
-  a real regression (182ms and 800ms before #174) is slow on every pass. Checked: a 10ms ceiling fails.
+- **`exthost-block` read 64.6ms against 50ms** in that run, and 51.4ms with best-of-three in a run
+  that took twice its usual time: the refresh is CPU-bound, so every pass on a busy CPU is slow.
+  Its 50ms budget now scales by a CPU yardstick (`cpuYardstick` in `test/fixtures/big-store.mjs`,
+  about 8ms quiet), between 1x and 4x. Checked (Macdara chose this, 2026-11-06): busy, real code
+  39.9ms against 80ms passes; a 182ms freeze injected into the refresh fails quiet (208.7 against 57)
+  and busy (205.4 against 52).
 
-**Still open:** the yield works between tests, not inside one. A single synchronous test over 60s
-(seen at 82s on a heavily shared machine, 162s with every core busy) still ends the run with the
-RPC error. vitest's `onUnhandledError` filter does not catch it (tried). The real fix is running the
-product's git calls off the worker thread, about half a day across ~45 tests; not done here.
+**The RPC error is not fixed, only judged.** The yield cleared the probe but not the real suite:
+two full runs that evening passed 600/600 and still exited 1 on 2 and 3 late replies, with no test
+over 47s. vitest's `onUnhandledError` filter does not catch it (tried). CI has never shown it (0 of
+the last 12 runs). So `npm test` now runs `scripts/test.mjs`, which reads vitest's JSON results:
+a run passes when every collected test passed and every unhandled error is that timeout; any other
+error, failure or missing result fails it. CI still runs `npx vitest run` and keeps the strict exit
+code. The real fix is fewer, faster git spawns per test (build fixtures once per file) or the git
+calls off the worker thread; filed as a follow-up.
+
+At 100% CPU on every core the suite still fails in files outside this work (`run`, `loader`,
+`auto-update-hook`, `extension-bundle`) on timeouts and EPERM teardowns: starvation, left alone.
+vitest's default limit is now 30s for the same reason as the 120s above.
 
 The history below is kept as the record.
 
