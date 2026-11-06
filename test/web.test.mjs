@@ -1,10 +1,11 @@
 // tdd-guard:allow - web-fallback rules, each mutation-checked.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../plugin/scripts/lib/hook.mjs";
+import { GIT_TEST_TIMEOUT, removeTemp } from "./helpers/git-temp.mjs";
 import { handoverMarkdown, saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { commitHandover, remoteBranches, REPO_FILE } from "../plugin/scripts/lib/web.mjs";
 
@@ -14,7 +15,7 @@ const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio
 // Every test clones, pushes and spawns node several times in beforeEach. On the Windows
 // runner that took 6 to 11s against vitest's 5s default (PR #148, twice); the sync tests
 // carry the same kind of real git and allow up to 30s.
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+vi.setConfig({ testTimeout: GIT_TEST_TIMEOUT, hookTimeout: GIT_TEST_TIMEOUT });
 
 beforeAll(() => {
   Object.assign(process.env, { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" });
@@ -36,7 +37,7 @@ beforeEach(() => {
   git(one, "checkout", "-q", "-b", "claude/one");
   git(one, "push", "-q", "-u", "origin", "claude/one");
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => removeTemp(dir));
 
 // Session 1 saves in web mode; session 2 is a fresh clone with an empty home folder.
 function saveInSessionOne(title = "Web work", body = "## Next action\nFinish the parser.") {

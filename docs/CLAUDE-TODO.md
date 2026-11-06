@@ -5,6 +5,27 @@ its own change; nothing here is a blocker for that PR.
 
 ## 1. Two tests are flaky on Windows under a parallel run
 
+**Done 2026-11-06 (issue #178).** Nothing was shared between files: every git-driving test already
+had its own `mkdtemp` folder, and no test git process outlived its run. Two separate causes, both
+measured that day:
+
+- **Exit 1 with every test green.** A probe test that only blocks the worker (no git) gets
+  `Timeout calling "onTaskUpdate"` once a file holds more than about 60s of synchronous work
+  (8 x 12s, 12 x 6s, 2 x 35s, 1 x 65s; 8 x 3s is clean). The runner moves between tests on
+  microtasks only, so the RPC reply is never read. `test/setup/yield-between-tests.mjs` gives the
+  event loop one `setImmediate` turn after each test, which cleared the probe.
+- **Failures were the clock, not the code.** At 87% CPU the full suite ran 1,219s and failed 3 tests,
+  all on the 30s timeout, with single tests taking 17-39s. vitest cannot stop a synchronous test, so
+  the limit only relabelled slow passes. `web`, `sync` and `sync-guard` now use 120s
+  (`test/helpers/git-temp.mjs`), and their teardown retries EPERM for about 21s, then warns and
+  leaves the folder rather than fail the test. No `retry`.
+
+Limit: at 100% CPU on every core (24 busy-loop processes) single sync tests ran up to 162s, and the
+product's own git budgets (`initSync` returning `ok: false`) failed tests. That is starvation, not
+a busy machine, and was left alone.
+
+The history below is kept as the record.
+
 Carried in as "the suite reports 122 passed / 1 failed on Windows, an EPERM temp-cleanup race
 in `packages/store/test/sync.test.mjs`, pre-existing". Four runs of the same tree on
 2026-09-23 say something different:
@@ -89,6 +110,10 @@ and false of the store it reads: the plugin syncs it to a git remote when
 that case too. Reword to scope the claim to the extension's own behaviour.
 
 ## 6. Site gates and the video are not run by CI
+
+**Done 2026-11-06 (issue #178).** `test.yml` already ran most site gates on every PR (ubuntu leg);
+it now also runs `extract-results.test.mjs` and `video/video-check.mjs`, and the step runs even when
+vitest fails. Checked by putting a stray figure into `site/video/index.html`: the loop exited 1.
 
 `.github/workflows/pages.yml` copies only `site/*.html`, the CSS, scripts, `fonts/` and `media/`, and runs
 none of `site/check.mjs`, `copycheck.mjs`, `factcheck.mjs`, `extract-results.test.mjs` or
@@ -211,7 +236,7 @@ Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of b
    all live). The `/^\d+\.json$/` filter already skipped the hook's files, so `claudeProcesses` blocked
    ~10 ms on the full folder and signalled only 14 pids. A folder of 50,000 leftover `<pid>.json` files
    would block 830 to 1,230 ms; that has never been seen, so it is not guarded.
-6. **`test/web.test.mjs` flakes in the full suite.** On 2026-11-04 two full runs failed 32 and 6 tests
+6. **Done 2026-11-06, see item 1 (issue #178).** **`test/web.test.mjs` flakes in the full suite.** On 2026-11-04 two full runs failed 32 and 6 tests
    (5 files, then this file only), and the suite ran 1,591 s against 835 s earlier the same day. Alone it
    passes 14/14 in about 100 s but still reports vitest's `Timeout calling "onTaskUpdate"`: its sync git
    calls block the worker long enough to miss vitest's RPC. Make those calls async, or give the file

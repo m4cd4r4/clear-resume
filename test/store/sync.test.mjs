@@ -5,12 +5,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAll, read, remove, save, setPinned, update } from "../../plugin/packages/store/store.mjs";
 import { run } from "../../plugin/scripts/lib/hook.mjs";
+import { GIT_TEST_TIMEOUT, removeTemp } from "../helpers/git-temp.mjs";
 import { reopen, saveHandover } from "../../plugin/scripts/lib/store.mjs";
 import { initSync, isSynced, pull, pushIfSynced, pushInBackground, sync } from "../../plugin/packages/store/sync.mjs";
 
 // Real git, two machines' worth of it per test, on Windows. The default 5s
 // timeout is about the process spawns, not about anything under test.
-vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+vi.setConfig({ testTimeout: GIT_TEST_TIMEOUT, hookTimeout: GIT_TEST_TIMEOUT });
 
 // Two machines, one bare repo between them. Every test builds its own - the live
 // store at ~/.cornerman is never touched.
@@ -45,7 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   // A background push may still hold the temp dir for a moment on Windows.
-  rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  removeTemp(tmp);
 });
 
 describe("initSync", () => {

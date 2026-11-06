@@ -11,6 +11,9 @@ export default defineConfig({
     // and costs about 30s: the sync file is 80s of the run on its own, so there was
     // never much left to overlap.
     fileParallelism: false,
+    // Serial was not the whole fix: one file with over 60s of synchronous git still timed
+    // out on its own (test/web.test.mjs alone, 2026-11-06). The yield is the rest of it.
+    setupFiles: ["test/setup/yield-between-tests.mjs"],
     // test/mod/ holds the relay mod's tests, which run under `claude plugin test`
     // (npm run test:mod), not vitest: they import claude-code/testing.
     // site/*.test.mjs are plain node scripts that exit with their result; the Pages
