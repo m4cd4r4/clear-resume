@@ -12,9 +12,10 @@ import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gitSlack } from "./git-slack.mjs";
 import { handoversDir, storeRoot } from "./store.mjs";
 
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 30000 * gitSlack();
 // A merge killed part way leaves .git/index.lock and half-written files, and every later
 // pull then fails. So a budgeted pull (a session start) only merges what it can finish:
 // no merge with under MIN_MERGE_MS left, none over BUDGET_MERGE_FILES, and the rest get

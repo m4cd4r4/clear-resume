@@ -16,13 +16,21 @@ measured that day:
   event loop one `setImmediate` turn after each test, which cleared the probe.
 - **Failures were the clock, not the code.** At 87% CPU the full suite ran 1,219s and failed 3 tests,
   all on the 30s timeout, with single tests taking 17-39s. vitest cannot stop a synchronous test, so
-  the limit only relabelled slow passes. `web`, `sync` and `sync-guard` now use 120s
+  the limit only relabelled slow passes. `web`, `sync`, `sync-guard` and `hook-safety` now use 120s
   (`test/helpers/git-temp.mjs`), and their teardown retries EPERM for about 21s, then warns and
   leaves the folder rather than fail the test. No `retry`.
+- **The product's own git limits, under load.** A busier run the same afternoon (single sync tests
+  up to 82s) failed `hook-safety` on `commitHandover`'s 8s push limit. Test seam:
+  `CORNERMAN_TEST_GIT_SLACK` (`plugin/packages/store/git-slack.mjs`) multiplies the fixed limits in
+  `web.mjs` (8s, 5s fetch) and `sync.mjs` (30s); vitest sets 4. Unset in real use. Explicit budgets
+  and the merge budgets are not scaled, so the budget tests still test budgets.
+- **`exthost-block` read 64.6ms against 50ms** in that run. It now takes the best of three passes;
+  a real regression (182ms and 800ms before #174) is slow on every pass. Checked: a 10ms ceiling fails.
 
-Limit: at 100% CPU on every core (24 busy-loop processes) single sync tests ran up to 162s, and the
-product's own git budgets (`initSync` returning `ok: false`) failed tests. That is starvation, not
-a busy machine, and was left alone.
+**Still open:** the yield works between tests, not inside one. A single synchronous test over 60s
+(seen at 82s on a heavily shared machine, 162s with every core busy) still ends the run with the
+RPC error. vitest's `onUnhandledError` filter does not catch it (tried). The real fix is running the
+product's git calls off the worker thread, about half a day across ~45 tests; not done here.
 
 The history below is kept as the record.
 

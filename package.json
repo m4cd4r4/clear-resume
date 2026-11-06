@@ -9,7 +9,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "node scripts/test.mjs",
     "test:mod": "node scripts/test-mod.mjs"
   },
   "devDependencies": {

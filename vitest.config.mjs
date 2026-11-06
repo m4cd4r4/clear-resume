@@ -14,6 +14,10 @@ export default defineConfig({
     // Serial was not the whole fix: one file with over 60s of synchronous git still timed
     // out on its own (test/web.test.mjs alone, 2026-11-06). The yield is the rest of it.
     setupFiles: ["test/setup/yield-between-tests.mjs"],
+    // vitest cannot stop a synchronous test, so a limit only relabels a slow pass. 5s was
+    // reached by run, loader and extension-bundle tests at 100% CPU (2026-11-06).
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     // test/mod/ holds the relay mod's tests, which run under `claude plugin test`
     // (npm run test:mod), not vitest: they import claude-code/testing.
     // site/*.test.mjs are plain node scripts that exit with their result; the Pages
@@ -25,6 +29,8 @@ export default defineConfig({
     // Run as if outside any Claude window: a real CLAUDE_PID from the shell that
     // launched the tests would make every save in every test one owner's.
     // CORNERMAN_NO_MIGRATE: a test calling run() must never move the real store.
-    env: { CLAUDE_PID: "", CORNERMAN_NO_PROCESS_WALK: "1", CORNERMAN_NO_MIGRATE: "1" },
+    // CORNERMAN_TEST_GIT_SLACK: four times the product's fixed git limits (git-slack.mjs), so a
+    // busy machine fails a test only when git is really stuck.
+    env: { CLAUDE_PID: "", CORNERMAN_NO_PROCESS_WALK: "1", CORNERMAN_NO_MIGRATE: "1", CORNERMAN_TEST_GIT_SLACK: "4" },
   },
 });

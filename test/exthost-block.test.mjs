@@ -16,6 +16,15 @@ import { forgetWorktrees, worktreePathsAsync } from "../plugin/packages/store/wo
 import { FOLDER, NOW, SESSIONS, body, buildRelay, buildStore, longestBlock, relayFile } from "./fixtures/big-store.mjs";
 
 const BUDGET_MS = 50;
+// The best of three passes. One pass measures every other process on the machine too: under
+// load a single pass read 64.6 ms (2026-11-06, issue #178). A real regression, like the 182 ms
+// and 800 ms before the fix, is slow on every pass.
+const PASSES = 3;
+async function bestBlock(pass) {
+  let best = Infinity;
+  for (let i = 0; i < PASSES; i++) best = Math.min(best, await pass(i));
+  return best;
+}
 
 let root;
 
@@ -40,10 +49,12 @@ describe("one refresh never holds the extension host", () => {
     const first = await refresh();
     // A hook writes one handover: the watcher fires, the sidebar refreshes.
     const one = join(root, "handovers", `box-9999-${NOW.toISOString().replace(/[:.]/g, "-")}.json`);
-    writeFileSync(one, JSON.stringify({ schema: 1, title: "New one", body: body(9999), repoPath: FOLDER, machine: "box", pid: "9999", createdAt: NOW.toISOString(), status: "waiting", sessionId: SESSIONS[0] }));
-    source.changed(one);
     let after;
-    const ms = await longestBlock(async () => (after = await refresh()));
+    const ms = await bestBlock(async (i) => {
+      writeFileSync(one, JSON.stringify({ schema: 1, title: `New one ${i}`, body: body(9999), repoPath: FOLDER, machine: "box", pid: "9999", createdAt: NOW.toISOString(), status: "waiting", sessionId: SESSIONS[0] }));
+      source.changed(one);
+      return longestBlock(async () => (after = await refresh()));
+    });
     console.log(`sidebar refresh: longest block ${ms.toFixed(1)} ms`);
     expect(rowCount(after)).toBe(rowCount(first) + 1);
     expect(ms).toBeLessThan(BUDGET_MS);
@@ -55,10 +66,12 @@ describe("one refresh never holds the extension host", () => {
     buildRelay(dir);
     const source = new RelaySource(() => dir);
     expect((await source.files()).length).toBe(1400);
-    writeFileSync(join(dir, "k0.json"), JSON.stringify(relayFile(0, 4)));
-    source.changed(join(dir, "k0.json"));
     let files;
-    const ms = await longestBlock(async () => (files = await source.files()));
+    const ms = await bestBlock(async () => {
+      writeFileSync(join(dir, "k0.json"), JSON.stringify(relayFile(0, 4)));
+      source.changed(join(dir, "k0.json"));
+      return longestBlock(async () => (files = await source.files()));
+    });
     console.log(`relay poll: longest block ${ms.toFixed(1)} ms`);
     expect(files.find((f) => f.key === "k0").used).toBe(4);
     expect(ms).toBeLessThan(BUDGET_MS);

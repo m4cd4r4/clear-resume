@@ -1,4 +1,5 @@
-// Shared by the test files that drive real git against a temp folder (web, sync, sync-guard).
+// Shared by the test files that drive real git against a temp folder (web, sync, sync-guard,
+// hook-safety).
 import { rmSync } from "node:fs";
 
 // These tests run git synchronously, and vitest cannot stop a synchronous test: a timeout only
