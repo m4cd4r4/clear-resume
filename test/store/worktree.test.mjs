@@ -7,7 +7,7 @@ import { realpathSync } from "node:fs";
 import { normalisePath } from "../../plugin/packages/store/schema.mjs";
 
 const real = (p) => normalisePath(realpathSync.native(p));
-import { forgetWorktrees, worktreePaths } from "../../plugin/packages/store/worktree.mjs";
+import { forgetWorktrees, worktreePaths, worktreePathsAsync } from "../../plugin/packages/store/worktree.mjs";
 
 vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
@@ -52,6 +52,21 @@ describe("worktreePaths", () => {
     forgetWorktrees();
     const fromSide = [...worktreePaths(side)].sort();
     expect(fromSide).toEqual(fromMain);
+  });
+
+  it("answers the same without blocking as it does with", async () => {
+    const main = join(tmp, "repo");
+    mkdirSync(main, { recursive: true });
+    git(main, "init", "-q", "-b", "main");
+    git(main, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init");
+    git(main, "worktree", "add", "-q", "-b", "feature", join(tmp, "repo-feature"));
+    const plain = join(tmp, "not-a-repo");
+    mkdirSync(plain);
+
+    const sync = [worktreePaths(main), worktreePaths(plain)];
+    forgetWorktrees();
+    expect([await worktreePathsAsync(main), await worktreePathsAsync(plain)]).toEqual(sync);
+    expect(await worktreePathsAsync("")).toEqual([]);
   });
 
   it("returns the folder alone when it is not a repo", () => {

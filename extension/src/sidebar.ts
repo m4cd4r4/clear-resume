@@ -4,7 +4,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { lanes, parseWorktreeList } from "../../plugin/packages/store/lanes.mjs";
-import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
+import { worktreePathsAsync } from "../../plugin/packages/store/worktree.mjs";
 import { currentRepoPath } from "./tree";
 import { pageHtml } from "./sidebar-page";
 import { filterSections, handoverSections, lanesModel, pageJson } from "./sidebar-model";
@@ -121,7 +121,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (this.section === "handovers") {
       // Worktrees of the open repo are the same repo; without them a project driven
       // through worktrees files most of its own handovers under "Other repos".
-      const sections = handoverSections(records, { repoPath: here, roots: worktreePaths(here), now, showArchived: this.showArchived(), captures });
+      const sections = handoverSections(records, { repoPath: here, roots: await worktreePathsAsync(here), now, showArchived: this.showArchived(), captures });
       return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: filterSections(sections, this.query) };
     }
     if (!here) return { section: "lanes", query: this.query, lanes: { lanes: [], next: [] } };

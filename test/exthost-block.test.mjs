@@ -4,13 +4,15 @@
 // and shipped without measuring, so the freeze survived. These tests measure the
 // longest stretch the event loop is held during a refresh, on a store the size of the
 // real one, and fail above 50 ms. On main before the fix: 182 ms and 800 ms.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { StoreSource } from "../extension/src/store-source.ts";
 import { RelaySource } from "../extension/src/relay-source.ts";
 import { filterSections, handoverSections, pageJson } from "../extension/src/sidebar-model.ts";
+import { forgetWorktrees, worktreePathsAsync } from "../plugin/packages/store/worktree.mjs";
 import { FOLDER, NOW, SESSIONS, body, buildRelay, buildStore, longestBlock, relayFile } from "./fixtures/big-store.mjs";
 
 const BUDGET_MS = 50;
@@ -59,6 +61,21 @@ describe("one refresh never holds the extension host", () => {
     const ms = await longestBlock(async () => (files = await source.files()));
     console.log(`relay poll: longest block ${ms.toFixed(1)} ms`);
     expect(files.find((f) => f.key === "k0").used).toBe(4);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("first worktree lookup for a folder, which runs git", async () => {
+    const main = join(root, "wt-repo");
+    mkdirSync(main);
+    const git = (...args) => execFileSync("git", args, { cwd: main, stdio: "ignore" });
+    git("init", "-q", "-b", "main");
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init");
+    git("worktree", "add", "-q", "-b", "side", join(root, "wt-side"));
+    forgetWorktrees();
+    let paths;
+    const ms = await longestBlock(async () => (paths = await worktreePathsAsync(main)));
+    console.log(`first worktree lookup: longest block ${ms.toFixed(1)} ms`);
+    expect(paths).toHaveLength(2);
     expect(ms).toBeLessThan(BUDGET_MS);
   });
 });

@@ -12,7 +12,7 @@ import { captureDir, readCapture } from "../../plugin/packages/store/artifacts.m
 import { copyLegacySettings } from "./legacy-settings";
 import { LAST_SCREEN, ALL_ASSETS } from "./sidebar-model";
 import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
-import { worktreePaths } from "../../plugin/packages/store/worktree.mjs";
+import { worktreePathsAsync } from "../../plugin/packages/store/worktree.mjs";
 import { SidebarProvider } from "./sidebar";
 import { StoreSource } from "./store-source";
 import { spareStatus } from "./spare-status";
@@ -304,7 +304,11 @@ function loadedLookup(source: StoreSource): (pid: string | null) => Promise<Stor
       const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath).filter(Boolean);
       const owned = pid ? (r: StoredHandover) => String(r.archivedBy?.owner ?? "").split("@")[0] === pid : windowOwned;
       record = folders.length
-        ? loadedInFolders((await source.snapshot()).records, folders.map((repoPath) => ({ repoPath, roots: worktreePaths(repoPath) })), { now: new Date(), owned })
+        ? loadedInFolders(
+            (await source.snapshot()).records,
+            await Promise.all(folders.map(async (repoPath) => ({ repoPath, roots: await worktreePathsAsync(repoPath) }))),
+            { now: new Date(), owned },
+          )
         : null;
     } catch {
       // The hover card must never break the extension.

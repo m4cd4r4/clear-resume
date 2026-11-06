@@ -26,7 +26,8 @@ Decided with Macdara on 2026-11-06 (grilling session). Questlog has a matching p
 
 Questlog wave 1 in parallel: `freshness` (its TODO 3).
 Alongside: a drafted issue for anthropics/claude-code about `~/.claude/sessions` never being cleaned
-(49,304 files on 2026-11-06), for Macdara to file.
+(49,304 files on 2026-11-06). Dropped: 49,300 of those files came from a local Obsidian session hook, not
+Claude Code, and the hook was fixed outside this repo.
 
 Gate: both wave-1 PRs merged, full suite green twice in a row on an idle machine.
 
@@ -57,7 +58,7 @@ Items 9 (idle research runs, needs a spend decision), 10 (screen reader), 12 (se
 | Wave | Slug | State |
 |---|---|---|
 | 1 | test-reliability | not started |
-| 1 | host-perf | not started |
+| 1 | host-perf | PR open: async `worktreePaths`; process check and idle-off timer measured, left as they are |
 | 2 | relay-retention | blocked on wave 1 |
 | 3 | stats | blocked on wave 2 |
 | 3 | ux-polish | blocked on wave 2 |

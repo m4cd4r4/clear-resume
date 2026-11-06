@@ -116,9 +116,15 @@ When the final cut of findings is decided, the scene list in `site/video/index.h
 
 With the per-window override, the relay registers the tool and turn counters and runs the 30 second idle
 timer in every session, idle off included; each look reads `<key>.idle.json`. With idle off it shows no
-toast or status message (`idleCheck` returns before any), and it costs no model tokens. The overhead is
-not measured. Either measure it (CPU and file reads over a long idle-off session), or start the timer only
-when the picker file first appears.
+toast or status message (`idleCheck` returns before any), and it costs no model tokens.
+
+**Measured (host-perf, 2026-11-06), left as it is.** Counted under `claude plugin test` with idle and the
+relay off over 300 mock seconds: 10 reads of `<key>.idle.json` (one per 30 s tick) against 300 reads of
+`<key>.handover.json` from the 1 s hand-over poll; each look also resolves `relayDir` (4 `env.get`, 2
+`fs.exists` in the mock). The idle tick is 3% of the mod's background file work. Its real file work costs
+~0.5 ms CPU per tick on a loaded machine: 960 reads and ~0.5 s CPU over an 8 h idle-off session. Noise, so
+the timer is not made lazy. If the relay's background cost ever matters, the 1 s hand-over poll is the
+place to look (30 times the idle tick).
 
 ## 10. Sidebar webview: not verified with a real screen reader
 
@@ -196,11 +202,15 @@ Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of b
 3. **The sidebar still posts ~1.3 MB per store change** with showArchived on (1,933 archived rows). Rows
    are cached and serialised once, so the host cost is ~25 ms, but rows of a closed section could be left
    out until the page opens it.
-4. **`worktreePaths` spawns git synchronously** the first time each folder is asked about (cached for the
-   life of the host after that). Once per folder per window; make it async if it shows in a profile.
-5. **`claudeProcesses` signals every `<pid>.json` in `~/.claude/sessions`** with `process.kill(pid, 0)` on
-   each 5 s poll; the folder is never cleaned (47,800 files on one machine). The reads are async now, the
-   signals are not.
+4. **Done (host-perf, 2026-11-06).** `worktreePaths` spawned git synchronously the first time each folder
+   was asked about: 83 to 245 ms of blocked host on a repo with 46 worktrees. The extension now calls
+   `worktreePathsAsync` (same memo, same answer): 4.5 to 8.8 ms. Guarded by `test/exthost-block.test.mjs`.
+5. **Closed, measured (host-perf, 2026-11-06).** The 49,304 files in `~/.claude/sessions` were not Claude
+   Code's: 49,300 were `session-<ms>.json` from a local Obsidian session hook (since fixed outside this
+   repo). Claude Code's own `<pid>.json` and `.key` files are removed when the process exits (14 of each,
+   all live). The `/^\d+\.json$/` filter already skipped the hook's files, so `claudeProcesses` blocked
+   ~10 ms on the full folder and signalled only 14 pids. A folder of 50,000 leftover `<pid>.json` files
+   would block 830 to 1,230 ms; that has never been seen, so it is not guarded.
 6. **`test/web.test.mjs` flakes in the full suite.** On 2026-11-04 two full runs failed 32 and 6 tests
    (5 files, then this file only), and the suite ran 1,591 s against 835 s earlier the same day. Alone it
    passes 14/14 in about 100 s but still reports vitest's `Timeout calling "onTaskUpdate"`: its sync git

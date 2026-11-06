@@ -147,9 +147,9 @@ async function compassRows(): Promise<CompassRow[]> {
 async function claudeProcesses(): Promise<LiveSession[]> {
   const dir = join(homedir(), ".claude", "sessions");
   try {
-    // The folder is never cleaned up (47,800 files on one machine): read only the
-    // records whose process is still running, so a dead session is never named
-    // and the poll is not a read of every file ever written.
+    // Other tools write here too (49,300 session-<ms>.json from one hook, 2026-11-06),
+    // and the name filter skips them: ~10 ms to list that folder. Read only the
+    // records whose process is still running, so a dead session is never named.
     const live = (await readdir(dir)).filter((n) => /^\d+\.json$/.test(n) && pidAlive(Number.parseInt(n, 10)));
     const records = await Promise.all(live.map((n) => readJsonAsync<LiveSession>(join(dir, n))));
     return records.filter((r): r is LiveSession => !!r && Number.isInteger(r.pid) && typeof r.sessionId === "string");

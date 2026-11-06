@@ -5,8 +5,9 @@
 // project's own handovers under "Other repos" while each row still shows the repo's
 // name. One `git worktree list` answers it for the whole tree - the alternative,
 // resolving each record's path separately, is a process spawn per record.
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
+import { realpath } from "node:fs/promises";
 import { normalisePath } from "./schema.mjs";
 
 const TIMEOUT_MS = 3000;
@@ -71,6 +72,40 @@ function resolve(dir) {
 
 export function worktreePaths(dir) {
   return resolve(dir).paths;
+}
+
+async function resolveRealAsync(path) {
+  try {
+    return normalisePath(await realpath(path));
+  } catch {
+    return normalisePath(path);
+  }
+}
+
+/**
+ * worktreePaths without blocking, for the VS Code extension: its host is shared by
+ * every extension in the window, and the first lookup for a folder spawned git
+ * synchronously, holding it ~95 ms (2026-11-06). Shares worktreePaths' memo.
+ */
+export async function worktreePathsAsync(dir) {
+  const key = normalisePath(dir || "");
+  if (!key) return [];
+  if (cache.has(key)) return cache.get(key).paths;
+  const here = await resolveRealAsync(dir);
+  const out = await new Promise((done) =>
+    execFile("git", ["-C", here, "worktree", "list", "--porcelain"], { timeout: TIMEOUT_MS, encoding: "utf8", windowsHide: true }, (err, stdout) =>
+      done(err ? "" : stdout),
+    ),
+  );
+  const found = await Promise.all(
+    out
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("worktree "))
+      .map((line) => resolveRealAsync(line.slice("worktree ".length))),
+  );
+  // A sync caller may have filled the memo meanwhile; the first answer stands.
+  if (!cache.has(key)) cache.set(key, found.length ? { paths: [...new Set([here, ...found])], main: found[0] } : { paths: [here], main: here });
+  return cache.get(key).paths;
 }
 
 /**
