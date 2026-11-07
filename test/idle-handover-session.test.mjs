@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -25,9 +25,9 @@ const save = (extra = {}) => saveHandover({
 });
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "cr-idle-store-"));
-  repo = mkdtempSync(join(tmpdir(), "cr-idle-repo-"));
-  other = mkdtempSync(join(tmpdir(), "cr-idle-other-"));
+  root = realpathSync.native(mkdtempSync(join(tmpdir(), "cr-idle-store-")));
+  repo = realpathSync.native(mkdtempSync(join(tmpdir(), "cr-idle-repo-")));
+  other = realpathSync.native(mkdtempSync(join(tmpdir(), "cr-idle-other-")));
 });
 afterEach(() => {
   for (const dir of [root, repo, other]) rmSync(dir, { recursive: true, force: true });
