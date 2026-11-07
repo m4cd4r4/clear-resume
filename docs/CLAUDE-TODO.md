@@ -241,10 +241,12 @@ Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of b
    (`MIN_LIVE_S`) and `readRows` does `readdirSync` plus a `readFileSync` per file over `~/.claude/questlog`
    (1,053 files on 2026-11-04). VS Code's profiler blamed `macdara.questlog` twice that day; across 40 saved
    profiles its `update` holds 5.4 s inclusive, `readRows` 3.9 s. Same fix: a watcher-fed in-memory copy.
-2. **The relay folder is never cleaned up**: 1,366 `<key>.json` files, one per window ever opened. The
+2. **Done (relay-retention, 2026-11-07).** **The relay folder is never cleaned up**: 1,366 `<key>.json` files, one per window ever opened. The
    status bar now reads them from memory, but the folder still grows. Prune window files older than 30 days
-   with no live session, in the relay mod or `prune()`.
-3. **The sidebar still posts ~1.3 MB per store change** with showArchived on (1,933 archived rows). Rows
+   with no live session, in the relay mod or `prune()`. Built as a once-a-day detached SessionStart job,
+   14 days per the no-bloat plan (`plugin/scripts/retention.mjs`); the first dry run on a copy found 1,029
+   of 1,447 windows due.
+3. **Done (relay-retention, 2026-11-07): 1,412,252 B to 96,839 B with Archived closed.** **The sidebar still posts ~1.3 MB per store change** with showArchived on (1,933 archived rows). Rows
    are cached and serialised once, so the host cost is ~25 ms, but rows of a closed section could be left
    out until the page opens it.
 4. **Done (host-perf, 2026-11-06).** `worktreePaths` spawned git synchronously the first time each folder
@@ -261,3 +263,16 @@ Found while fixing the freeze (sidebar refresh 182 ms and relay poll 800 ms of b
    passes 14/14 in about 100 s but still reports vitest's `Timeout calling "onTaskUpdate"`: its sync git
    calls block the worker long enough to miss vitest's RPC. Make those calls async, or give the file
    its own pool (`poolMatchGlobs`) with a longer `teardownTimeout`.
+
+## 18. Follow-ups from relay retention (2026-11-07)
+
+Captured, not built:
+
+1. **`<store>/.nudged` grows the same way**: one mark per session the nudge asked (1,077 on 2026-11-07),
+   never removed. `.idle` (104) and `.asked` (10) are the same shape, smaller. Same pattern: ledger, then
+   prune marks older than 14 days, in the retention job.
+2. **An ask left without its window** (`<key>.set/.nudge/.idle/.handover.json` whose `<key>.json` is gone)
+   is never pruned: the job deletes asks only with their window. None seen on 2026-11-07.
+3. **Stale is also sent whole while closed.** Rule 4 names Archived only; Stale held 74 rows on
+   the real store, so it was left. Revisit if it grows.
+4. **`<store>/loaded` holds 595 copies** on 2026-11-07. Check what removes them before assuming it grows.
