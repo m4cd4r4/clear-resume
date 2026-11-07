@@ -59,6 +59,6 @@ Items 9 (idle research runs, needs a spend decision), 10 (screen reader), 12 (se
 |---|---|---|
 | 1 | test-reliability | merged (#179) |
 | 1 | host-perf | merged (#177): async `worktreePaths`; process check and idle-off timer measured, left as they are |
-| 2 | relay-retention | PR open |
-| 3 | stats | blocked on wave 2 |
-| 3 | ux-polish | blocked on wave 2 |
+| 2 | relay-retention | merged (#181): ledger then prune relay windows idle 14 days, once a day; Archived rows sent only when open. First real run when 0.7.2 ships |
+| 3 | stats | headless run, brief `docs/prompts/stats.md`. Wording decided 2026-11-07: one-line counts in the sidebar, month table for the command, ledger plus live relay files |
+| 3 | ux-polish | headless run, brief `docs/prompts/ux-polish.md` |
