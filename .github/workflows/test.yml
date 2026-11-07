@@ -29,6 +29,9 @@ jobs:
       - run: npx vitest run
       # The site's checks read README.md, CHANGELOG.md and docs/STATUS.md, so a doc change
       # that breaks a claim on the site fails here, not at the next release's Pages deploy.
+      # extract-results.test checks results.json against the RESULTS.md tables (the transcript
+      # re-extraction half skips without the local A/B folder); video-check gates the results video.
       - name: Site checks
-        if: matrix.os == 'ubuntu-latest'
-        run: for s in factcheck factcheck.test check copycheck copycheck.test buildstats.test simtest; do node site/$s.mjs || exit 1; done
+        # always(): a red vitest step must not hide a broken site gate.
+        if: always() && matrix.os == 'ubuntu-latest'
+        run: for s in factcheck factcheck.test check copycheck copycheck.test buildstats.test simtest extract-results.test video/video-check; do node site/$s.mjs || exit 1; done

@@ -66,3 +66,17 @@ export async function longestBlock(fn) {
   on = false;
   return Math.max(max, performance.now() - last);
 }
+
+// A fixed piece of synchronous CPU work, about the shape of a sidebar refresh (build and serialise
+// ~1 MB of rows), timed best of `passes`. It says how fast this machine is right now, so a
+// wall-clock budget can be scaled by how busy the machine is (exthost-block.test.mjs).
+export function cpuYardstick(passes = 5) {
+  const rows = Array.from({ length: 4000 }, (_, i) => ({ id: `box-${i}`, title: `Handover ${i}`, body: "x".repeat(200), tags: [i % 7, i % 11], at: i * 1000 }));
+  let best = Infinity;
+  for (let p = 0; p < passes; p++) {
+    const t = performance.now();
+    JSON.parse(JSON.stringify({ rows: rows.map((r) => ({ ...r, key: `${r.id}:${r.at}` })) }));
+    best = Math.min(best, performance.now() - t);
+  }
+  return best;
+}

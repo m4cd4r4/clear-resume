@@ -1,15 +1,16 @@
 // One machine upgraded, one not. A machine before the rename still turns archived records
 // past 30 days into tombstones, and that write would wipe the body everywhere.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { migrateStore } from "../../plugin/packages/store/rename.mjs";
 import { archiveRecord, read, remove, save, update } from "../../plugin/packages/store/store.mjs";
 import { commitLocal, initSync, pull, sync } from "../../plugin/packages/store/sync.mjs";
+import { GIT_TEST_TIMEOUT, removeTemp } from "../helpers/git-temp.mjs";
 
-vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+vi.setConfig({ testTimeout: GIT_TEST_TIMEOUT, hookTimeout: GIT_TEST_TIMEOUT });
 
 let tmp;
 let remote;
@@ -47,7 +48,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  removeTemp(tmp);
 });
 
 describe("a moved store and a machine that has not moved", () => {

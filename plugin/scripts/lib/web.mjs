@@ -7,19 +7,22 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { gitSlack } from "../../packages/store/git-slack.mjs";
 import { LEGACY_REF_PREFIX, LEGACY_REPO_FILE } from "../../packages/store/rename.mjs";
 import { handoverMarkdown, parseHandover } from "./store.mjs";
 
 export const REPO_FILE = ".cornerman/HANDOVER.md";
 const REPO_FILES = [REPO_FILE, LEGACY_REPO_FILE];
 const MAX_REFS = 50;
+const GIT_MS = 8000 * gitSlack();
+const FETCH_MS = 5000 * gitSlack();
 
 export function webEnabled(env = process.env) {
   return /^(1|true|on|yes)$/i.test(String(env.CORNERMAN_WEB ?? "").trim());
 }
 
 function git(cwd, args, { quiet = true } = {}) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", quiet ? "ignore" : "pipe"], timeout: 8000 }).trim();
+  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", quiet ? "ignore" : "pipe"], timeout: GIT_MS }).trim();
 }
 
 function tryGit(cwd, args) {
@@ -42,7 +45,7 @@ export const handoverRef = (branch) => REF_PREFIX + (branch || "detached");
 const REF_FILES = { [REF_PREFIX.slice(0, -1)]: REPO_FILE, [LEGACY_REF_PREFIX.slice(0, -1)]: LEGACY_REPO_FILE };
 
 function gitIn(cwd, args, input) {
-  return execFileSync("git", args, { cwd, input, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 8000 }).trim();
+  return execFileSync("git", args, { cwd, input, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: GIT_MS }).trim();
 }
 
 // Push the saved handover as a standalone commit holding only REPO_FILE, to
@@ -121,7 +124,7 @@ export function remoteBranches(top) {
 export function refreshRemotes(top) {
   try {
     // No auto gc or maintenance: a session start is not the time to repack a repo.
-    execFileSync("git", ["-c", "gc.auto=0", "-c", "maintenance.auto=false", "fetch", "--quiet", "--prune", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: 5000 });
+    execFileSync("git", ["-c", "gc.auto=0", "-c", "maintenance.auto=false", "fetch", "--quiet", "--prune", "--no-tags", "origin"], { cwd: top, stdio: "ignore", timeout: FETCH_MS });
     return true;
   } catch {
     return false;

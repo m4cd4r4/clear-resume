@@ -13,11 +13,16 @@ import { execFileSync, execSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../plugin/scripts/lib/hook.mjs";
 import { chooseHandover } from "../plugin/scripts/lib/select.mjs";
 import { saveHandover } from "../plugin/scripts/lib/store.mjs";
 import { commitHandover, REPO_FILE } from "../plugin/scripts/lib/web.mjs";
+import { GIT_TEST_TIMEOUT, removeTemp } from "./helpers/git-temp.mjs";
+
+// Real git per test; see helpers/git-temp.mjs. Its beforeEach hit the 10s default hook limit
+// on a busy machine (2026-11-06).
+vi.setConfig({ testTimeout: GIT_TEST_TIMEOUT, hookTimeout: GIT_TEST_TIMEOUT });
 
 const SESSION_START = join(import.meta.dirname, "../plugin/scripts/session-start.mjs");
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -42,7 +47,7 @@ beforeEach(() => {
   git(repo, "commit", "-q", "--allow-empty", "-m", "init");
   git(repo, "push", "-q", "-u", "origin", "main");
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => removeTemp(dir));
 
 function snapshot(cwd = repo) {
   return {

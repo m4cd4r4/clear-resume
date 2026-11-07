@@ -57,7 +57,7 @@ Items 9 (idle research runs, needs a spend decision), 10 (screen reader), 12 (se
 
 | Wave | Slug | State |
 |---|---|---|
-| 1 | test-reliability | not started |
+| 1 | test-reliability | PR open (issue #178) |
 | 1 | host-perf | PR open: async `worktreePaths`; process check and idle-off timer measured, left as they are |
 | 2 | relay-retention | blocked on wave 1 |
 | 3 | stats | blocked on wave 2 |
