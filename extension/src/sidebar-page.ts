@@ -118,8 +118,10 @@ function h(tag, props, ...kids) {
   return el;
 }
 const ctx = (o) => JSON.stringify(Object.assign({ preventDefaultContextMenuItems: true }, o));
+const ARCHIVED = "g:archived";
 const isOpen = (key, dflt) => (key in st.state ? st.state[key] : dflt);
-function setOpen(key, open) { st.state[key] = open; persist(); draw(); }
+// Archived's rows come only while it is open (withArchived in sidebar-model.ts), so the host is told.
+function setOpen(key, open) { st.state[key] = open; persist(); if (key === ARCHIVED) post({ type: "archived", open }); draw(); }
 function btn(label, ic, msg, cls) {
   return h("button", { class: "ib " + (cls || ""), "aria-label": label, title: label, tabindex: "-1", on: { click: (e) => { e.stopPropagation(); post(msg); } } }, icon(ic));
 }
@@ -204,7 +206,7 @@ function items(m) {
     for (const s of m.sections) {
       // A search opens every group that has a match, so a hit is never hidden under a closed header.
       const key = "g:" + s.id, open = isOpen(key, !s.collapsed || !!m.query) || !s.label;
-      if (s.label) out.push(headEl(key, s.label, s.rows.length, open));
+      if (s.label) out.push(headEl(key, s.label, s.lazy ? s.count : s.rows.length, open));
       if (open && s.groups) {
         // Stale and Archived split by repo, each closed until opened (or until a search hits it).
         for (const g of s.groups) {
@@ -288,7 +290,7 @@ function received(m) {
   return m;
 }
 window.addEventListener("message", (e) => { if (e.data && e.data.type === "model") { st.model = received(typeof e.data.json === "string" ? JSON.parse(e.data.json) : e.data.model); draw(); } });
-post({ type: "ready", q: st.q });
+post({ type: "ready", q: st.q, archived: isOpen(ARCHIVED, false) });
 `;
 
 export const pageHtml = (nonce: string, cspSource: string) => `<!doctype html><html lang="en-GB"><head><meta charset="utf-8">

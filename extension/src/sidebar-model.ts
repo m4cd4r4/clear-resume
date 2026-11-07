@@ -64,6 +64,9 @@ export interface SectionModel {
   rows: RowModel[];
   /** The same rows split by repo. Other repos, Stale and Archived have them; Stale and Archived start closed. */
   groups?: { id: string; label: string; collapsed?: boolean; rows: RowModel[] }[];
+  /** Rows held back until the section is opened (withArchived): `count` is how many. */
+  lazy?: boolean;
+  count?: number;
 }
 
 export interface LaneModel {
@@ -316,6 +319,17 @@ export function lanesModel(
     why: n.entry.why || "",
   }));
   return { lanes, next };
+}
+
+/**
+ * Rule 4 (docs/no-bloat/PROJECT-PLAN.md): Archived's rows go to the page only once it
+ * is opened. Closed, it is sent as its heading and count: 1,933 archived rows made
+ * every post about 1.3 MB with the section shut (2026-11-04). A search opens every
+ * section with a hit, so while one is typed Archived goes whole.
+ */
+export function withArchived(sections: SectionModel[], opts: { open: boolean; query: string }): SectionModel[] {
+  if (opts.open || opts.query.trim()) return sections;
+  return sections.map((s) => (s.id === "archived" ? { id: s.id, label: s.label, collapsed: s.collapsed, count: s.rows.length, lazy: true, rows: [] } : s));
 }
 
 /** Whether text matches the search box: every word of the query appears in it. */

@@ -9,6 +9,11 @@
 import { readFileSync } from "node:fs";
 import { run } from "./lib/hook.mjs";
 import { withWelcome } from "./lib/welcome.mjs";
+import { startRetention } from "./lib/retention-start.mjs";
+
+// Once a day, old relay window files are ledgered and pruned by a detached job; this
+// only reads the marker and never waits (lib/retention-start.mjs).
+startRetention();
 
 let out = null;
 let ran = false;
