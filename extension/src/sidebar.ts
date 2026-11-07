@@ -7,14 +7,16 @@ import { lanes, parseWorktreeList } from "../../plugin/packages/store/lanes.mjs"
 import { worktreePathsAsync } from "../../plugin/packages/store/worktree.mjs";
 import { currentRepoPath } from "./tree";
 import { pageHtml } from "./sidebar-page";
-import { filterSections, handoverSections, lanesModel, pageJson } from "./sidebar-model";
+import { filterSections, handoverSections, lanesModel, pageJson, withArchived } from "./sidebar-model";
 import type { StoreSource } from "./store-source";
 
 export type Section = "handovers" | "lanes";
 
 /** What the page may ask of the host. Anything else is dropped. */
 type Message =
-  | { type: "ready" | "migrate" }
+  | { type: "ready"; archived: boolean }
+  | { type: "migrate" }
+  | { type: "archived"; open: boolean }
   | { type: "search"; q: string }
   | { type: "open" | "openLoaded" | "resume" | "pin" | "unpin" | "delete"; id: string }
   | { type: "asset"; id: string; n: number }
@@ -25,7 +27,10 @@ const WITH_ID = new Set(["open", "openLoaded", "resume", "pin", "unpin", "delete
 export function parseMessage(v: unknown): Message | undefined {
   const m = v as { type?: unknown; id?: unknown; q?: unknown; target?: unknown; n?: unknown } | null;
   if (!m || typeof m.type !== "string") return undefined;
-  if (m.type === "ready" || m.type === "migrate") return { type: m.type };
+  if (m.type === "migrate") return { type: m.type };
+  // The page says whether Archived is open: closed, its rows are not sent (withArchived).
+  if (m.type === "ready") return { type: "ready", archived: (m as { archived?: unknown }).archived === true };
+  if (m.type === "archived") return { type: "archived", open: (m as { open?: unknown }).open === true };
   if (m.type === "search") return { type: "search", q: typeof m.q === "string" ? m.q.slice(0, 200) : "" };
   if (m.type === "asset") return typeof m.id === "string" && m.id && Number.isInteger(m.n) ? { type: "asset", id: m.id, n: m.n as number } : undefined;
   if (m.type === "openLane") return typeof m.target === "string" && m.target ? { type: "openLane", target: m.target } : undefined;
@@ -46,6 +51,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private again = false;
   // The last model sent: an unchanged one is not sent again.
   private sent = "";
+  // Whether the page has Archived open; it says so when it loads and when it is toggled.
+  private archivedOpen = false;
 
   constructor(
     private readonly section: Section,
@@ -72,8 +79,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // A page that just loaded has nothing drawn: it gets a model even if this one was sent before.
         this.query = "";
         this.sent = "";
+        this.archivedOpen = m.archived;
       }
-      if (m.type === "search" || m.type === "ready") {
+      if (m.type === "archived") this.archivedOpen = m.open;
+      if (m.type === "search" || m.type === "ready" || m.type === "archived") {
         if (m.type === "search") this.query = m.q;
         this.refresh();
       } else this.run(m);
@@ -122,7 +131,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // Worktrees of the open repo are the same repo; without them a project driven
       // through worktrees files most of its own handovers under "Other repos".
       const sections = handoverSections(records, { repoPath: here, roots: await worktreePathsAsync(here), now, showArchived: this.showArchived(), captures });
-      return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: filterSections(sections, this.query) };
+      return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: withArchived(filterSections(sections, this.query), { open: this.archivedOpen, query: this.query }) };
     }
     if (!here) return { section: "lanes", query: this.query, lanes: { lanes: [], next: [] } };
     const registry = this.registryPath();

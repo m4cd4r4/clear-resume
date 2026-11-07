@@ -13,6 +13,7 @@ import {
   pageJson,
   peekOf,
   rowOf,
+  withArchived,
 } from "../extension/src/sidebar-model.ts";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
@@ -286,5 +287,20 @@ describe("pageJson", () => {
     // Everything else arrives as the model had it.
     expect(sent.sections[1].groups).toEqual(JSON.parse(JSON.stringify(sections[1].groups)));
     expect(sent.sections[0]).toEqual(JSON.parse(JSON.stringify(sections[0])));
+  });
+});
+
+describe("withArchived", () => {
+  const records = [rec({ id: "w" }), rec({ id: "x1", status: "archived" }), rec({ id: "x2", status: "archived", repoPath: "I:/Scratch/beta" })];
+  const sections = handoverSections(records, { repoPath: "I:/Scratch/cornerman", roots: [], now: NOW, showArchived: true });
+  it("sends a closed Archived section as its heading and count, with no rows, and the open one whole", () => {
+    const closed = withArchived(sections, { open: false, query: "" });
+    const archived = closed.find((s) => s.id === "archived");
+    expect(archived).toMatchObject({ label: sections.find((s) => s.id === "archived").label, count: 2, lazy: true, rows: [] });
+    expect(archived.groups).toBeUndefined();
+    expect(closed.filter((s) => s.id !== "archived")).toEqual(sections.filter((s) => s.id !== "archived"));
+    expect(withArchived(sections, { open: true, query: "" })).toBe(sections);
+    // A search opens every section with a hit, so Archived goes whole while one is typed.
+    expect(withArchived(sections, { open: false, query: "nudge" })).toBe(sections);
   });
 });
