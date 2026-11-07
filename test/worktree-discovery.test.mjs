@@ -67,7 +67,7 @@ describe("save.mjs in a worktree", () => {
       env,
       encoding: "utf8",
     });
-    expect(out).toContain("it loads in a session started there");
+    expect(out).toContain("It loads only in this worktree, not in ");
     expect(out).toContain(`${basename(tree)} loads it automatically`);
 
     expect(run({ cwd: main }, { env: { CORNERMAN_HOME: root } })).toBeNull();
