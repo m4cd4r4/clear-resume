@@ -26,8 +26,8 @@ export function verdict(w, { asks, live, now }) {
   return now - last >= IDLE_MS ? "due" : "recent";
 }
 
-// The folder's last name, whichever separator the cwd was written with.
-const repoOf = (cwd) => String(cwd ?? "").split(/[/\\]+/).filter(Boolean).pop() ?? "";
+/** The folder's last name, whichever separator the cwd was written with. */
+export const repoOf = (cwd) => String(cwd ?? "").split(/[/\\]+/).filter(Boolean).pop() ?? "";
 
 /** Rule 2: the one line a window leaves in the ledger before its file goes. */
 export function ledgerLine(w, now) {
@@ -51,11 +51,15 @@ export function windowFrom(name, text) {
   const key = name.slice(0, -".json".length);
   if (!KEY.test(key)) return undefined;
   try {
-    const w = JSON.parse(text);
-    return w && w.v === 1 && w.key === key && typeof w.updatedAt === "number" && Array.isArray(w.sessions) ? w : undefined;
+    return windowValue(key, JSON.parse(text));
   } catch {
     return undefined;
   }
+}
+
+/** The window when an already-parsed `<key>.json` is the mod's: its key shape, v 1, and the key it is named for. */
+export function windowValue(key, w) {
+  return KEY.test(key) && w && w.v === 1 && w.key === key && typeof w.updatedAt === "number" && Array.isArray(w.sessions) ? w : undefined;
 }
 
 /** Rule 3: the job runs at most once a day; <store>/relay/.retention-ran holds when it last started, then who. */
