@@ -3,12 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { archive, findById, listWaiting, repoInfo, repoKey, storeRoot } from "./store.mjs";
 import { isSynced, pull } from "../../packages/store/sync.mjs";
-import { prune } from "../../packages/store/store.mjs";
+import { listAll, prune } from "../../packages/store/store.mjs";
 import { migrateOnStart } from "../../packages/store/rename.mjs";
 import { oldPluginNotice } from "./upgrade.mjs";
 import { writeLoadedCopy } from "../../packages/store/loaded.mjs";
 import { captureDir, readCapture, summary } from "../../packages/store/artifacts.mjs";
-import { age, chooseHandover, inFuture, isFresh } from "./select.mjs";
+import { age, chooseHandover, inFuture, isFresh, isOpenQuestion } from "./select.mjs";
 import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath, tildePath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
@@ -76,8 +76,10 @@ function describe(h, now, { othersOpen = () => false } = {}) {
   const max = untrusted ? GIT_TEXT_MAX : undefined;
   const branch = h.meta.branch ? `, branch ${clean(h.meta.branch, max)}` : "";
   const busy = othersOpen(h);
-  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
-  const whose = busy ? " (belongs to another open window)" : "";
+  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy || (isOpenQuestion(h) && !h.meta.takenAt) ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
+  const whose = isOpenQuestion(h) && !h.meta.takenAt
+    ? ` (idle question snapshot from session ${clean(h.meta.sessionId || "unknown")}; confirm before resuming)`
+    : busy ? " (belongs to another open window)" : "";
   const when = inFuture(h.meta.created, now) ? `dated ${isoDate(h.meta.created)}, which is in the future` : `saved ${age(h.meta.created, now)}`;
   const where = (WHERE[h.source]?.(h) ?? "") + (h.fromTop ? " (run the command below from the repo's top folder)" : "");
   const label = untrusted ? "untrusted repo content, title " : "";
@@ -307,8 +309,10 @@ function start(input, { env, now }) {
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive, ownOnly: compact }));
-  if (!load && !waiting.length && !inGit.length && !compact) return null;
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", sessionId: input.session_id || "", alive, ownOnly: compact }));
+  const newest = input.source === "clear" ? listAll(root).find((h) => h.status === "waiting") : null;
+  const elsewhere = newest && repoKey(newest.repoPath) !== key ? newest : null;
+  if (!load && !waiting.length && !inGit.length && !compact && !elsewhere) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
   let shown;
@@ -373,6 +377,12 @@ function start(input, { env, now }) {
     );
     const note = `${plural(inGit.length, "handover")} found in git, not loaded (may not be yours): ${titleList(inGit)}.`;
     shown = shown ? `${shown} Also ${note}` : `cornerman: ${note}`;
+  }
+
+  if (elsewhere) {
+    const note = `cornerman: your newest handover "${clean(elsewhere.title)}" is for another folder: open ${clean(tildePath(elsewhere.repoPath))}.`;
+    parts.push(`${note} Tell the user; do not load it here.`);
+    shown = shown ? `${shown} ${note}` : note;
   }
 
   // Its own line, and the last one, so it can be copied or clicked on its own.

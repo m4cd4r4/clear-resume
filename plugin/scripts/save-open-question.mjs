@@ -50,7 +50,7 @@ const body = [
   "",
 ].join("\n");
 
-const saveArgs = [fileURLToPath(new URL("save.mjs", import.meta.url)), "--title", title];
+const saveArgs = [fileURLToPath(new URL("save.mjs", import.meta.url)), "--title", title, "--open-question"];
 if (cwd) saveArgs.push("--cwd", cwd);
 const r = spawnSync(process.execPath, saveArgs, { input: body, encoding: "utf8", env: process.env, timeout: 50000 });
 process.stdout.write(r.stdout || "");

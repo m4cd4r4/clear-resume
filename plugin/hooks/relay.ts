@@ -536,7 +536,7 @@ async function openQuestionSave($: Engine, r: Relay, now: number, woke: boolean)
     .catch(() => undefined)
   const saved = /\(id ([^)]+)\)/.exec(run?.stdout ?? '')
   if (run?.exitCode !== 0 || !saved) return
-  r.openSaved = `Cache was about to expire: handover ${saved[1]} saved at ${stamp(now)}. Nothing was cleared; /clear picks it up.`
+  r.openSaved = `Cache was about to expire: handover ${saved[1]} saved at ${stamp(now)}. Nothing was cleared; /clear will offer it if the session cannot be verified.`
   $.ui.status(r.openSaved)
   $.ui.toast(r.openSaved, { timeoutMs: 15000 })
 }

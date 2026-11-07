@@ -47,8 +47,19 @@ export function isFresh(h, now = new Date(), maxAgeDays = 7) {
   return (now - new Date(at ?? 0)) / 86_400_000 <= maxAgeDays && !inFuture(h.meta.created, now) && !inFuture(at, now);
 }
 
-export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
-  const fresh = waiting.filter((h) => isFresh(h, now, maxAgeDays));
+export function isOpenQuestion(h) {
+  return h.meta.openQuestion === true || (
+    String(h.meta.title || "").startsWith("Open question: ") &&
+    String(h.body || "").includes("Saved by the idle check, not the model:")
+  );
+}
+
+export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", sessionId = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
+  const fresh = waiting.filter((h) => {
+    if (!isFresh(h, now, maxAgeDays)) return false;
+    if (!isOpenQuestion(h) || h.meta.takenAt) return true;
+    return Boolean(sessionId) && h.meta.sessionId === sessionId;
+  });
 
   const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, claimedAt(h), { toEpoch, machine: h.meta.machine })) : [];
   if (mine.length) {

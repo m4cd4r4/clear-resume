@@ -22,7 +22,7 @@ import { archive, listLoaded, listWaiting, reopen, repoInfo, repoKey, storeRoot 
 import { ownerId, ownerOpen, parseOwner, PATIENT_TIMEOUT_MS, sameOwner } from "./lib/owner.mjs";
 import { markConsumed } from "./lib/web.mjs";
 import { shellPath, tildePath } from "./lib/display.mjs";
-import { age } from "./lib/select.mjs";
+import { age, isOpenQuestion } from "./lib/select.mjs";
 import { loadedCopyPath, writeLoadedCopy } from "../packages/store/loaded.mjs";
 
 const args = process.argv.slice(2);
@@ -79,6 +79,11 @@ if (!h) {
   process.exit(1);
 }
 const copySource = { id: h.id, title: h.meta.title, repoPath: h.meta.repo || top, branch: h.meta.branch, createdAt: h.meta.created, body: h.body };
+
+if (!wasLoaded && isOpenQuestion(h) && !h.meta.takenAt && !peek && !take) {
+  console.error(`cornerman: this idle question snapshot belongs to session ${h.meta.sessionId || "unknown"} and may be stale. Use --peek to read it or --take to resume it explicitly.`);
+  process.exit(1);
+}
 
 if (wasLoaded && take) {
   // Like a --take of a waiting one, whoever loaded it. It goes back to waiting

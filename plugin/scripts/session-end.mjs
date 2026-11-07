@@ -7,8 +7,28 @@
 import { readFileSync } from "node:fs";
 
 try {
+  const input = JSON.parse(readFileSync(0, "utf8") || "{}");
+  if (input.session_id && input.reason && input.reason !== "clear") {
+    try {
+      const { listWaiting, archive, repoKey, storeRoot } = await import("./lib/store.mjs");
+      const { isOpenQuestion } = await import("./lib/select.mjs");
+      const { markConsumed } = await import("./lib/web.mjs");
+      const { isSynced, pushInBackground } = await import("../packages/store/sync.mjs");
+      const root = storeRoot();
+      let retired = false;
+      for (const h of listWaiting(root)) {
+        if (h.meta.sessionId === input.session_id && isOpenQuestion(h) && !h.meta.takenAt) {
+          archive(root, null, h.path, { via: "session-end" });
+          markConsumed(root, repoKey(h.meta.repo), h.meta);
+          retired = true;
+        }
+      }
+      if (retired && isSynced(root)) pushInBackground(root);
+    } catch {
+      // never block a session
+    }
+  }
   if (process.env.CORNERMAN_ARTIFACTS !== "0") {
-    const input = JSON.parse(readFileSync(0, "utf8") || "{}");
     const transcript = String(input.transcript_path || "");
     const sessionId = String(input.session_id || "");
     if (transcript && sessionId) {
