@@ -211,7 +211,7 @@ export function runStop(input, { env = process.env } = {}) {
   if (headless(env)) {
     return {
       systemMessage: `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover; the runner resumes it.`,
-      hookSpecificOutput: { hookEventName: "Stop", additionalContext: headlessAsk(tokens, limit, "") },
+      hookSpecificOutput: { hookEventName: "Stop", additionalContext: headlessAsk(tokens, limit, false) },
     };
   }
 
@@ -224,13 +224,11 @@ export function runStop(input, { env = process.env } = {}) {
     hookSpecificOutput: {
       hookEventName: "Stop",
       additionalContext:
-        `cornerman auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}). ` +
+        `${askHead(tokens, limit)}: ` +
         (relayOn(env)
-          ? `${RELAY_FINISHED}Otherwise, at a clean stopping point, write a handover now with the /cornerman:handover skill, `
-          : `If the current task is finished or at a clean stopping point, write a handover now with the /cornerman:handover skill, `) +
-        `${afterSave(env)} ` +
-        `If you are mid-task, finish the current step first, then save, or reply "${DEFER_REPLY} <reason>". ` +
-        `If this is asked again at a turn end, it is because you neither saved nor replied.`,
+          ? `Save by default: write a handover now with the /cornerman:handover skill, then ${afterSave(env)}. ${CHOICES}`
+          : `At a clean stopping point, write a handover now with the /cornerman:handover skill, then ${afterSave(env)}. ` +
+            `If you are mid-task, finish the current step first, or reply "${DEFER_REPLY} <reason>".`),
     },
   };
 }
@@ -252,10 +250,8 @@ function remind(env, sessionId, transcriptPath, tokens, limit) {
     hookSpecificOutput: {
       hookEventName: "Stop",
       additionalContext:
-        `${ASK_MARK}: reminder ${asks} of ${MAX_ASKS}. This session's context is about ${k(tokens)} tokens (threshold ${k(limit)}) ` +
-        (answer === null ? `and you were asked to save a handover but neither saved one nor replied. ` : `and it has grown since you last replied. `) +
-        `Now either write a handover with the /cornerman:handover skill, ${afterSave(env)} ` +
-        `or, only if the session's whole goal is done and nothing remains open, reply "${FINISHED_REPLY}" and end your turn; if you must finish something first, reply "${DEFER_REPLY} <reason>".`,
+        `${askHead(tokens, limit, `reminder ${asks} of ${MAX_ASKS}`)}: ` +
+        `Write a handover now with the /cornerman:handover skill, then ${afterSave(env)}. ${CHOICES}`,
     },
   };
 }
@@ -267,14 +263,17 @@ function remind(env, sessionId, transcriptPath, tokens, limit) {
 const SAVE_SCRIPT = fileURLToPath(new URL("../save.mjs", import.meta.url));
 function headlessAsk(tokens, limit, midTurn) {
   return (
-    `cornerman headless mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}).${midTurn} ` +
-    `If your task is finished, do not save a handover: just end, and the run stops. ` +
-    `Otherwise: commit all your work on your branch now, then save a handover by running ` +
-    `node "${SAVE_SCRIPT.replace(/\\/g, "/")}" --title "<short title>" with the handover markdown on stdin (a quoted heredoc). ` +
-    `It must name the single next action, and copy any open STOP question verbatim. ` +
-    `Then end your turn with no further tool calls. The runner starts a fresh session from that handover. ` +
-    `This reminder fires once per session.`
+    `cornerman headless mode (context about ${k(tokens)} tokens, threshold ${k(limit)}${midTurn ? ", turn still running" : ""}): ` +
+    `If your task is finished, do not save a handover, just end. ` +
+    `Otherwise ${midTurn ? "finish the current step without starting new work, then " : ""}commit all your work on your branch, then save a handover by running ` +
+    `node "${SAVE_SCRIPT.replace(/\\/g, "/")}" --title "<short title>" with the handover markdown on stdin (a quoted heredoc), ` +
+    `naming the single next action and copying any open STOP question verbatim, then end your turn with no further tool calls.`
   );
+}
+
+// What every ask to Claude opens with. ASK_MARK is how the next Stop finds the last ask.
+function askHead(tokens, limit, extra) {
+  return `${ASK_MARK} (${extra ? `${extra}, ` : ""}context about ${k(tokens)} tokens, threshold ${k(limit)})`;
 }
 
 // The line the user sees. Plain and calm on purpose: it is a status note, not a fault.
@@ -283,20 +282,19 @@ function userLine(env, tokens, limit, ask) {
   return `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). ${ask}, ${then}.`;
 }
 
-// With the relay on, a saved handover is what makes it clear and continue, so a
-// finished task must end without one or the relay resumes a done job (same rule
-// as headlessAsk).
-const RELAY_FINISHED =
-  `Save by default. Reply "${FINISHED_REPLY}" and end your turn only if the user's whole goal for this session is done and no next step, open question or follow-up remains, and the relay stops. ` +
-  `Finishing the latest request, or reaching a turn end, is not that: if anything is still open, save. `;
+// The two answers that hold the next ask back. With the relay on, a saved handover
+// is what makes it clear and continue, so a finished task must end without one or
+// the relay resumes a done job (same rule as headlessAsk). Finishing the latest
+// request is not a finished session, so saving stays the default.
+const CHOICES =
+  `Reply "${FINISHED_REPLY}" instead only if the user's whole goal for this session is done, not just the latest request, and nothing is left open; ` +
+  `reply "${DEFER_REPLY} <reason>" if the work cannot stop yet.`;
 
 // What Claude does once the handover is saved. With the relay on (hooks/relay.ts)
 // the mod runs /clear when the turn ends, so Claude must end the turn rather than
-// hand the user a /clear to type.
+// hand the user a /clear to type. The why is left out: Claude needs the step.
 function afterSave(env) {
-  return relayOn(env)
-    ? `then end your turn with no further tool calls: the relay clears the session and continues from the handover by itself.`
-    : `then tell the user to type /clear: the handover loads by itself in the fresh session.`;
+  return relayOn(env) ? `end your turn with no further tool calls` : `tell the user to type /clear`;
 }
 
 // PostToolUse: the Stop hook only runs when a turn ends, so a single long
@@ -319,7 +317,7 @@ export function runMidTurn(input, { env = process.env } = {}) {
       systemMessage: `cornerman: context is about ${k(tokens)} tokens (nudge at ${k(limit)}). Claude is asked to commit and save a handover when this step is done; the runner resumes it.`,
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
-        additionalContext: headlessAsk(tokens, limit, " This turn is still running: finish the current step first, but do not start new work."),
+        additionalContext: headlessAsk(tokens, limit, true),
       },
     };
   }
@@ -329,11 +327,11 @@ export function runMidTurn(input, { env = process.env } = {}) {
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
       additionalContext:
-        `cornerman auto mode: this session's context is about ${k(tokens)} tokens (threshold ${k(limit)}), ` +
-        `and this turn is still running. Compaction does not wait for a turn to end, so finish the current step, ` +
-        `then write a handover with the /cornerman:handover skill, ${afterSave(env)} ` +
-        (relayOn(env) ? RELAY_FINISHED : "") +
-        `Do not abandon work in progress to do it. If the turn ends and you neither saved nor replied "${DEFER_REPLY} <reason>", you are asked again at the turn end.`,
+        `${askHead(tokens, limit, "turn still running")}: ` +
+        (relayOn(env)
+          ? `Save by default: finish the current step without abandoning it, then write a handover with the /cornerman:handover skill and ${afterSave(env)}. ${CHOICES}`
+          : `Finish the current step without abandoning it, then write a handover with the /cornerman:handover skill and ${afterSave(env)}, ` +
+            `or reply "${DEFER_REPLY} <reason>" if the work cannot stop yet.`),
     },
   };
 }

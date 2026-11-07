@@ -107,7 +107,9 @@ means something again.
 this into whatever the next release does; the polish PR fenced version numbers off on
 purpose.
 
-## 3. `scripts/save.mjs` prints one directory in three spellings
+## 3. `scripts/save.mjs` prints one directory in three spellings (done)
+
+**Done 2026-11-07 (ux-polish).** Every folder goes through `shownPath` (`~/...` or the long form, forward slashes); the after-`/clear` line follows the save line; `test/save-output.test.mjs`.
 
 Its output renders the same path three ways in one run: Windows backslashes, forward slashes
 with the 8.3 short name, and forward slashes with the long name, so it reads as three
@@ -116,7 +118,9 @@ different locations. The record path also leads, when the last line (what happen
 `docs/findings-polish-and-launch.md`, section 1.3. Out of scope for the polish PR because its
 in-scope list named the SessionStart surface, not the save surface.
 
-## 4. The auto-mode nudge explains itself twice
+## 4. The auto-mode nudge explains itself twice (done)
+
+**Done 2026-11-07 (ux-polish).** Every ask is a short head plus at most two sentences (44 to 82 words, were 82 to 146) and explains no mechanism; a test in `test/auto.test.mjs` holds it there.
 
 `scripts/lib/nudge.mjs:96-100` is five sentences and 63 words, and the mid-turn variant at
 `:123-126` repeats the same explanation of the mechanism. Both are aimed at Claude, who needs
@@ -176,7 +180,9 @@ place to look (30 times the idle tick).
 The restyled sidebar (`extension/src/sidebar-page.ts`) is an ARIA tree with arrow, Home/End and one tab stop.
 Only the DOM and key handling were measured. NVDA or Narrator has not been run against it.
 
-## 11. Sidebar search box scrolls away with the list
+## 11. Sidebar search box scrolls away with the list (done)
+
+**Done 2026-11-07 (ux-polish).** The box sits in a sticky, opaque `.searchbar`; screenshots at 300 and 500 px in `docs/research/ux-polish/`.
 
 The Handovers search box is part of the scrolling list, not sticky. Left as is in the restyle.
 
