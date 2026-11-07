@@ -61,7 +61,7 @@ try {
   // Under the headless runner every save is an auto one: the store is the
   // runner's own, and the runner sets which segment this is and what is left.
   const auto = headless() ? { chain: process.env.CORNERMAN_CHAIN, budget: process.env.CORNERMAN_BUDGET } : undefined;
-  const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner, auto, sessionId: process.argv.includes("--unowned") ? "" : process.env.CLAUDE_CODE_SESSION_ID });
+  const { path, id, short, title, top, main, replaced } = saveHandover({ cwd: startedIn, title: arg("--title"), body, owner, auto, sessionId: process.argv.includes("--unowned") ? "" : process.env.CLAUDE_CODE_SESSION_ID, openQuestion: process.argv.includes("--open-question") });
   // The title and a short id, never the record path: its file name carries the
   // machine name and the path the home folder, and this line reaches the user.
   console.log(`Saved handover "${title}" (id ${short}).`);
@@ -86,6 +86,8 @@ try {
   }
   if (found && auto) {
     console.log("The runner resumes from it in a fresh session once this one ends. Commit anything left, then end your turn.");
+  } else if (found && process.argv.includes("--open-question")) {
+    console.log(`After /clear, the handover is offered in ${tildePath(top)}; confirm it if it is an hour old or more.`);
   } else if (found) {
     console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
   } else {

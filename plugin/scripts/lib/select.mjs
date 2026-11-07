@@ -22,6 +22,7 @@
 import { isOwnHandover } from "./owner.mjs";
 
 export const FUTURE_SKEW_MS = 5 * 60_000;
+export const RECENT_HANDOVER_MS = 60 * 60_000;
 
 export function inFuture(created, now = new Date()) {
   return new Date(created) - now > FUTURE_SKEW_MS;
@@ -47,8 +48,24 @@ export function isFresh(h, now = new Date(), maxAgeDays = 7) {
   return (now - new Date(at ?? 0)) / 86_400_000 <= maxAgeDays && !inFuture(h.meta.created, now) && !inFuture(at, now);
 }
 
+export function isOpenQuestion(h) {
+  return h.meta.openQuestion === true || (
+    String(h.meta.title || "").startsWith("Open question: ") &&
+    String(h.body || "").includes("Saved by the idle check, not the model:")
+  );
+}
+
+export function isRecent(created, now = new Date()) {
+  const ageMs = now - new Date(created);
+  return ageMs >= -FUTURE_SKEW_MS && ageMs < RECENT_HANDOVER_MS;
+}
+
 export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
-  const fresh = waiting.filter((h) => isFresh(h, now, maxAgeDays));
+  const fresh = waiting.filter((h) => {
+    if (!isFresh(h, now, maxAgeDays)) return false;
+    if (!isOpenQuestion(h) || h.meta.takenAt) return true;
+    return isRecent(h.meta.created, now);
+  });
 
   const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, claimedAt(h), { toEpoch, machine: h.meta.machine })) : [];
   if (mine.length) {
