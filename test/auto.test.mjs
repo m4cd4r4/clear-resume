@@ -86,7 +86,7 @@ describe("Stop nudge", () => {
     runStop(input(), { env: env() }); // the first ask
     const second = runStop(input(), { env: env() });
     expect(second.systemMessage).toMatch(/ask 2 of 3/);
-    expect(second.hookSpecificOutput.additionalContext).toMatch(/neither saved one nor replied/);
+    expect(second.hookSpecificOutput.additionalContext).toMatch(/^cornerman auto mode \(reminder 2 of 3, /);
     expect(second.hookSpecificOutput.additionalContext).toContain("Nothing to hand over.");
     expect(second.hookSpecificOutput.additionalContext).toContain("Handover not yet:");
     expect(second.decision).toBeUndefined();
@@ -183,7 +183,7 @@ describe("Stop nudge", () => {
     const text = runStop(input(), { env: relay }).hookSpecificOutput.additionalContext;
     expect(text).toMatch(/save by default/i);
     expect(text).toMatch(/whole goal.*done/i);
-    expect(text).toMatch(/not that: if anything is still open, save/);
+    expect(text).toMatch(/not just the latest request, and nothing is left open/);
     expect(text).not.toMatch(/finished or at a clean stopping point, write a handover/);
     const mid = runMidTurn(input({ session_id: "s2" }), { env: relay }).hookSpecificOutput.additionalContext;
     expect(mid).toMatch(/save by default/i);
@@ -365,6 +365,32 @@ describe("mid-turn nudge", () => {
       encoding: "utf8",
     });
     expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toMatch(/250k/);
+  });
+});
+
+// Claude needs the instruction, not the mechanism (docs/CLAUDE-TODO.md item 4): every ask is a
+// "cornerman ... mode (...)" head and at most two sentences, with no dashes or ellipses.
+describe("what each nudge asks", () => {
+  it("is at most two sentences, in every mode and on every trigger", () => {
+    write(call(185_000), askLine());
+    const asks = [];
+    let n = 0;
+    for (const extra of [{ CLAUDE_PLUGIN_OPTION_RELAY: "3" }, { CLAUDE_PLUGIN_OPTION_RELAY: "off" }, { CORNERMAN_HEADLESS: "1" }]) {
+      const env = { CORNERMAN_AUTO: "1", CORNERMAN_HOME: root, CORNERMAN_NUDGE_AT: "180000", ...extra };
+      const id = `v${n++}`;
+      asks.push(runStop({ session_id: id, transcript_path: transcript }, { env }));
+      if (!extra.CORNERMAN_HEADLESS) asks.push(runStop({ session_id: id, transcript_path: transcript }, { env })); // the reminder
+      asks.push(runMidTurn({ session_id: `v${n++}`, transcript_path: transcript }, { env }));
+    }
+    expect(asks).toHaveLength(8);
+    for (const out of asks) {
+      const text = out.hookSpecificOutput.additionalContext;
+      const head = text.match(/^cornerman (auto|headless) mode \([^)]*\): /);
+      expect(head, text).not.toBeNull();
+      const body = text.slice(head[0].length).replace(/"[^"]*"/g, '""');
+      expect(body.split(/[.!?](?:\s|$)/).filter((s) => s.trim()).length, text).toBeLessThanOrEqual(2);
+      expect(text).not.toMatch(/—|–|…|\.\.\./);
+    }
   });
 });
 
