@@ -71,6 +71,12 @@ svg { display: block; flex: none; }
 .asset:hover { background: var(--vscode-toolbar-hoverBackground, var(--hover)); }
 .asset .ak { flex: none; width: 3.2em; font-size: 10px; letter-spacing: .02em; color: var(--mute); }
 .asset .al { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month { margin: 8px 0 0; border-top: 1px solid var(--line); }
+.month h2 { margin: 0; padding-top: 10px; }
+.month p { margin: 0; padding: 2px 10px 4px 28px; font-variant-numeric: tabular-nums; }
+.month ul { list-style: none; margin: 0; padding: 0 10px 0 28px; }
+.month li { display: flex; gap: 8px; padding: 1px 0; color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+.month li span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
 .empty { padding: 14px 16px; color: var(--mute); }
 .empty p { margin: 0 0 8px; }
 .link { color: var(--vscode-textLink-foreground); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
@@ -230,7 +236,17 @@ function items(m) {
   return out;
 }
 
+// "This month": counts only, nothing to click, so it sits after the tree and outside it.
+function monthEl(m) {
+  if (m.section !== "handovers" || !m.month) return null;
+  return h("section", { class: "month", "aria-label": "This month" },
+    h("h2", { class: "hd" }, "This month"),
+    h("p", {}, m.month.counts),
+    m.month.top.length ? h("ul", {}, m.month.top.map((r) => h("li", {}, h("span", { title: r.repo }, r.repo), h("span", {}, r.relays)))) : null);
+}
+
 const tree = h("div", { role: "tree", id: "tree" });
+let monthBox = null;
 const search = h("input", { class: "search", type: "search", "aria-label": "Search", placeholder: "Search", value: st.q, on: { input: (e) => { st.q = e.target.value; persist(); post({ type: "search", q: st.q }); } } });
 document.body.append(tree);
 
@@ -253,6 +269,10 @@ function draw() {
   }
   runs.forEach(number);
   tree.replaceChildren(...list);
+  const month = monthEl(m);
+  if (monthBox) monthBox.remove();
+  monthBox = month;
+  if (month) document.body.append(month);
   if (list.length === 0) { tree.append(empty(m)); return; }
   const keep = list.find((el) => el.dataset.key === st.focus) || list[0];
   keep.tabIndex = 0;

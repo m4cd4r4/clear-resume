@@ -242,7 +242,7 @@ export function statsStatus(
   root: () => string,
   loaded: (pid: string | null) => Promise<StoredHandover | null>,
   openHandover: (record: StoredHandover | null) => void,
-): { rewatch: () => void } {
+): { rewatch: () => void; relay: RelaySource } {
   storeDir = root;
   // The relay files in memory, reread where the watcher says. Once a minute the whole
   // folder is listed again, without blocking, in case the watcher missed a write.
@@ -563,5 +563,5 @@ export function statsStatus(
   const timer = setInterval(() => void update(), POLL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
   void update();
-  return { rewatch };
+  return { rewatch, relay };
 }

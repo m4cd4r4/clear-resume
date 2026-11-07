@@ -178,7 +178,7 @@ describe("readRelayStats", () => {
   const snapshot = () =>
     ["relay", "ledger"].flatMap((d) => readdirSync(join(store, d)).map((n) => `${d}/${n}@${statSync(join(store, d, n)).mtimeMs}`)).sort();
 
-  it("reads the ledger and the live windows, skips files that are not the mod's, and writes nothing", () => {
+  it("reads the ledger and the live windows, skips files that are not the mod's, and writes nothing", async () => {
     const live = win({ used: 2 });
     writeFileSync(join(store, "relay", `${live.key}.json`), JSON.stringify(live));
     writeFileSync(join(store, "relay", `${live.key}.set.json`), JSON.stringify({ limit: "3", at: NOW }));
@@ -187,16 +187,16 @@ describe("readRelayStats", () => {
     writeFileSync(join(store, "ledger", "2026-10.jsonl"), ledger(win({ updatedAt: OCT, used: 3 })));
     writeFileSync(join(store, "ledger", "notes.txt"), "not a ledger");
     const before = snapshot();
-    const stats = readRelayStats({ store });
+    const stats = await readRelayStats({ store });
     expect(row(stats, "2026-11", "repo-a")).toEqual({ windows: 1, sessions: 1, relays: 2 });
     expect(row(stats, "2026-10", "repo-a")).toEqual({ windows: 1, sessions: 1, relays: 3 });
-    expect(readRelayStats({ store, months: ["2026-11"] }).get("2026-10")).toBeUndefined();
+    expect((await readRelayStats({ store, months: ["2026-11"] })).get("2026-10")).toBeUndefined();
     expect(snapshot()).toEqual(before);
   });
 
-  it("is empty for a store with no relay or ledger folder", () => {
+  it("is empty for a store with no relay or ledger folder", async () => {
     rmSync(join(store, "relay"), { recursive: true });
     rmSync(join(store, "ledger"), { recursive: true });
-    expect(readRelayStats({ store }).size).toBe(0);
+    expect((await readRelayStats({ store })).size).toBe(0);
   });
 });

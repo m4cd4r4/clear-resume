@@ -10,7 +10,7 @@ const now = Date.now();
 const month = ledgerMonth(now);
 try {
   // Two ledger files are all the output shows; every live file is read, since one can move a window between months.
-  process.stdout.write(statsText(readRelayStats({ store: resolveStore(), months: [month, previousMonth(month)] }), now));
+  process.stdout.write(statsText(await readRelayStats({ store: resolveStore(), months: [month, previousMonth(month)] }), now));
 } catch (e) {
   process.stdout.write(`cornerman stats: could not read the store (${String(e?.message ?? e)}).\n`);
 }

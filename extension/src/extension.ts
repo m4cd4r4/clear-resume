@@ -15,6 +15,7 @@ import { loadedInFolders } from "../../plugin/packages/store/view.mjs";
 import { worktreePathsAsync } from "../../plugin/packages/store/worktree.mjs";
 import { SidebarProvider } from "./sidebar";
 import { StoreSource } from "./store-source";
+import { MonthSource } from "./month-source";
 import { spareStatus } from "./spare-status";
 import { statsStatus } from "./stats-status";
 import { ownedByThisWindow } from "./window-owner";
@@ -92,7 +93,9 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   // One copy of the store in memory for both views and the status bar, reread only where the watcher says.
   const source = new StoreSource(root);
-  const provider = new SidebarProvider("handovers", source, showArchived, registry, hasLegacy, act);
+  // "This month" counts the relay windows the status bar holds, so it is made once that exists, below.
+  let month: MonthSource | undefined;
+  const provider = new SidebarProvider("handovers", source, showArchived, registry, hasLegacy, act, async (now) => month?.section(now));
   const lanesProvider = new SidebarProvider("lanes", source, showArchived, registry, hasLegacy, act);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW, provider),
@@ -121,6 +124,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (record) void openLoaded(record, root());
     else void vscode.window.showInformationMessage("cornerman: no handover loaded in this tab in the last day.");
   });
+  month = new MonthSource(() => join(root(), "ledger"), () => stats.relay.files());
   spareStatus(context);
   // A hook's save is several writes, and a sync pull is hundreds: one refresh per burst.
   let burst: NodeJS.Timeout | undefined;
@@ -132,11 +136,17 @@ export function activate(context: vscode.ExtensionContext): void {
     }, 150);
   };
   context.subscriptions.push({ dispose: () => clearTimeout(burst) });
-  watchStore(context, root, () => (reroot(), stats.rewatch()), (path) => {
+  const ledgerWatch = watchLedger(context, root, () => {
+    month?.changed();
+    refreshSoon();
+  });
+  watchStore(context, root, () => (reroot(), stats.rewatch(), ledgerWatch()), (path) => {
     source.changed(path);
     refreshSoon();
   });
   const minute = setInterval(() => {
+    // In case the watcher missed a ledger write: the next refresh stats this month's file, and reads it only if it moved.
+    month?.changed();
     if (provider.visible) provider.refresh();
     // Worktrees come and go without a store write, so this view re-reads git.
     if (lanesProvider.visible) lanesProvider.refresh();
@@ -381,6 +391,27 @@ function watchStore(context: vscode.ExtensionContext, root: () => string, reroot
     }),
     { dispose: () => watcher?.dispose() },
   );
+}
+
+/**
+ * Watch <store>/ledger for the retention job's monthly files. It writes once a day at
+ * most, so a change here is rare; the returned function re-attaches after the store moves.
+ */
+function watchLedger(context: vscode.ExtensionContext, root: () => string, onChange: () => void): () => void {
+  let watcher: vscode.FileSystemWatcher | undefined;
+  const attach = () => {
+    watcher?.dispose();
+    watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(join(root(), "ledger")), "*.jsonl"));
+    watcher.onDidCreate(onChange);
+    watcher.onDidChange(onChange);
+    watcher.onDidDelete(onChange);
+  };
+  attach();
+  context.subscriptions.push({ dispose: () => watcher?.dispose() });
+  return () => {
+    attach();
+    onChange();
+  };
 }
 
 /** The old flow's prompt folder. Only ever populated on the machine that ran it. */

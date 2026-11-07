@@ -3,9 +3,13 @@
 // days and its file deleted, so this month's numbers come mostly from the live relay
 // files: both are read, and a window in both counts once, as its live file says.
 // Read only: nothing here writes under the store.
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ledgerMonth, repoOf, windowFrom, windowValue } from "./relay-retention.mjs";
+
+/** The month a window is counted under: the one its last change fell in, local time. */
+export { ledgerMonth };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -44,12 +48,13 @@ export function liveWindow(w) {
  * Per month (`YYYY-MM`, local time), per repo: `{ windows, sessions, relays }`.
  * `ledgers` is ledger text, one string per file; `live` the relay files that passed
  * windowFrom. A key in both counts once, from its live file; a key twice in the
- * ledger counts once, from its latest line.
+ * ledger counts once, from its latest line. `parsed` is ledger text already run
+ * through ledgerWindows, for a caller that keeps it between reads.
  */
-export function relayStats({ ledgers = [], live = [] }) {
+export function relayStats({ ledgers = [], parsed = [], live = [] }) {
   const byKey = new Map();
-  for (const text of ledgers) {
-    for (const w of ledgerWindows(text)) {
+  for (const rows of [...ledgers.map(ledgerWindows), ...parsed]) {
+    for (const w of rows) {
       const had = byKey.get(w.key);
       if (!had || w.at > had.at) byKey.set(w.key, w);
     }
@@ -137,38 +142,38 @@ export function ledgerFiles(ledgerDir) {
   }
 }
 
-const readOr = (path, fallback) => {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return fallback;
-  }
-};
+const readOr = (path) => readFile(path, "utf8").catch(() => "");
+
+// Files read at once. Read one at a time, 2,000 relay files took about 1.4 s on Windows;
+// 64 at a time, about 0.45 s (2026-11-07). The cap keeps the open handles bounded.
+const BATCH = 64;
+
+async function readAll(paths) {
+  const out = [];
+  for (let i = 0; i < paths.length; i += BATCH) out.push(...(await Promise.all(paths.slice(i, i + BATCH).map(readOr))));
+  return out;
+}
 
 /**
  * Read the store's ledger and live relay files. `months` (`YYYY-MM`) limits the
  * ledger files read; the live files are all read, since any of them may move a
  * window out of a ledger month.
  */
-export function readRelayStats({ store, months }) {
+export async function readRelayStats({ store, months }) {
   const ledgerDir = join(store, "ledger");
   const relayDir = join(store, "relay");
   const want = months && new Set(months.map((m) => `${m}.jsonl`));
-  const ledgers = ledgerFiles(ledgerDir)
-    .filter((n) => !want || want.has(n))
-    .map((n) => readOr(join(ledgerDir, n), ""));
+  const ledgers = await readAll(ledgerFiles(ledgerDir).filter((n) => !want || want.has(n)).map((n) => join(ledgerDir, n)));
   let names = [];
   try {
     names = readdirSync(relayDir);
   } catch {
     // no relay folder: no live windows
   }
-  const live = [];
-  for (const name of names) {
-    if (!name.endsWith(".json") || name.indexOf(".") !== name.length - ".json".length) continue;
-    const w = windowFrom(name, readOr(join(relayDir, name), ""));
-    if (w) live.push(w);
-  }
+  // <key>.json only; <key>.set.json and the other asks are not windows.
+  names = names.filter((n) => n.endsWith(".json") && n.indexOf(".") === n.length - ".json".length);
+  const texts = await readAll(names.map((n) => join(relayDir, n)));
+  const live = names.map((n, i) => windowFrom(n, texts[i])).filter(Boolean);
   return relayStats({ ledgers, live });
 }
 
