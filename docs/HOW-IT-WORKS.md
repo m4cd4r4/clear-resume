@@ -489,7 +489,7 @@ load message itself. In a test on Linux (tmux, Claude Code 2.1.283) the message 
 after `/clear` in 3 of 3 tries and showed only after pressing ctrl+o, although the handover
 had loaded. Press ctrl+o to see it.
 
-1. **Did the save succeed?** Its last line is `After /clear, the next session in <folder> loads
+1. **Did the save succeed?** Its second line is `After /clear, the next session in <folder> loads
    it automatically.` If it printed a `WARNING`, load the handover with the command in it.
 2. **Is it another open window's?** It is listed. Read it with `--peek`, or move it here with
    `--take`.

@@ -28,6 +28,17 @@ export function tildePath(p, home = homedir()) {
   return String(p);
 }
 
+/**
+ * A path for reading, in one spelling: "~/..." under the home folder, or else its
+ * long form (8.3 names expanded, links followed) with forward slashes. Output that
+ * names one folder several times then names it the same way each time.
+ */
+export function shownPath(p, home = homedir()) {
+  if (!p) return p;
+  const t = tildePath(p, home);
+  return t === "~" || t.startsWith("~/") ? t : slashes(longForm(p)).replace(/^([a-z]):/, (_, d) => `${d.toUpperCase()}:`);
+}
+
 // After "$HOME/": letters and digits in any script, and punctuation no shell reads
 // inside double quotes. Out: $ ` " ' ; [ ] \ and the curly quotes PowerShell
 // treats as quotes.
@@ -37,7 +48,8 @@ const PLAIN_REST = /^[\p{L}\p{M}\p{N}._@+ ,=/-]+$/u;
 // /c/Users/Pat O'Brien/... and failed (review 4, 2026-09-27).
 const MSYS_STOPS = /['`;[\]]/;
 
-const sameFolder = (a, b) => {
+/** Whether two spellings name the same folder, once 8.3 names, links and slashes are resolved. */
+export const sameFolder = (a, b) => {
   const fold = process.platform === "win32" || process.platform === "darwin" ? (s) => s.toLowerCase() : (s) => s;
   return fold(slashes(longForm(a))) === fold(slashes(longForm(b)));
 };
