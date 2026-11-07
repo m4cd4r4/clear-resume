@@ -60,10 +60,12 @@ describe("plugin footprint", () => {
     expect(missing).toEqual([]);
   });
 
-  it("finds every script the hooks and the skill run", () => {
+  it("finds every script the hooks and the skills run", () => {
+    const skills = readdirSync(join(PLUGIN, "skills"));
+    expect(skills).toEqual(expect.arrayContaining(["handover", "stats"]));
     const refs = [
       readFileSync(join(PLUGIN, "hooks", "hooks.json"), "utf8"),
-      readFileSync(join(PLUGIN, "skills", "handover", "SKILL.md"), "utf8"),
+      ...skills.map((s) => readFileSync(join(PLUGIN, "skills", s, "SKILL.md"), "utf8")),
     ].flatMap((text) => [...text.matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/([\w./-]+\.[mc]js)/g)].map((m) => m[1]));
     expect(refs.length).toBeGreaterThan(0);
     for (const ref of refs) expect(existsSync(join(PLUGIN, ref)), ref).toBe(true);

@@ -31,6 +31,10 @@ export default defineConfig({
     // CORNERMAN_NO_MIGRATE: a test calling run() must never move the real store.
     // CORNERMAN_TEST_GIT_SLACK: four times the product's fixed git limits (git-slack.mjs), so a
     // busy machine fails a test only when git is really stuck.
-    env: { CLAUDE_PID: "", CORNERMAN_NO_PROCESS_WALK: "1", CORNERMAN_NO_MIGRATE: "1", CORNERMAN_TEST_GIT_SLACK: "4" },
+    // CLAUDE_CODE_SESSION_ID: a save run from a Claude session read that session's real
+    // transcript for its Recent trail, so a test handover carried the caller's paths and the
+    // global pre-push leak guard refused the web tests' pushes (2026-11-07). Tests that need
+    // a session id set their own.
+    env: { CLAUDE_PID: "", CLAUDE_CODE_SESSION_ID: "", CORNERMAN_NO_PROCESS_WALK: "1", CORNERMAN_NO_MIGRATE: "1", CORNERMAN_TEST_GIT_SLACK: "4" },
   },
 });

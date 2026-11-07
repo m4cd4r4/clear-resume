@@ -16,6 +16,8 @@ Install it and work as usual. When a chat passes 250k tokens (the default; chang
 
 By hand, with the relay off: `/cornerman:handover`, `/clear`, `go`.
 
+`/cornerman:stats` prints this month's relay windows, sessions and relays by repo, and last month's totals. It reads `~/.cornerman/relay/` and `~/.cornerman/ledger/` and writes nothing.
+
 Settings, all on by default for a new install. Set any of them to off to stop it:
 
 - **Nudge** (`auto_nudge`): when the chat's context passes **Nudge at** (250k tokens by default), Claude is asked to save a handover, and asked again at a turn end (up to 3 asks in all) if it neither saved one nor replied "Nothing to hand over." or "Handover not yet: ...".

@@ -9,6 +9,7 @@ import { currentRepoPath } from "./tree";
 import { pageHtml } from "./sidebar-page";
 import { filterSections, handoverSections, lanesModel, pageJson, withArchived } from "./sidebar-model";
 import type { StoreSource } from "./store-source";
+import type { ThisMonth } from "../../plugin/packages/store/relay-stats.mjs";
 
 export type Section = "handovers" | "lanes";
 
@@ -61,6 +62,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly registryPath: () => string,
     private readonly hasLegacy: () => boolean,
     private readonly run: (m: Message) => void,
+    // The Handovers view's "This month"; left out of the model when it has no window.
+    private readonly thisMonth: (now: number) => Promise<ThisMonth | undefined> = async () => undefined,
   ) {}
 
   get visible(): boolean {
@@ -130,8 +133,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (this.section === "handovers") {
       // Worktrees of the open repo are the same repo; without them a project driven
       // through worktrees files most of its own handovers under "Other repos".
-      const sections = handoverSections(records, { repoPath: here, roots: await worktreePathsAsync(here), now, showArchived: this.showArchived(), captures });
-      return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: withArchived(filterSections(sections, this.query), { open: this.archivedOpen, query: this.query }) };
+      const [roots, month] = await Promise.all([worktreePathsAsync(here), this.thisMonth(now.getTime()).catch(() => undefined)]);
+      const sections = handoverSections(records, { repoPath: here, roots, now, showArchived: this.showArchived(), captures });
+      return { section: "handovers", query: this.query, hasLegacy: this.hasLegacy(), sections: withArchived(filterSections(sections, this.query), { open: this.archivedOpen, query: this.query }), month };
     }
     if (!here) return { section: "lanes", query: this.query, lanes: { lanes: [], next: [] } };
     const registry = this.registryPath();
