@@ -51,3 +51,17 @@ describe("handover skill allowed-tools", () => {
     expect(rules.some((r) => matches(r, 'node "/elsewhere/scripts/save.mjs" --title x'))).toBe(false);
   });
 });
+
+// /cornerman:stats runs one read-only script; its grant names that script and nothing else.
+describe("stats skill allowed-tools", () => {
+  const stats = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "stats", "SKILL.md"), "utf8").replace(/\r\n/g, "\n");
+  const front = stats.match(/^---\n([\s\S]*?)\n---\n/)[1];
+  const rules = front.split("\n").filter((l) => /^\s+-\s+Bash\(/.test(l)).map((l) => l.replace(/^\s+-\s+/, "").trim());
+
+  it("grants exactly the stats script, and matches the command the skill body runs", () => {
+    expect(rules).toEqual(['Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/stats.mjs" *)']);
+    const command = stats.match(/```bash\n(node [^\n]+)\n```/)[1];
+    expect(matches(rules[0], command)).toBe(true);
+    expect(matches(rules[0], 'node "${CLAUDE_PLUGIN_ROOT}/scripts/save.mjs" --title x')).toBe(false);
+  });
+});
