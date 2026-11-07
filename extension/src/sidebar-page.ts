@@ -74,6 +74,7 @@ svg { display: block; flex: none; }
 .month { margin: 8px 0 0; border-top: 1px solid var(--line); }
 .month h2 { margin: 0; padding-top: 10px; }
 .month p { margin: 0; padding: 2px 10px 4px 28px; font-variant-numeric: tabular-nums; }
+.month .nw { white-space: nowrap; }
 .month ul { list-style: none; margin: 0; padding: 0 10px 0 28px; }
 .month li { display: flex; gap: 8px; padding: 1px 0; color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
 .month li span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
@@ -241,7 +242,8 @@ function monthEl(m) {
   if (m.section !== "handovers" || !m.month) return null;
   return h("section", { class: "month", "aria-label": "This month" },
     h("h2", { class: "hd" }, "This month"),
-    h("p", {}, m.month.counts),
+    // Each count stays whole when the sidebar is narrow: "9 repos", never "9" then "repos".
+    h("p", {}, m.month.counts.split(" · ").flatMap((c, i) => [i ? " · " : null, h("span", { class: "nw" }, c)])),
     m.month.top.length ? h("ul", {}, m.month.top.map((r) => h("li", {}, h("span", { title: r.repo }, r.repo), h("span", {}, r.relays)))) : null);
 }
 
