@@ -86,6 +86,8 @@ try {
   }
   if (found && auto) {
     console.log("The runner resumes from it in a fresh session once this one ends. Commit anything left, then end your turn.");
+  } else if (found && process.argv.includes("--open-question")) {
+    console.log(`After /clear, the handover is offered in ${tildePath(top)}; confirm it if the session cannot be verified.`);
   } else if (found) {
     console.log(`After /clear, the next session in ${tildePath(top)} loads it automatically.`);
   } else {
