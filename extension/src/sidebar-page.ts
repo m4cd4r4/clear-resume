@@ -16,7 +16,10 @@ body.vscode-high-contrast, body.vscode-high-contrast-light { --accent: var(--vsc
 body { margin: 0; padding: 0 0 12px; color: var(--ink); font: 13px/1.4 var(--vscode-font-family); background: transparent; }
 button, input { font: inherit; color: inherit; }
 svg { display: block; flex: none; }
-.search { display: block; width: calc(100% - 16px); margin: 8px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--vscode-input-border, var(--line)); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+/* The search stays at the top while the rows scroll under it. The bar is opaque, in the view's own
+   background, and holds the 8px the box's margin used to, so nothing moves when it sticks. */
+.searchbar { position: sticky; top: 0; z-index: 2; padding: 8px; background: var(--vscode-sideBar-background, var(--vscode-editor-background)); }
+.search { display: block; width: 100%; margin: 0; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--vscode-input-border, var(--line)); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
 .search::placeholder { color: var(--vscode-input-placeholderForeground); }
 .search:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
 [role=treeitem]:focus-visible, button:focus-visible, .link:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
@@ -232,13 +235,14 @@ function items(m) {
 
 const tree = h("div", { role: "tree", id: "tree" });
 const search = h("input", { class: "search", type: "search", "aria-label": "Search", placeholder: "Search", value: st.q, on: { input: (e) => { st.q = e.target.value; persist(); post({ type: "search", q: st.q }); } } });
+const searchbar = h("div", { class: "searchbar" }, search);
 document.body.append(tree);
 
 function draw() {
   const m = st.model; if (!m) return;
   tree.setAttribute("aria-label", m.section === "handovers" ? "Handovers" : "Worktrees");
   // Search narrows handovers only; a repo has a handful of worktrees.
-  if (m.section === "handovers" && !search.isConnected) document.body.prepend(search);
+  if (m.section === "handovers" && !searchbar.isConnected) document.body.prepend(searchbar);
   const had = tree.contains(document.activeElement);
   const list = items(m);
   // A flat list has no nesting for a screen reader to count, so say "n of m" per parent.
