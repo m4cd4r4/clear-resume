@@ -8,7 +8,7 @@ import { migrateOnStart } from "../../packages/store/rename.mjs";
 import { oldPluginNotice } from "./upgrade.mjs";
 import { writeLoadedCopy } from "../../packages/store/loaded.mjs";
 import { captureDir, readCapture, summary } from "../../packages/store/artifacts.mjs";
-import { age, chooseHandover, inFuture, isFresh, isOpenQuestion } from "./select.mjs";
+import { age, chooseHandover, inFuture, isFresh, isOpenQuestion, isRecent } from "./select.mjs";
 import { ownerId, ownerOpen, parseOwner, sameOwner } from "./owner.mjs";
 import { shellPath, tildePath } from "./display.mjs";
 import { consumedIds, handoverId, handoverRef, lastConsumed, markConsumed, removeUntrackedCopy, repoHandovers, webEnabled } from "./web.mjs";
@@ -76,8 +76,9 @@ function describe(h, now, { othersOpen = () => false } = {}) {
   const max = untrusted ? GIT_TEXT_MAX : undefined;
   const branch = h.meta.branch ? `, branch ${clean(h.meta.branch, max)}` : "";
   const busy = othersOpen(h);
-  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy || (isOpenQuestion(h) && !h.meta.takenAt) ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
-  const whose = isOpenQuestion(h) && !h.meta.takenAt
+  const staleQuestion = isOpenQuestion(h) && !h.meta.takenAt && !isRecent(h.meta.created, now);
+  const how = h.short ? `node ${shellPath(LOAD_SCRIPT)} ${busy || staleQuestion ? "--peek " : ""}${h.short}` : (h.show ?? `read the file ${h.path}`);
+  const whose = staleQuestion
     ? ` (idle question snapshot from session ${clean(h.meta.sessionId || "unknown")}; confirm before resuming)`
     : busy ? " (belongs to another open window)" : "";
   const when = inFuture(h.meta.created, now) ? `dated ${isoDate(h.meta.created)}, which is in the future` : `saved ${age(h.meta.created, now)}`;
@@ -309,9 +310,9 @@ function start(input, { env, now }) {
   const echo = recentlyLoaded(root, key, now, env, cheapMe());
   let load = echo;
   let list = waiting;
-  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", sessionId: input.session_id || "", alive, ownOnly: compact }));
-  const newest = input.source === "clear" ? listAll(root).find((h) => h.status === "waiting") : null;
-  const elsewhere = newest && repoKey(newest.repoPath) !== key ? newest : null;
+  if (!echo) ({ load, list } = chooseHandover(waiting, branch, { now, maxAgeDays, owner: waiting.some((h) => h.meta.owner) ? chooser() : "", alive, ownOnly: compact }));
+  const newest = input.source === "clear" && !waiting.length ? listAll(root).find((h) => h.status === "waiting") : null;
+  const elsewhere = newest && repoKey(newest.repoPath) !== key && isRecent(newest.createdAt, now) ? newest : null;
   if (!load && !waiting.length && !inGit.length && !compact && !elsewhere) return null;
 
   const parts = compact ? [COMPACT_NOTE] : [];
@@ -380,7 +381,7 @@ function start(input, { env, now }) {
   }
 
   if (elsewhere) {
-    const note = `cornerman: your newest handover "${clean(elsewhere.title)}" is for another folder: open ${clean(tildePath(elsewhere.repoPath))}.`;
+    const note = `cornerman: your newest handover is for another folder: open ${clean(tildePath(elsewhere.repoPath))}.`;
     parts.push(`${note} Tell the user; do not load it here.`);
     shown = shown ? `${shown} ${note}` : note;
   }

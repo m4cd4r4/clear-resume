@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "../plugin/scripts/lib/hook.mjs";
 import { listWaiting, saveHandover } from "../plugin/scripts/lib/store.mjs";
+import { tildePath } from "../plugin/scripts/lib/display.mjs";
+import { normalisePath } from "../plugin/packages/store/schema.mjs";
 
 const scripts = join(import.meta.dirname, "../plugin/scripts");
 let root, repo, other;
@@ -13,8 +15,9 @@ const cli = (script, args = [], input = "", env = {}) => spawnSync(process.execP
   cwd: repo, input, encoding: "utf8",
   env: { ...process.env, CORNERMAN_HOME: root, CLAUDE_PID: "111", CORNERMAN_SYNC: "off", ...env },
 });
-const hook = (session_id = "new") => run({ cwd: repo, source: "clear", session_id }, {
+const hook = (session_id = "new", now = new Date()) => run({ cwd: repo, source: "clear", session_id }, {
   env: { CORNERMAN_HOME: root, CLAUDE_PID: "111", CORNERMAN_SYNC: "off" },
+  now,
 });
 const save = (extra = {}) => saveHandover({
   cwd: repo, root, owner: "111", sessionId: "old", openQuestion: true,
@@ -49,8 +52,8 @@ describe("idle question handover session safety", () => {
     expect(record(otherSession.path).status).toBe("waiting");
   });
 
-  it("keeps a snapshot on clear, but lists it if the new session cannot be verified", () => {
-    const idle = save();
+  it("keeps a snapshot on clear, but lists it after 61 minutes", () => {
+    const idle = save({ now: new Date(Date.now() - 61 * 60_000) });
     cli("session-end.mjs", [], JSON.stringify({ session_id: "old", reason: "clear" }));
     const out = hook();
     expect(out.systemMessage).toContain("Say which to resume");
@@ -63,19 +66,27 @@ describe("idle question handover session safety", () => {
     expect(record(idle.path).status).toBe("archived");
   });
 
-  it("loads a snapshot only when its session is identified", () => {
-    const idle = save();
-    const out = hook("old");
+  it("loads a 59-minute snapshot after clear even with a new session id", () => {
+    const now = new Date();
+    const idle = save({ now: new Date(now - 59 * 60_000) });
+    cli("session-end.mjs", [], JSON.stringify({ session_id: "old", reason: "clear" }));
+    const out = hook("new", now);
     expect(out.hookSpecificOutput.additionalContext).toContain("Wait for the answer.");
     out.afterOutput();
     expect(record(idle.path).status).toBe("archived");
   });
 
-  it("recognizes old unmarked idle snapshots and does not guess when their session is unknown", () => {
-    const idle = save({ openQuestion: false, sessionId: "", body: "- Saved by the idle check, not the model: Nothing was cleared." });
+  it("recognizes stale unmarked idle snapshots when their session is unknown", () => {
+    const idle = save({ openQuestion: false, sessionId: "", now: new Date(Date.now() - 61 * 60_000), body: "- Saved by the idle check, not the model: Nothing was cleared." });
     const out = hook();
     expect(out.hookSpecificOutput.additionalContext).toContain("session unknown");
     expect(record(idle.path).status).toBe("waiting");
+  });
+
+  it("allows explicit loading of a recent idle snapshot", () => {
+    const idle = save({ now: new Date(Date.now() - 59 * 60_000) });
+    expect(cli("load.mjs", [idle.short]).status).toBe(0);
+    expect(record(idle.path).status).toBe("archived");
   });
 
   it("retires a legacy idle snapshot with a matching session", () => {
@@ -92,21 +103,46 @@ describe("idle question handover session safety", () => {
     expect(record(handover.path).status).toBe("archived");
   });
 
-  it("reports the newest waiting handover in another folder without loading it", () => {
+  it("does not report another folder when a handover is waiting here", () => {
     const idle = save({ now: new Date(Date.now() - 10_000) });
     const elsewhere = save({ cwd: other, owner: "222", openQuestion: false, title: "practice", body: "other folder secret" });
     const out = hook();
-    expect(out.systemMessage).toContain("practice");
-    expect(out.systemMessage).toContain(other);
+    expect(out.systemMessage).not.toContain("another folder");
+    expect(out.systemMessage).not.toContain("practice");
     expect(out.hookSpecificOutput.additionalContext).not.toContain("other folder secret");
     expect(record(idle.path).status).toBe("waiting");
     expect(record(elsewhere.path).status).toBe("waiting");
+  });
+
+  it("does not report another folder when a stale local snapshot is listed", () => {
+    save({ now: new Date(Date.now() - 61 * 60_000) });
+    save({ cwd: other, owner: "222", openQuestion: false, title: "practice" });
+    const out = hook();
+    expect(out.systemMessage).not.toContain("another folder");
+    expect(out.systemMessage).not.toContain("practice");
+    expect(out.hookSpecificOutput.additionalContext).toContain("session old");
   });
 
   it("reports another folder even when nothing is waiting here", () => {
     save({ cwd: other, openQuestion: false, title: "practice" });
     const out = hook();
     expect(out.systemMessage).toContain("another folder");
-    expect(out.systemMessage).toContain(other);
+    expect(out.systemMessage).toContain(tildePath(normalisePath(other)));
+    expect(JSON.stringify(out)).not.toContain("practice");
+  });
+
+  it("does not report another folder's handover when it is an hour old", () => {
+    const now = new Date();
+    save({ cwd: other, openQuestion: false, title: "practice", now: new Date(now - 60 * 60_000) });
+    expect(hook("new", now)).toBeNull();
+  });
+
+  it("does not automatically load a snapshot at 60 minutes even for the same session", () => {
+    const now = new Date();
+    const idle = save({ now: new Date(now - 60 * 60_000) });
+    const out = hook("old", now);
+    expect(out.hookSpecificOutput.additionalContext).toContain("session old");
+    expect(out.hookSpecificOutput.additionalContext).not.toContain("Wait for the answer.");
+    expect(record(idle.path).status).toBe("waiting");
   });
 });

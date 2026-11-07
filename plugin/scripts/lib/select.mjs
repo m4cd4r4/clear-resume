@@ -22,6 +22,7 @@
 import { isOwnHandover } from "./owner.mjs";
 
 export const FUTURE_SKEW_MS = 5 * 60_000;
+export const RECENT_HANDOVER_MS = 60 * 60_000;
 
 export function inFuture(created, now = new Date()) {
   return new Date(created) - now > FUTURE_SKEW_MS;
@@ -54,11 +55,16 @@ export function isOpenQuestion(h) {
   );
 }
 
-export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", sessionId = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
+export function isRecent(created, now = new Date()) {
+  const ageMs = now - new Date(created);
+  return ageMs >= -FUTURE_SKEW_MS && ageMs < RECENT_HANDOVER_MS;
+}
+
+export function chooseHandover(waiting, branch, { now = new Date(), maxAgeDays = 7, owner = "", alive = () => false, ownOnly = false, toEpoch } = {}) {
   const fresh = waiting.filter((h) => {
     if (!isFresh(h, now, maxAgeDays)) return false;
     if (!isOpenQuestion(h) || h.meta.takenAt) return true;
-    return Boolean(sessionId) && h.meta.sessionId === sessionId;
+    return isRecent(h.meta.created, now);
   });
 
   const mine = owner ? fresh.filter((h) => isOwnHandover(owner, h.meta.owner, claimedAt(h), { toEpoch, machine: h.meta.machine })) : [];
